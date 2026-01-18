@@ -1,0 +1,2 @@
+# erp-escolas-platform
+PLATAFORMA INTEGRADA DE GESTÃO ESCOLAR
