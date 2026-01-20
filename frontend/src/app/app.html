@@ -1,10 +1,27 @@
-<div class="min-h-screen bg-gray-100 flex items-center justify-center">
-  <div class="bg-white p-8 rounded-lg shadow-lg">
-    <h1 class="text-3xl font-bold text-blue-600 mb-4">
-      Bem-vindo ao ERP Escolar
-    </h1>
-    <p class="text-gray-700">
-      Frontend Angular + Tailwind configurado com sucesso!
-    </p>
+<div class="min-h-screen bg-gray-100">
+
+  <nav class="bg-blue-900 text-white p-4 shadow-md">
+    <div class="container mx-auto flex justify-between items-center">
+      <h1 class="text-xl font-bold">ERP Escolar</h1>
+      <div class="space-x-4">
+        <a routerLink="/nova-escola" routerLinkActive="text-yellow-300 font-bold"
+          class="hover:text-yellow-200 transition">
+          Criar Escola
+        </a>
+        <a routerLink="/novo-aluno" routerLinkActive="text-yellow-300 font-bold"
+          class="hover:text-yellow-200 transition">
+          Matricular Aluno
+        </a>
+        <a routerLink="/lista-alunos" routerLinkActive="text-yellow-300 font-bold"
+          class="hover:text-yellow-200 transition">
+          Consultar Pauta
+        </a>
+      </div>
+    </div>
+  </nav>
+
+  <div class="container mx-auto py-10">
+    <router-outlet></router-outlet>
   </div>
+
 </div>
