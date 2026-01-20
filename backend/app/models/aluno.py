@@ -15,6 +15,7 @@ class Aluno(Base):
     # RELACIONAMENTO (A chave mágica 🗝️)
     # Aqui dizemos: "Este aluno pertence à escola com este ID"
     escola_id = Column(Integer, ForeignKey("escolas.id"), nullable=False, index=True)
+    turma_id = Column(Integer, ForeignKey("turmas.id"), nullable=True)
     
     # Dados de Controlo
     ativo = Column(Boolean, default=True)
@@ -23,3 +24,4 @@ class Aluno(Base):
     
     # Vínculo bidirecional (para acederes a aluno.escola)
     escola = relationship("Escola", back_populates="alunos")
+    turma = relationship("Turma", back_populates="alunos")

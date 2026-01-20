@@ -8,6 +8,8 @@ from sqlalchemy.orm import Session
 from app.db import database
 from app.schemas import escola as schemas_escola
 from app.schemas import aluno as schemas_aluno
+from app.schemas import turma as schemas_turma
+from app.cruds import crud_turma as crud_turma
 from app.cruds import crud_escola as crud_escola
 from app.cruds import crud_aluno as crud_aluno
 from app.models import escola as models
@@ -117,3 +119,11 @@ def delete_aluno(aluno_id: int, db: Session = Depends(get_db)):
     if not sucesso:
         raise HTTPException(status_code=404, detail="Aluno não encontrado")
     return {"mensagem": "Aluno removido com sucesso"}
+
+@app.post("/turmas/", response_model=schemas_turma.TurmaResponse)
+def create_turma(turma: schemas_turma.TurmaCreate, db: Session = Depends(get_db)):
+    return crud_turma.create_turma(db=db, turma=turma)
+
+@app.get("/escolas/{escola_id}/turmas", response_model=list[schemas_turma.TurmaResponse])
+def read_turmas_escola(escola_id: int, db: Session = Depends(get_db)):
+    return crud_turma.get_turmas_by_escola(db=db, escola_id=escola_id)

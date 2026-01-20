@@ -25,4 +25,4 @@ class Escola(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     alunos = relationship("Aluno", back_populates="escola")
-    # Nota: Futuramente, adicionaremos aqui relacionamentos (ex: alunos = relationship(...))
+    turmas = relationship("Turma", back_populates="escola")
