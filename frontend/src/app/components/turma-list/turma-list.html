@@ -1,14 +1,14 @@
 <div class="max-w-4xl mx-auto mt-10 p-6 bg-white rounded-lg shadow-xl border border-gray-200">
   <div class="flex justify-between items-center mb-6">
     <h2 class="text-2xl font-bold text-gray-800">Turmas da Escola</h2>
-    <button class="bg-indigo-600 text-white px-4 py-2 rounded text-sm hover:bg-indigo-700 transition">
+    <button routerLink="/nova-turma" class="bg-indigo-600 text-white px-4 py-2 rounded text-sm hover:bg-indigo-700 transition">
       + Nova Turma
     </button>
   </div>
 
   <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
     @for (turma of turmas; track turma.id) {
-      <div class="bg-gray-50 border border-gray-200 p-4 rounded-lg hover:shadow-md transition cursor-pointer border-l-4 border-l-indigo-500">
+      <div [routerLink]="['/turma', turma.id]" class="bg-gray-50 border border-gray-200 p-4 rounded-lg hover:shadow-md transition cursor-pointer border-l-4 border-l-indigo-500">
         <h3 class="text-lg font-bold text-gray-800">{{ turma.nome }}</h3>
         <p class="text-gray-600 text-sm">Ano: {{ turma.ano_letivo }}</p>
         <span class="inline-block mt-2 text-xs bg-indigo-100 text-indigo-800 px-2 py-1 rounded">

@@ -7,7 +7,8 @@ def create_aluno(db: Session, aluno: AlunoCreate):
         nome=aluno.nome,
         bi=aluno.bi,
         data_nascimento=aluno.data_nascimento,
-        escola_id=aluno.escola_id
+        escola_id=aluno.escola_id,
+        turma_id=aluno.turma_id
     )
     db.add(db_aluno)
     db.commit()
@@ -44,3 +45,6 @@ def delete_aluno(db: Session, aluno_id: int):
         db.commit()
         return True
     return False
+
+def get_alunos_by_turma(db: Session, turma_id: int):
+    return db.query(models.Aluno).filter(models.Aluno.turma_id == turma_id).all()

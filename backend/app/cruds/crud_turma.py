@@ -16,3 +16,6 @@ def create_turma(db: Session, turma: schemas.TurmaCreate):
 
 def get_turmas_by_escola(db: Session, escola_id: int):
     return db.query(models.Turma).filter(models.Turma.escola_id == escola_id).all()
+
+def get_turma(db: Session, turma_id: int):
+    return db.query(models.Turma).filter(models.Turma.id == turma_id).first()

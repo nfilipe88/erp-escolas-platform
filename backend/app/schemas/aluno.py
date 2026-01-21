@@ -6,6 +6,7 @@ class AlunoBase(BaseModel):
     nome: str
     bi: Optional[str] = None
     data_nascimento: Optional[date] = None
+    turma_id: Optional[int] = None
 
 class AlunoCreate(AlunoBase):
     escola_id: int  # Obrigatório saber a escola ao criar
@@ -14,6 +15,7 @@ class AlunoUpdate(BaseModel):
     nome: Optional[str] = None
     bi: Optional[str] = None
     data_nascimento: Optional[date] = None
+    turma_id: Optional[int] = None # Permitir atualização da turma
     ativo: Optional[bool] = None
 
 class AlunoResponse(AlunoBase):

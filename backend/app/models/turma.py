@@ -17,6 +17,7 @@ class Turma(Base):
 
     # Relacionamento com Alunos (Uma turma tem vários alunos)
     alunos = relationship("Aluno", back_populates="turma")
+    disciplinas = relationship("Disciplina", back_populates="turma")
 
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())

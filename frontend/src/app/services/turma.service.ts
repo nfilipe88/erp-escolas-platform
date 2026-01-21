@@ -26,4 +26,8 @@ export class TurmaService {
   getTurmas(escolaId: number): Observable<Turma[]> {
     return this.http.get<Turma[]>(`${this.apiUrl}/escolas/${escolaId}/turmas`);
   }
+
+  getTurmaById(id: number): Observable<Turma> {
+    return this.http.get<Turma>(`${this.apiUrl}/turmas/${id}`);
+  }
 }

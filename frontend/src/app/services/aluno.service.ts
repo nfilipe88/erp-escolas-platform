@@ -8,6 +8,7 @@ export interface Aluno {
   bi?: string;
   data_nascimento?: string;
   escola_id: number;
+  turma_id?: number;   // <--- (com ponto de interrogação pois pode ser nulo)
   ativo?: boolean;     // <--- Adicionei isto para mostrar na tabela
   created_at?: string; // <--- Adicionei isto para mostrar a data
 }
@@ -39,5 +40,9 @@ export class AlunoService {
 
   removerAluno(id: number): Observable<any> {
     return this.http.delete(`${this.apiUrl}/alunos/${id}`);
+  }
+
+  getAlunosPorTurma(turmaId: number): Observable<Aluno[]> {
+    return this.http.get<Aluno[]>(`${this.apiUrl}/turmas/${turmaId}/alunos`);
   }
 }

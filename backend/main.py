@@ -9,9 +9,11 @@ from app.db import database
 from app.schemas import escola as schemas_escola
 from app.schemas import aluno as schemas_aluno
 from app.schemas import turma as schemas_turma
+from app.schemas import disciplina as schemas_disciplina
 from app.cruds import crud_turma as crud_turma
 from app.cruds import crud_escola as crud_escola
 from app.cruds import crud_aluno as crud_aluno
+from app.cruds import crud_disciplina
 from app.models import escola as models
 from app.models.aluno import Aluno
 
@@ -127,3 +129,24 @@ def create_turma(turma: schemas_turma.TurmaCreate, db: Session = Depends(get_db)
 @app.get("/escolas/{escola_id}/turmas", response_model=list[schemas_turma.TurmaResponse])
 def read_turmas_escola(escola_id: int, db: Session = Depends(get_db)):
     return crud_turma.get_turmas_by_escola(db=db, escola_id=escola_id)
+
+# --- ROTAS PARA DETALHE DE TURMA ---
+
+@app.get("/turmas/{turma_id}", response_model=schemas_turma.TurmaResponse)
+def read_turma(turma_id: int, db: Session = Depends(get_db)):
+    db_turma = crud_turma.get_turma(db, turma_id=turma_id)
+    if db_turma is None:
+        raise HTTPException(status_code=404, detail="Turma não encontrada")
+    return db_turma
+
+@app.get("/turmas/{turma_id}/alunos", response_model=list[schemas_aluno.AlunoResponse])
+def read_alunos_turma(turma_id: int, db: Session = Depends(get_db)):
+    return crud_aluno.get_alunos_by_turma(db=db, turma_id=turma_id)
+
+@app.post("/disciplinas/", response_model=schemas_disciplina.DisciplinaResponse)
+def create_disciplina(disciplina: schemas_disciplina.DisciplinaCreate, db: Session = Depends(get_db)):
+    return crud_disciplina.create_disciplina(db=db, disciplina=disciplina)
+
+@app.get("/turmas/{turma_id}/disciplinas", response_model=list[schemas_disciplina.DisciplinaResponse])
+def read_disciplinas_turma(turma_id: int, db: Session = Depends(get_db)):
+    return crud_disciplina.get_disciplinas_by_turma(db=db, turma_id=turma_id)

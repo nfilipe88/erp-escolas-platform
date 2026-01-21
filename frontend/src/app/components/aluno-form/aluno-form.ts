@@ -3,6 +3,7 @@ import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angula
 import { AlunoService, Aluno } from '../../services/aluno.service';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
+import { Turma, TurmaService } from '../../services/turma.service';
 
 @Component({
   selector: 'app-aluno-form',
@@ -11,13 +12,16 @@ import { ActivatedRoute, Router } from '@angular/router';
   styleUrl: './aluno-form.css',
 })
 export class AlunoForm {
+  private router = inject(Router);        // Para navegar depois de salvar
+  private route = inject(ActivatedRoute); // Para ler o ID da URL
   private fb = inject(FormBuilder);
   private alunoService = inject(AlunoService);
-  private route = inject(ActivatedRoute); // Para ler o ID da URL
-  private router = inject(Router);        // Para navegar depois de salvar
+  private turmaService = inject(TurmaService);
 
   isEditMode = false;
   alunoId: number | null = null;
+
+  turmas: Turma[] = [];
 
   mensagemSucesso = '';
   mensagemErro = '';
@@ -26,10 +30,12 @@ export class AlunoForm {
     nome: ['', [Validators.required, Validators.minLength(3)]],
     bi: ['', [Validators.required]],
     data_nascimento: ['', Validators.required],
-    escola_id: [1, Validators.required] // Fixo na escola 1 por enquanto
+    escola_id: [1, Validators.required], // Fixo na escola 1 por enquanto
+    turma_id: [null]
   });
 
   ngOnInit() {
+    this.carregarTurmas(); // <--- Busca as turmas ao iniciar
     // Verifica se existe um ID na URL (ex: /editar-aluno/1)
     const id = this.route.snapshot.paramMap.get('id');
 
@@ -40,6 +46,12 @@ export class AlunoForm {
     }
   }
 
+  carregarTurmas() {
+    this.turmaService.getTurmas(1).subscribe(dados => { // ID 1 fixo por agora
+      this.turmas = dados;
+    });
+  }
+
   carregarDados(id: number) {
     this.alunoService.getAlunoById(id).subscribe(aluno => {
       // Preenche o formulário com os dados do banco
@@ -47,7 +59,8 @@ export class AlunoForm {
         nome: aluno.nome,
         bi: aluno.bi,
         data_nascimento: aluno.data_nascimento,
-        escola_id: aluno.escola_id
+        escola_id: aluno.escola_id,
+        turma_id: aluno.turma_id
       });
     });
   }
