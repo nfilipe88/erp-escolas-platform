@@ -6,6 +6,7 @@ from uuid import uuid4
 from fastapi import UploadFile, File, Form 
 from fastapi.staticfiles import StaticFiles # Para servir os arquivos
 
+from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from fastapi import FastAPI, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi import FastAPI, Request
@@ -16,13 +17,23 @@ from app.schemas import aluno as schemas_aluno
 from app.schemas import turma as schemas_turma
 from app.schemas import disciplina as schemas_disciplina
 from app.schemas import nota as schemas_nota
+from app.schemas import boletim as schemas_boletim
+from app.schemas import dashboard as schemas_dashboard
+from app.schemas import mensalidade as schemas_fin
+from app.schemas import usuario as schemas_user
 from app.cruds import crud_turma as crud_turma
 from app.cruds import crud_escola as crud_escola
 from app.cruds import crud_aluno as crud_aluno
 from app.cruds import crud_disciplina
 from app.cruds import crud_nota
+from app.cruds import crud_dashboard
+from app.cruds import crud_mensalidade
+from app.cruds import crud_usuario
 from app.models import escola as models
 from app.models.aluno import Aluno
+from app.models import usuario as models_user
+
+from app.security import verify_password, create_access_token
 
 # Criar tabelas (apenas para desenvolvimento)
 models.Base.metadata.create_all(bind=database.engine)
@@ -210,3 +221,64 @@ def lancar_nota(
 @app.get("/disciplinas/{disciplina_id}/notas", response_model=list[schemas_nota.NotaResponse])
 def read_notas_disciplina(disciplina_id: int, db: Session = Depends(get_db)):
     return crud_nota.get_notas_by_disciplina(db=db, disciplina_id=disciplina_id)
+
+@app.get("/alunos/{aluno_id}/boletim", response_model=schemas_boletim.BoletimResponse)
+def read_boletim(aluno_id: int, db: Session = Depends(get_db)):
+    boletim = crud_nota.get_boletim_aluno(db=db, aluno_id=aluno_id)
+    if not boletim:
+        raise HTTPException(status_code=404, detail="Aluno não encontrado")
+    return boletim
+
+@app.get("/dashboard/stats", response_model=schemas_dashboard.DashboardStats)
+def read_dashboard_stats(db: Session = Depends(get_db)):
+    return crud_dashboard.get_stats(db=db)
+
+# 1. Gerar dívidas para um aluno (ex: Matrícula)
+@app.post("/alunos/{aluno_id}/financeiro/gerar", response_model=list[schemas_fin.MensalidadeResponse])
+def gerar_financeiro_aluno(aluno_id: int, ano: int = 2025, valor: float = 15000, db: Session = Depends(get_db)):
+    return crud_mensalidade.gerar_carnet_aluno(db=db, aluno_id=aluno_id, ano=ano, valor=valor)
+
+# 2. Consultar Extrato do Aluno
+@app.get("/alunos/{aluno_id}/financeiro", response_model=list[schemas_fin.MensalidadeResponse])
+def read_financeiro_aluno(aluno_id: int, db: Session = Depends(get_db)):
+    return crud_mensalidade.get_mensalidades_aluno(db=db, aluno_id=aluno_id)
+
+# 3. Pagar
+@app.put("/financeiro/{mensalidade_id}/pagar", response_model=schemas_fin.MensalidadeResponse)
+def pagar_mensalidade(mensalidade_id: int, dados: schemas_fin.MensalidadePagar, db: Session = Depends(get_db)):
+    return crud_mensalidade.pagar_mensalidade(db=db, mensalidade_id=mensalidade_id, dados_pagamento=dados)
+
+@app.get("/financeiro/{id}", response_model=schemas_fin.MensalidadeResponse)
+def read_mensalidade(id: int, db: Session = Depends(get_db)):
+    mensalidade = crud_mensalidade.get_mensalidade_by_id(db=db, id=id)
+    if not mensalidade:
+        raise HTTPException(status_code=404, detail="Mensalidade não encontrada")
+    return mensalidade
+
+# 1. Rota para CRIAR O PRIMEIRO UTILIZADOR (Registo)
+@app.post("/auth/registar", response_model=schemas_user.UsuarioResponse)
+def registar_usuario(usuario: schemas_user.UsuarioCreate, db: Session = Depends(get_db)):
+    db_user = crud_usuario.get_usuario_by_email(db, email=usuario.email)
+    if db_user:
+        raise HTTPException(status_code=400, detail="Email já registado")
+    return crud_usuario.create_usuario(db=db, usuario=usuario)
+
+# 2. Rota de LOGIN (Gera o Token)
+@app.post("/auth/login", response_model=schemas_user.Token)
+def login_access_token(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
+    # 1. Busca utilizador pelo email
+    usuario = crud_usuario.get_usuario_by_email(db, email=form_data.username)
+    
+    # 2. Verifica se existe e se a senha bate
+    if not usuario or not verify_password(form_data.password, usuario.senha_hash):
+        raise HTTPException(status_code=400, detail="Email ou senha incorretos")
+    
+    # 3. Gera o Token
+    access_token = create_access_token(data={"sub": usuario.email})
+    
+    return {
+        "access_token": access_token,
+        "token_type": "bearer",
+        "perfil": usuario.perfil,
+        "nome": usuario.nome
+    }

@@ -1,2 +1,36 @@
 /* You can add global styles to this file, and also import other style files */
 @import "tailwindcss";
+
+@media print {
+  /* 1. ESCONDER O MENU DE NAVEGAÇÃO */
+  nav {
+    display: none !important;
+  }
+
+  /* 2. ESCONDER TODOS OS BOTÕES E LINKS DE NAVEGAÇÃO */
+  /* Isto garante que o botão "Voltar" e "Imprimir" não saem no papel,
+     caso o Tailwind 'print:hidden' falhe */
+  button,
+  a[routerLink] {
+    display: none !important;
+  }
+
+  /* 3. LIMPEZA VISUAL PARA O PAPEL */
+  body, app-root {
+    background-color: white !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  /* Remove as sombras dos cartões (tinta gasta desnecessária) */
+  .shadow-2xl, .shadow-xl, .shadow-lg, .shadow-md, .shadow {
+    box-shadow: none !important;
+    border: none !important;
+  }
+
+  /* Força o boletim a usar a largura total do papel */
+  .max-w-4xl {
+    max-width: 100% !important;
+    width: 100% !important;
+  }
+}

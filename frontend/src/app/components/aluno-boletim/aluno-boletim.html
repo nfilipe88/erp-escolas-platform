@@ -1,0 +1,62 @@
+<div class="max-w-4xl mx-auto mt-10 p-8 bg-white shadow-2xl rounded-sm border border-gray-300 print:shadow-none print:border-0 print:w-full print:max-w-none">
+
+  <div class="text-center border-b-2 border-black pb-4 mb-6">
+    <h1 class="text-3xl font-bold uppercase tracking-widest text-gray-900">Boletim Escolar</h1>
+    <p class="text-gray-500">Ano Letivo 2025</p>
+  </div>
+
+  <div *ngIf="boletim; else loading">
+    <div class="flex justify-between mb-8 text-sm uppercase">
+      <div>
+        <p><span class="font-bold">Aluno:</span> {{ boletim.aluno_nome }}</p>
+        <p><span class="font-bold">BI:</span> {{ boletim.aluno_bi || '---' }}</p>
+      </div>
+      <div class="text-right">
+        <p><span class="font-bold">Turma:</span> {{ boletim.turma }}</p>
+        <p><span class="font-bold">Data:</span> {{ dataHoje | date:'dd/MM/yyyy' }}</p>
+      </div>
+    </div>
+
+    <table class="w-full border-collapse border border-black text-sm">
+      <thead class="bg-gray-100">
+        <tr>
+          <th class="border border-black p-3 text-left w-1/3">Disciplina</th>
+          <th class="border border-black p-3 text-center">1º Trimestre</th>
+          <th class="border border-black p-3 text-center">2º Trimestre</th>
+          <th class="border border-black p-3 text-center">3º Trimestre</th>
+          <th class="border border-black p-3 text-center bg-gray-200">Média</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let linha of boletim.linhas">
+          <td class="border border-black p-3 font-bold">{{ linha.disciplina }}</td>
+
+          <td class="border border-black p-3 text-center">
+            {{ getNota(linha.notas, '1º Trimestre') }}
+          </td>
+          <td class="border border-black p-3 text-center">
+            {{ getNota(linha.notas, '2º Trimestre') }}
+          </td>
+          <td class="border border-black p-3 text-center">
+            {{ getNota(linha.notas, '3º Trimestre') }}
+          </td>
+
+          <td class="border border-black p-3 text-center font-bold bg-gray-50">
+            {{ linha.media_provisoria }}
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="mt-12 flex justify-between items-end print:hidden">
+        <a routerLink="/lista-alunos" class="text-blue-600 hover:underline">← Voltar à Lista</a>
+        <button (click)="imprimir()" class="bg-black text-white px-6 py-2 rounded hover:bg-gray-800">
+            🖨️ Imprimir Boletim
+        </button>
+    </div>
+  </div>
+
+  <ng-template #loading>
+    <p class="text-center py-10">A carregar boletim...</p>
+  </ng-template>
+</div>

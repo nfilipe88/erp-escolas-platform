@@ -6,6 +6,10 @@ import { TurmaForm } from './components/turma-form/turma-form';
 import { TurmaList } from './components/turma-list/turma-list';
 import { TurmaDetail } from './components/turma-detail/turma-detail';
 import { NotaPauta } from './components/nota-pauta/nota-pauta';
+import { AlunoBoletim } from './components/aluno-boletim/aluno-boletim';
+import { Dashboard } from './components/dashboard/dashboard';
+import { AlunoFinanceiro } from './components/aluno-financeiro/aluno-financeiro';
+import { AlunoRecibo } from './components/aluno-recibo/aluno-recibo';
 
 export const routes: Routes = [
   { path: '', redirectTo: 'nova-escola', pathMatch: 'full' }, // Redireciona a raiz
@@ -18,4 +22,9 @@ export const routes: Routes = [
   { path: 'nova-turma', component: TurmaForm },
   { path: 'turma/:id', component: TurmaDetail },
   { path: 'turma/:turmaId/pauta', component: NotaPauta },
+  { path: 'aluno/:id/boletim', component: AlunoBoletim },
+  { path: '', component: Dashboard },
+  { path: 'dashboard', component: Dashboard },
+  { path: 'aluno/:id/financeiro', component: AlunoFinanceiro },
+  { path: 'recibo/:id', component: AlunoRecibo },
 ];

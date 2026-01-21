@@ -13,6 +13,17 @@ export interface Aluno {
   created_at?: string; // <--- Adicionei isto para mostrar a data
 }
 
+export interface Boletim {
+  aluno_nome: string;
+  aluno_bi: string;
+  turma: string;
+  linhas: {
+    disciplina: string;
+    media_provisoria: number;
+    notas: { trimestre: string; valor: number; descricao: string }[];
+  }[];
+}
+
 @Injectable({
   providedIn: 'root',
 })
@@ -44,5 +55,9 @@ export class AlunoService {
 
   getAlunosPorTurma(turmaId: number): Observable<Aluno[]> {
     return this.http.get<Aluno[]>(`${this.apiUrl}/turmas/${turmaId}/alunos`);
+  }
+
+  getBoletim(alunoId: number): Observable<Boletim> {
+    return this.http.get<Boletim>(`${this.apiUrl}/alunos/${alunoId}/boletim`);
   }
 }
