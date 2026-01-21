@@ -25,3 +25,4 @@ class Aluno(Base):
     # Vínculo bidirecional (para acederes a aluno.escola)
     escola = relationship("Escola", back_populates="alunos")
     turma = relationship("Turma", back_populates="alunos")
+    notas = relationship("Nota", back_populates="aluno")

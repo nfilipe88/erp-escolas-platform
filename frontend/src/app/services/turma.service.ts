@@ -10,6 +10,12 @@ export interface Turma {
   escola_id: number;
 }
 
+export interface Disciplina {
+  id?: number;
+  nome: string;
+  turma_id: number;
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -29,5 +35,14 @@ export class TurmaService {
 
   getTurmaById(id: number): Observable<Turma> {
     return this.http.get<Turma>(`${this.apiUrl}/turmas/${id}`);
+  }
+
+  // Métodos para Disciplinas
+  addDisciplina(disciplina: Disciplina): Observable<Disciplina> {
+    return this.http.post<Disciplina>(`${this.apiUrl}/disciplinas/`, disciplina);
+  }
+
+  getDisciplinas(turmaId: number): Observable<Disciplina[]> {
+    return this.http.get<Disciplina[]>(`${this.apiUrl}/turmas/${turmaId}/disciplinas`);
   }
 }

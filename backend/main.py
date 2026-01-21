@@ -1,5 +1,10 @@
 
 import time
+import shutil
+import os
+from uuid import uuid4
+from fastapi import UploadFile, File, Form 
+from fastapi.staticfiles import StaticFiles # Para servir os arquivos
 
 from fastapi import FastAPI, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -10,17 +15,27 @@ from app.schemas import escola as schemas_escola
 from app.schemas import aluno as schemas_aluno
 from app.schemas import turma as schemas_turma
 from app.schemas import disciplina as schemas_disciplina
+from app.schemas import nota as schemas_nota
 from app.cruds import crud_turma as crud_turma
 from app.cruds import crud_escola as crud_escola
 from app.cruds import crud_aluno as crud_aluno
 from app.cruds import crud_disciplina
+from app.cruds import crud_nota
 from app.models import escola as models
 from app.models.aluno import Aluno
 
 # Criar tabelas (apenas para desenvolvimento)
 models.Base.metadata.create_all(bind=database.engine)
 
+# Cria a pasta 'uploads' se ela não existir
+UPLOAD_DIR = "uploads"
+os.makedirs(UPLOAD_DIR, exist_ok=True)
+
 app = FastAPI(title="ERP Escolas API")
+
+# --- IMPORTANTE: Configurar para servir os arquivos estáticos ---
+# Isto permite que o Angular aceda a http://localhost:8000/arquivos/nome-do-pdf.pdf
+app.mount("/arquivos", StaticFiles(directory=UPLOAD_DIR), name="arquivos")
 
 # --- MIDDLEWARE PARA LOGGING DE REQUISIÇÕES ---
 @app.middleware("http")
@@ -66,6 +81,7 @@ def get_db():
     finally:
         db.close()
 
+# 1. ROTAS PARA ESCOLA
 @app.post("/escolas/", response_model=schemas_escola.EscolaResponse)
 def create_escola(escola: schemas_escola.EscolaCreate, db: Session = Depends(get_db)):
     """
@@ -150,3 +166,47 @@ def create_disciplina(disciplina: schemas_disciplina.DisciplinaCreate, db: Sessi
 @app.get("/turmas/{turma_id}/disciplinas", response_model=list[schemas_disciplina.DisciplinaResponse])
 def read_disciplinas_turma(turma_id: int, db: Session = Depends(get_db)):
     return crud_disciplina.get_disciplinas_by_turma(db=db, turma_id=turma_id)
+
+# --- ROTA ESPECIAL DE LANÇAR NOTA COM UPLOAD ---
+@app.post("/notas/", response_model=schemas_nota.NotaResponse)
+def lancar_nota(
+    # Quando usamos UploadFile, não podemos usar Pydantic body direto.
+    # Temos de usar Form() para cada campo.
+    aluno_id: int = Form(...),
+    disciplina_id: int = Form(...),
+    valor: float = Form(...),
+    trimestre: str = Form(...),
+    descricao: str = Form("Prova"),
+    arquivo: UploadFile = File(None), # <--- O Ficheiro é Opcional
+    db: Session = Depends(get_db)
+):
+    caminho_arquivo = None
+
+    # Lógica de Salvar o Ficheiro
+    if arquivo:
+        # Gera um nome único: ex "uuid-prova.pdf"
+        nome_arquivo = f"{uuid4()}_{arquivo.filename}"
+        caminho_completo = os.path.join(UPLOAD_DIR, nome_arquivo)
+        
+        # Copia o ficheiro recebido para o disco
+        with open(caminho_completo, "wb") as buffer:
+            shutil.copyfileobj(arquivo.file, buffer)
+            
+        # Guarda o URL relativo para o banco
+        caminho_arquivo = f"arquivos/{nome_arquivo}"
+
+    # Cria o objeto de dados para o CRUD
+    nota_data = schemas_nota.NotaCreate(
+        aluno_id=aluno_id,
+        disciplina_id=disciplina_id,
+        valor=valor,
+        trimestre=trimestre,
+        descricao=descricao,
+        arquivo_url=caminho_arquivo
+    )
+
+    return crud_nota.lancar_nota(db=db, nota=nota_data)
+
+@app.get("/disciplinas/{disciplina_id}/notas", response_model=list[schemas_nota.NotaResponse])
+def read_notas_disciplina(disciplina_id: int, db: Session = Depends(get_db)):
+    return crud_nota.get_notas_by_disciplina(db=db, disciplina_id=disciplina_id)

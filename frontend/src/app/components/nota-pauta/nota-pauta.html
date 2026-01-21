@@ -1,0 +1,119 @@
+<div class="max-w-6xl mx-auto mt-6">
+
+  <div *ngIf="turma" class="bg-blue-900 text-white p-6 rounded-t-lg shadow-lg flex flex-col md:flex-row justify-between items-center gap-4">
+    <div>
+      <h1 class="text-3xl font-bold">{{ turma.nome }}</h1>
+      <p class="text-blue-200 mt-1">Pauta de Avaliação</p>
+    </div>
+
+    <div class="flex gap-4">
+      <select [(ngModel)]="trimestreSelecionado" (change)="aoMudarFiltro()" class="p-2 rounded  text-blue-900 font-bold bg-yellow-300 hover:bg-yellow-200 focus:ring-2 focus:ring-yellow-200 outline-none cursor-pointer">
+        <option>1º Trimestre</option>
+        <option>2º Trimestre</option>
+        <option>3º Trimestre</option>
+      </select>
+
+      <select [(ngModel)]="disciplinaSelecionadaId" (change)="aoMudarFiltro()"
+        class="p-2 rounded text-blue-900 font-bold bg-yellow-300 hover:bg-yellow-200 focus:ring-2 focus:ring-white outline-none cursor-pointer transition">
+        <option [ngValue]="null">-- Selecionar Disciplina --</option>
+        <option *ngFor="let d of disciplinas" [value]="d.id">{{ d.nome }}</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="bg-white p-6 rounded-b-lg shadow-lg border border-gray-200 min-h-100">
+
+    <div *ngIf="disciplinaSelecionadaId; else aviso" class="overflow-x-auto">
+      <table class="w-full text-sm text-left border-collapse">
+        <thead class="text-xs text-gray-700 uppercase bg-gray-50 border-b-2 border-gray-200">
+          <tr>
+            <th class="px-4 py-3">Aluno</th>
+            <th class="px-4 py-3 w-32 text-center">Nota (0-20)</th>
+            <th class="px-4 py-3">Prova (Anexo)</th>
+            <th class="px-4 py-3 text-right">Estado</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-100">
+          <tr *ngFor="let aluno of alunos" class="hover:bg-blue-50 transition duration-150">
+
+            <td class="px-4 py-3 font-medium text-gray-800">
+              {{ aluno.nome }}
+              <div class="text-xs text-gray-400 font-normal">{{ aluno.bi }}</div>
+            </td>
+
+            <td class="px-4 py-3">
+              <input
+                type="number"
+                [(ngModel)]="notasTemporarias[aluno.id!]"
+                min="0" max="20"
+                class="w-full p-2 border border-gray-300 rounded text-center font-bold text-lg focus:ring-2 focus:ring-blue-500 outline-none transition"
+                [class.bg-green-50]="notasTemporarias[aluno.id!] !== undefined"
+                placeholder="-"
+              >
+            </td>
+
+            <td class="px-4 py-3">
+              <div class="flex items-center gap-2">
+                <label class="cursor-pointer bg-gray-100 hover:bg-gray-200 text-gray-600 px-3 py-1 rounded text-xs border transition flex items-center gap-1" title="Carregar nova prova">
+                  📎 <span class="hidden sm:inline">Anexar</span>
+                  <input type="file" class="hidden" (change)="onFileSelected($event, aluno.id!)">
+                </label>
+
+                <span *ngIf="arquivosTemporarios[aluno.id!]" class="text-xs text-green-600 italic">
+                  Novo...
+                </span>
+
+                <div *ngIf="arquivosExistentes[aluno.id!]" class="flex items-center gap-1">
+                  <button
+                    (click)="verArquivo(arquivosExistentes[aluno.id!])"
+                    class="bg-blue-100 hover:bg-blue-200 text-blue-700 p-1.5 rounded-full transition duration-200 group"
+                    title="Visualizar Prova">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z" />
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+                    </svg>
+                  </button>
+                </div>
+
+              </div>
+            </td>
+
+            <td class="px-4 py-3 text-right">
+              <button
+                (click)="salvarNota(aluno.id!)"
+                [disabled]="!podeSalvar(aluno.id!)"
+                class="px-4 py-1.5 rounded text-xs font-bold transition shadow-sm
+                       disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed
+                       bg-green-600 hover:bg-green-700 text-white">
+                {{ podeSalvar(aluno.id!) ? '💾 Salvar' : '✅ OK' }}
+              </button>
+            </td>
+
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="mt-8 pt-4 border-t border-gray-200 flex justify-end gap-4">
+        <a [routerLink]="['/turma', turmaId]" class="px-4 py-2 text-gray-600 hover:text-gray-800 font-medium">
+          ← Voltar / Cancelar
+        </a>
+        <button
+          (click)="salvarTudo()"
+          [disabled]="loading"
+          class="bg-blue-900 hover:bg-blue-800 text-white font-bold py-3 px-8 rounded shadow-lg flex items-center gap-2 disabled:opacity-50 transition">
+          <span *ngIf="loading">⏳ Processando...</span>
+          <span *ngIf="!loading">💾 Salvar Tudo</span>
+        </button>
+      </div>
+
+    </div>
+
+    <ng-template #aviso>
+      <div class="flex flex-col items-center justify-center py-20 text-gray-400">
+        <div class="text-6xl mb-4">📚</div>
+        <p class="text-lg font-medium">Selecione uma disciplina e trimestre no topo para carregar a pauta.</p>
+      </div>
+    </ng-template>
+
+  </div>
+</div>

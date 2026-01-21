@@ -5,6 +5,7 @@ import { AlunoList } from './components/aluno-list/aluno-list';
 import { TurmaForm } from './components/turma-form/turma-form';
 import { TurmaList } from './components/turma-list/turma-list';
 import { TurmaDetail } from './components/turma-detail/turma-detail';
+import { NotaPauta } from './components/nota-pauta/nota-pauta';
 
 export const routes: Routes = [
   { path: '', redirectTo: 'nova-escola', pathMatch: 'full' }, // Redireciona a raiz
@@ -16,4 +17,5 @@ export const routes: Routes = [
   { path: 'lista-turmas', component: TurmaList },
   { path: 'nova-turma', component: TurmaForm },
   { path: 'turma/:id', component: TurmaDetail },
+  { path: 'turma/:turmaId/pauta', component: NotaPauta },
 ];
