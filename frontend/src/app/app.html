@@ -1,6 +1,6 @@
 <div class="min-h-screen bg-gray-100">
 
-  <nav class="bg-blue-900 text-white p-4 shadow-md">
+  <nav *ngIf="authService.currentUser()" class="bg-blue-900 text-white shadow-lg print:hidden">
     <div class="container mx-auto flex justify-between items-center">
       <h1 class="text-xl font-bold">ERP Escolar</h1>
 
@@ -29,6 +29,13 @@
           Turmas
         </a>
       </div>
+      <!-- <div class="max-w-2xl mx-auto px-4"> -->
+        <div class="flex justify-between items-center h-16">
+          <button (click)="logout()" class="text-red-300 hover:text-white text-sm font-bold ml-4">
+            SAIR
+          </button>
+        </div>
+      <!-- </div> -->
     </div>
   </nav>
 

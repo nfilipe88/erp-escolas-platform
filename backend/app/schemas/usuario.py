@@ -21,3 +21,7 @@ class Token(BaseModel):
     token_type: str
     perfil: str
     nome: str
+    
+class SenhaUpdate(BaseModel):
+    senha_atual: str
+    nova_senha: str

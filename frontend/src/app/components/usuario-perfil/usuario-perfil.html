@@ -1,0 +1,22 @@
+<div class="max-w-md mx-auto mt-10 bg-white p-8 rounded shadow-lg border-t-4 border-blue-900">
+  <h2 class="text-2xl font-bold mb-6 text-gray-800">Alterar Minha Senha</h2>
+
+  <div class="space-y-4">
+    <div>
+      <label class="block text-sm font-medium text-gray-700">Senha Atual</label>
+      <input type="password" [(ngModel)]="senhaAtual" class="w-full p-2 border rounded focus:ring-blue-500">
+    </div>
+
+    <div>
+      <label class="block text-sm font-medium text-gray-700">Nova Senha</label>
+      <input type="password" [(ngModel)]="novaSenha" class="w-full p-2 border rounded focus:ring-blue-500">
+    </div>
+
+    <div *ngIf="mensagem" class="bg-green-100 text-green-700 p-3 rounded text-sm">{{ mensagem }}</div>
+    <div *ngIf="erro" class="bg-red-100 text-red-700 p-3 rounded text-sm">{{ erro }}</div>
+
+    <button (click)="salvar()" class="w-full bg-blue-900 text-white font-bold py-2 rounded hover:bg-blue-800 transition">
+      Atualizar Senha
+    </button>
+  </div>
+</div>

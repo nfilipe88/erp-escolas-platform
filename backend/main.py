@@ -1,7 +1,10 @@
 
+from datetime import timedelta
+from datetime import timedelta
 import time
 import shutil
 import os
+from jose import jwt, JWTError
 from uuid import uuid4
 from fastapi import UploadFile, File, Form 
 from fastapi.staticfiles import StaticFiles # Para servir os arquivos
@@ -21,6 +24,7 @@ from app.schemas import boletim as schemas_boletim
 from app.schemas import dashboard as schemas_dashboard
 from app.schemas import mensalidade as schemas_fin
 from app.schemas import usuario as schemas_user
+from app.schemas import recuperar_senha as schemas_rec_senha
 from app.cruds import crud_turma as crud_turma
 from app.cruds import crud_escola as crud_escola
 from app.cruds import crud_aluno as crud_aluno
@@ -33,7 +37,12 @@ from app.models import escola as models
 from app.models.aluno import Aluno
 from app.models import usuario as models_user
 
-from app.security import verify_password, create_access_token
+# 1. Importa a função de segurança
+from app.security import create_access_token, get_current_user
+from app.schemas.recuperar_senha import EmailRequest
+from app.core.email import send_reset_password_email
+from app.schemas import usuario as schemas_user
+from app.security import verify_password, get_password_hash, SECRET_KEY, ALGORITHM
 
 # Criar tabelas (apenas para desenvolvimento)
 models.Base.metadata.create_all(bind=database.engine)
@@ -92,9 +101,45 @@ def get_db():
     finally:
         db.close()
 
+# 1. Rota para CRIAR O PRIMEIRO UTILIZADOR (Registo)
+@app.post("/auth/registar", response_model=schemas_user.UsuarioResponse)
+def registar_usuario(usuario: schemas_user.UsuarioCreate, db: Session = Depends(get_db)):
+    db_user = crud_usuario.get_usuario_by_email(db, email=usuario.email)
+    if db_user:
+        raise HTTPException(status_code=400, detail="Email já registado")
+    return crud_usuario.create_usuario(db=db, usuario=usuario)
+
+# 2. Rota de LOGIN (Gera o Token)
+@app.post("/auth/login", response_model=schemas_user.Token)
+def login_access_token(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
+    # 1. Busca utilizador pelo email
+    usuario = crud_usuario.get_usuario_by_email(db, email=form_data.username)
+    
+    # 2. Verifica se existe e se a senha bate
+    if not usuario or not verify_password(form_data.password, usuario.senha_hash):
+        raise HTTPException(status_code=400, detail="Email ou senha incorretos")
+    
+    # 3. Gera o Token
+    access_token = create_access_token(data={"sub": usuario.email})
+    
+    return {
+        "access_token": access_token,
+        "token_type": "bearer",
+        "perfil": usuario.perfil,
+        "nome": usuario.nome,
+        "message": "Bem-vindo à API do ERP Escolar"
+    }
+
+
+# @app.get("/")
+# def read_root():
+#     return {"message": "Bem-vindo à API do ERP Escolar"}
+
 # 1. ROTAS PARA ESCOLA
 @app.post("/escolas/", response_model=schemas_escola.EscolaResponse)
-def create_escola(escola: schemas_escola.EscolaCreate, db: Session = Depends(get_db)):
+def create_escola(escola: schemas_escola.EscolaCreate, db: Session = Depends(get_db),
+                  current_user: models_user.Usuario = Depends(get_current_user)
+                  ):
     """
     Regista uma nova escola na plataforma.
     """
@@ -106,14 +151,12 @@ def create_escola(escola: schemas_escola.EscolaCreate, db: Session = Depends(get
     # 2. Criar a escola
     return crud_escola.create_escola(db=db, escola=escola)
 
-@app.get("/")
-def read_root():
-    return {"message": "Bem-vindo à API do ERP Escolar"}
-
 # 2. ROTAS PARA ALUNO
 
 @app.post("/alunos/", response_model=schemas_aluno.AlunoResponse)
-def create_aluno(aluno: schemas_aluno.AlunoCreate, db: Session = Depends(get_db)):
+def create_aluno(aluno: schemas_aluno.AlunoCreate, db: Session = Depends(get_db),
+                    current_user: models_user.Usuario = Depends(get_current_user)
+                 ):
     """
     Matricula um novo aluno numa escola específica.
     """
@@ -121,14 +164,17 @@ def create_aluno(aluno: schemas_aluno.AlunoCreate, db: Session = Depends(get_db)
     return crud_aluno.create_aluno(db=db, aluno=aluno)
 
 @app.get("/escolas/{escola_id}/alunos", response_model=list[schemas_aluno.AlunoResponse])
-def read_alunos_escola(escola_id: int, db: Session = Depends(get_db)):
+def read_alunos_escola(escola_id: int, db: Session = Depends(get_db),
+                        current_user: models_user.Usuario = Depends(get_current_user)
+                       ):
     """
     Lista todos os alunos de uma escola específica.
     """
     return crud_aluno.get_alunos_by_escola(db=db, escola_id=escola_id)
 
 @app.get("/alunos/{aluno_id}", response_model=schemas_aluno.AlunoResponse)
-def read_aluno(aluno_id: int, db: Session = Depends(get_db)):
+def read_aluno(aluno_id: int, db: Session = Depends(get_db),
+               current_user: models_user.Usuario = Depends(get_current_user)):
     # Precisamos desta rota para preencher o formulário de edição
     aluno = db.query(Aluno).filter(Aluno.id == aluno_id).first()
     if not aluno:
@@ -136,46 +182,58 @@ def read_aluno(aluno_id: int, db: Session = Depends(get_db)):
     return aluno
 
 @app.put("/alunos/{aluno_id}", response_model=schemas_aluno.AlunoResponse)
-def update_aluno(aluno_id: int, aluno: schemas_aluno.AlunoUpdate, db: Session = Depends(get_db)):
+def update_aluno(aluno_id: int, aluno: schemas_aluno.AlunoUpdate, db: Session = Depends(get_db),
+                 current_user: models_user.Usuario = Depends(get_current_user)
+                ):
     db_aluno = crud_aluno.update_aluno(db=db, aluno_id=aluno_id, aluno_update=aluno)
     if not db_aluno:
         raise HTTPException(status_code=404, detail="Aluno não encontrado")
     return db_aluno
 
 @app.delete("/alunos/{aluno_id}")
-def delete_aluno(aluno_id: int, db: Session = Depends(get_db)):
+def delete_aluno(aluno_id: int, db: Session = Depends(get_db),
+                 current_user: models_user.Usuario = Depends(get_current_user)
+                ):
     sucesso = crud_aluno.delete_aluno(db=db, aluno_id=aluno_id)
     if not sucesso:
         raise HTTPException(status_code=404, detail="Aluno não encontrado")
     return {"mensagem": "Aluno removido com sucesso"}
 
 @app.post("/turmas/", response_model=schemas_turma.TurmaResponse)
-def create_turma(turma: schemas_turma.TurmaCreate, db: Session = Depends(get_db)):
+def create_turma(turma: schemas_turma.TurmaCreate, db: Session = Depends(get_db),
+                 current_user: models_user.Usuario = Depends(get_current_user)
+                ):
     return crud_turma.create_turma(db=db, turma=turma)
 
 @app.get("/escolas/{escola_id}/turmas", response_model=list[schemas_turma.TurmaResponse])
-def read_turmas_escola(escola_id: int, db: Session = Depends(get_db)):
+def read_turmas_escola(escola_id: int, db: Session = Depends(get_db),
+                       current_user: models_user.Usuario = Depends(get_current_user)):
     return crud_turma.get_turmas_by_escola(db=db, escola_id=escola_id)
 
 # --- ROTAS PARA DETALHE DE TURMA ---
 
 @app.get("/turmas/{turma_id}", response_model=schemas_turma.TurmaResponse)
-def read_turma(turma_id: int, db: Session = Depends(get_db)):
+def read_turma(turma_id: int, db: Session = Depends(get_db),
+               current_user: models_user.Usuario = Depends(get_current_user)):
     db_turma = crud_turma.get_turma(db, turma_id=turma_id)
     if db_turma is None:
         raise HTTPException(status_code=404, detail="Turma não encontrada")
     return db_turma
 
 @app.get("/turmas/{turma_id}/alunos", response_model=list[schemas_aluno.AlunoResponse])
-def read_alunos_turma(turma_id: int, db: Session = Depends(get_db)):
+def read_alunos_turma(turma_id: int, db: Session = Depends(get_db),
+                      current_user: models_user.Usuario = Depends(get_current_user)):
     return crud_aluno.get_alunos_by_turma(db=db, turma_id=turma_id)
 
 @app.post("/disciplinas/", response_model=schemas_disciplina.DisciplinaResponse)
-def create_disciplina(disciplina: schemas_disciplina.DisciplinaCreate, db: Session = Depends(get_db)):
+def create_disciplina(disciplina: schemas_disciplina.DisciplinaCreate, db: Session = Depends(get_db),
+                      current_user: models_user.Usuario = Depends(get_current_user)
+                     ):
     return crud_disciplina.create_disciplina(db=db, disciplina=disciplina)
 
 @app.get("/turmas/{turma_id}/disciplinas", response_model=list[schemas_disciplina.DisciplinaResponse])
-def read_disciplinas_turma(turma_id: int, db: Session = Depends(get_db)):
+def read_disciplinas_turma(turma_id: int, db: Session = Depends(get_db),
+                           current_user: models_user.Usuario = Depends(get_current_user)):
     return crud_disciplina.get_disciplinas_by_turma(db=db, turma_id=turma_id)
 
 # --- ROTA ESPECIAL DE LANÇAR NOTA COM UPLOAD ---
@@ -189,7 +247,8 @@ def lancar_nota(
     trimestre: str = Form(...),
     descricao: str = Form("Prova"),
     arquivo: UploadFile = File(None), # <--- O Ficheiro é Opcional
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: models_user.Usuario = Depends(get_current_user)
 ):
     caminho_arquivo = None
 
@@ -219,66 +278,109 @@ def lancar_nota(
     return crud_nota.lancar_nota(db=db, nota=nota_data)
 
 @app.get("/disciplinas/{disciplina_id}/notas", response_model=list[schemas_nota.NotaResponse])
-def read_notas_disciplina(disciplina_id: int, db: Session = Depends(get_db)):
+def read_notas_disciplina(disciplina_id: int, db: Session = Depends(get_db),
+                          current_user: models_user.Usuario = Depends(get_current_user)):
     return crud_nota.get_notas_by_disciplina(db=db, disciplina_id=disciplina_id)
 
 @app.get("/alunos/{aluno_id}/boletim", response_model=schemas_boletim.BoletimResponse)
-def read_boletim(aluno_id: int, db: Session = Depends(get_db)):
+def read_boletim(aluno_id: int, db: Session = Depends(get_db),
+                 current_user: models_user.Usuario = Depends(get_current_user)):
     boletim = crud_nota.get_boletim_aluno(db=db, aluno_id=aluno_id)
     if not boletim:
         raise HTTPException(status_code=404, detail="Aluno não encontrado")
     return boletim
 
 @app.get("/dashboard/stats", response_model=schemas_dashboard.DashboardStats)
-def read_dashboard_stats(db: Session = Depends(get_db)):
+def read_dashboard_stats(db: Session = Depends(get_db),
+                         current_user: models_user.Usuario = Depends(get_current_user)):
     return crud_dashboard.get_stats(db=db)
 
 # 1. Gerar dívidas para um aluno (ex: Matrícula)
 @app.post("/alunos/{aluno_id}/financeiro/gerar", response_model=list[schemas_fin.MensalidadeResponse])
-def gerar_financeiro_aluno(aluno_id: int, ano: int = 2025, valor: float = 15000, db: Session = Depends(get_db)):
+def gerar_financeiro_aluno(aluno_id: int, ano: int = 2025, valor: float = 15000, db: Session = Depends(get_db),
+                           current_user: models_user.Usuario = Depends(get_current_user)
+                          ):
     return crud_mensalidade.gerar_carnet_aluno(db=db, aluno_id=aluno_id, ano=ano, valor=valor)
 
 # 2. Consultar Extrato do Aluno
 @app.get("/alunos/{aluno_id}/financeiro", response_model=list[schemas_fin.MensalidadeResponse])
-def read_financeiro_aluno(aluno_id: int, db: Session = Depends(get_db)):
+def read_financeiro_aluno(aluno_id: int, db: Session = Depends(get_db),
+                          current_user: models_user.Usuario = Depends(get_current_user)
+                         ):
     return crud_mensalidade.get_mensalidades_aluno(db=db, aluno_id=aluno_id)
 
 # 3. Pagar
 @app.put("/financeiro/{mensalidade_id}/pagar", response_model=schemas_fin.MensalidadeResponse)
-def pagar_mensalidade(mensalidade_id: int, dados: schemas_fin.MensalidadePagar, db: Session = Depends(get_db)):
+def pagar_mensalidade(mensalidade_id: int, dados: schemas_fin.MensalidadePagar, db: Session = Depends(get_db),
+                      current_user: models_user.Usuario = Depends(get_current_user)
+                     ):
     return crud_mensalidade.pagar_mensalidade(db=db, mensalidade_id=mensalidade_id, dados_pagamento=dados)
 
 @app.get("/financeiro/{id}", response_model=schemas_fin.MensalidadeResponse)
-def read_mensalidade(id: int, db: Session = Depends(get_db)):
+def read_mensalidade(id: int, db: Session = Depends(get_db),
+                     current_user: models_user.Usuario = Depends(get_current_user)
+                     ):
     mensalidade = crud_mensalidade.get_mensalidade_by_id(db=db, id=id)
     if not mensalidade:
         raise HTTPException(status_code=404, detail="Mensalidade não encontrada")
     return mensalidade
 
-# 1. Rota para CRIAR O PRIMEIRO UTILIZADOR (Registo)
-@app.post("/auth/registar", response_model=schemas_user.UsuarioResponse)
-def registar_usuario(usuario: schemas_user.UsuarioCreate, db: Session = Depends(get_db)):
-    db_user = crud_usuario.get_usuario_by_email(db, email=usuario.email)
-    if db_user:
-        raise HTTPException(status_code=400, detail="Email já registado")
-    return crud_usuario.create_usuario(db=db, usuario=usuario)
+@app.put("/auth/me/alterar-senha")
+def alterar_senha(
+    dados: schemas_user.SenhaUpdate, 
+    db: Session = Depends(get_db),
+    current_user: models_user.Usuario = Depends(get_current_user)
+):
+    if not verify_password(dados.senha_atual, str(current_user.senha_hash)): # Adiciona str() para calar o linter se necessário
+        raise HTTPException(status_code=400, detail="A senha atual está incorreta.")
+    
+    # Adiciona o comentário # type: ignore para o Pylance parar de reclamar
+    current_user.senha_hash = get_password_hash(dados.nova_senha) # type: ignore
+    db.commit()
+    
+    return {"mensagem": "Senha alterada com sucesso"}
 
-# 2. Rota de LOGIN (Gera o Token)
-@app.post("/auth/login", response_model=schemas_user.Token)
-def login_access_token(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
-    # 1. Busca utilizador pelo email
-    usuario = crud_usuario.get_usuario_by_email(db, email=form_data.username)
+@app.post("/auth/esqueci-senha")
+async def esqueci_senha(dados: schemas_rec_senha.EmailRequest, db: Session = Depends(get_db)):
+    user = crud_usuario.get_usuario_by_email(db, dados.email)
+    if not user:
+        return {"mensagem": "Se o email existir, enviámos um link de recuperação."}
+
+    # Converter explicitamente para string ajuda o linter, ou usa # type: ignore
+    user_email = str(user.email) 
+
+    reset_token = create_access_token(
+        data={"sub": user_email, "type": "reset"}, 
+        expires_delta=timedelta(minutes=15)
+    )
     
-    # 2. Verifica se existe e se a senha bate
-    if not usuario or not verify_password(form_data.password, usuario.senha_hash):
-        raise HTTPException(status_code=400, detail="Email ou senha incorretos")
+    await send_reset_password_email(user_email, reset_token)
     
-    # 3. Gera o Token
-    access_token = create_access_token(data={"sub": usuario.email})
+    return {"mensagem": "Se o email existir, enviámos um link de recuperação."}
+
+@app.post("/auth/reset-senha")
+def reset_senha(dados: schemas_rec_senha.ResetPassword, db: Session = Depends(get_db)):
+    try:
+        # 1. Tenta descodificar o token recebido
+        payload = jwt.decode(dados.token, SECRET_KEY, algorithms=[ALGORITHM])
+        
+        # 2. Verifica se é um token do tipo "reset" (para não usarem token de login)
+        if payload.get("type") != "reset":
+            raise HTTPException(status_code=400, detail="Token inválido para recuperação de senha")
+        
+        email = payload.get("sub")
+        
+    except JWTError:
+        raise HTTPException(status_code=400, detail="Token expirado ou inválido")
     
-    return {
-        "access_token": access_token,
-        "token_type": "bearer",
-        "perfil": usuario.perfil,
-        "nome": usuario.nome
-    }
+    # 3. Busca o utilizador
+    user = crud_usuario.get_usuario_by_email(db, email)
+    if not user:
+        raise HTTPException(status_code=404, detail="Utilizador não encontrado")
+    
+    # 4. Define a nova senha
+    # O # type: ignore é para o editor não reclamar do SQLAlchemy
+    user.senha_hash = get_password_hash(dados.nova_senha) # type: ignore
+    db.commit()
+    
+    return {"mensagem": "Senha recuperada com sucesso! Faça login."}
