@@ -48,8 +48,10 @@ export class NotaPauta implements OnInit {
 
   carregarDadosIniciais() {
     // 1. Carrega Detalhes da Turma (para o cabeçalho azul)
-    this.turmaService.getTurmaById(this.turmaId).subscribe(t => this.turma = t);
-    this.cdr.detectChanges();
+    this.turmaService.getTurmaById(this.turmaId).subscribe(t => {
+      this.turma = t;
+      this.cdr.detectChanges();
+    });
 
     // 2. Carrega Disciplinas
     this.turmaService.getDisciplinasByTurma(this.turmaId).subscribe(data => {
