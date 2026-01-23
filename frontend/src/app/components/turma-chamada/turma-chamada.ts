@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { TurmaService, Turma } from '../../services/turma.service';
-import { AlunoService, Aluno } from '../../services/aluno.service'; // <--- Adicionado 'Aluno'
+import { AlunoService } from '../../services/aluno.service';
 import { PresencaService, PresencaItem } from '../../services/presenca.service';
 
 @Component({
@@ -44,21 +44,28 @@ export class TurmaChamada implements OnInit {
   }
 
   carregarAlunos(turmaId: number) {
-    // 2. Busca alunos DIRETAMENTE da turma (Correção aqui)
-    // Usamos o método correto 'getAlunosPorTurma' que definiste no service
-    this.alunoService.getAlunosPorTurma(turmaId).subscribe((alunos: Aluno[]) => {
+    // 2. Busca alunos DIRETAMENTE da turma
+    this.alunoService.getAlunosPorTurma(turmaId).subscribe({
+      next: (alunos) => {
+        console.log('Alunos carregados:', alunos); // Para debug
 
-      // Inicializa a lista local
-      this.listaPresenca = alunos.map(a => ({
-        aluno_id: a.id!,
-        aluno_nome: a.nome,
-        presente: true,     // Padrão: Veio
-        justificado: false,
-        observacao: ''
-      }));
-      // 3. Verifica se já existe chamada nesta data
-      this.verificarExistencia();
-      this.cdr.detectChanges();
+        // Inicializa a lista local
+        this.listaPresenca = alunos.map(a => ({
+          aluno_id: a.id!,
+          aluno_nome: a.nome,
+          presente: true,
+          justificado: false,
+          observacao: ''
+        }));
+
+        // 3. Verifica se já existe chamada nesta data
+        this.verificarExistencia();
+        this.cdr.detectChanges();
+      },
+      error: (err) => {
+        console.error('Erro ao carregar alunos:', err);
+        // Adicione tratamento de erro (ex: mostrar mensagem ao usuário)
+      }
     });
   }
 

@@ -1,7 +1,7 @@
 import { ChangeDetectorRef, Component, inject, OnInit } from '@angular/core';
 import { AlunoService, Aluno } from '../../services/aluno.service';
 import { CommonModule, DatePipe } from '@angular/common';
-import { RouterLink } from '@angular/router';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 
 @Component({
   selector: 'app-aluno-list',
@@ -11,26 +11,45 @@ import { RouterLink } from '@angular/router';
 })
 export class AlunoList implements OnInit {
   private alunoService = inject(AlunoService);
+  private route = inject(ActivatedRoute);
   private cdr = inject(ChangeDetectorRef);
 
   alunos: Aluno[] = [];
   escolaId = 1; // Fixo para teste
 
   ngOnInit() {
-    this.carregarAlunos();
-  }
+    // 3. Lê o URL para ver se tem "?turma_id=X"
+    this.route.queryParams.subscribe(params => {
+      const turmaId = params['turma_id'];
 
-  carregarAlunos() {
-    this.alunoService.getAlunos(this.escolaId).subscribe({
-      next: (dados) => {
-        console.log('Dados recebidos:', dados); // Para confirmares na consola
-        this.alunos = dados;
-        this.cdr.detectChanges(); // <--- Força o Angular a pintar a tela AGORA
-      },
-      error: (erro) => {
-        console.error('Erro ao buscar alunos', erro);
+      if (turmaId) {
+        this.carregarAlunosDaTurma(Number(turmaId));
+      } else {
+        this.carregarTodos();
       }
     });
+  }
+
+  // carregarAlunos() {
+  //   this.alunoService.getAlunos(this.escolaId).subscribe({
+  //     next: (dados) => {
+  //       this.alunos = dados;
+  //       this.cdr.detectChanges(); // <--- Força o Angular a pintar a tela AGORA
+  //     },
+  //     error: (erro) => {
+  //       console.error('Erro ao buscar alunos', erro);
+  //     }
+  //   });
+  // }
+
+  carregarTodos() {
+    this.alunoService.getAlunos(0, 100).subscribe(dados => this.alunos = dados);
+    this.cdr.detectChanges();
+  }
+
+  carregarAlunosDaTurma(turmaId: number) {
+    this.alunoService.getAlunosPorTurma(turmaId).subscribe(dados => this.alunos = dados);
+    this.cdr.detectChanges();
   }
 
   deletar(id: number) {

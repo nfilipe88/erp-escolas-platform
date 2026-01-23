@@ -35,7 +35,8 @@
       </div>
 
       <div class="mt-3 pt-3 border-t border-gray-100 text-center">
-        <a routerLink="/lista-alunos" class="text-xs text-gray-400 hover:text-gray-600 uppercase tracking-wide">
+        <a [routerLink]="['/lista-alunos']" [queryParams]="{ turma_id: turma.id }"
+          class="text-xs text-gray-400 hover:text-gray-600 uppercase tracking-wide cursor-pointer">
           Ver Alunos Matriculados →
         </a>
       </div>
