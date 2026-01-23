@@ -462,3 +462,26 @@ def associar_disciplina_a_turma(
     db.commit()
 
     return {"mensagem": f"Disciplina {disciplina.nome} adicionada à turma {turma.nome}"}
+
+# 5. Remover Disciplina de uma Turma (Desassociar N:N)
+@app.delete("/turmas/{turma_id}/remover-disciplina/{disciplina_id}")
+def remover_disciplina_de_turma(
+    turma_id: int, 
+    disciplina_id: int, 
+    db: Session = Depends(get_db),
+    current_user: models_user.Usuario = Depends(get_current_user)
+):
+    # 1. Busca a turma e a disciplina
+    turma = crud_turma.get_turma(db, turma_id=turma_id)
+    disciplina = db.query(models_disciplina.Disciplina).filter(models_disciplina.Disciplina.id == disciplina_id).first()
+
+    if not turma or not disciplina:
+        raise HTTPException(status_code=404, detail="Turma ou Disciplina não encontrada")
+
+    # 2. Se a disciplina estiver na lista da turma, remove-a
+    if disciplina in turma.disciplinas:
+        turma.disciplinas.remove(disciplina)
+        db.commit()
+        return {"mensagem": f"Disciplina {disciplina.nome} removida da turma."}
+    
+    return {"mensagem": "Esta disciplina já não pertence a esta turma."}

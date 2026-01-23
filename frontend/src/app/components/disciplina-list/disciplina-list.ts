@@ -1,4 +1,4 @@
-import { Component, inject, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { DisciplinaService, Disciplina } from '../../services/disciplina.service';
@@ -11,6 +11,7 @@ import { DisciplinaService, Disciplina } from '../../services/disciplina.service
 })
 export class DisciplinaList implements OnInit {
   private service = inject(DisciplinaService);
+  private cdr= inject(ChangeDetectorRef);
 
   disciplinas: Disciplina[] = [];
   nova: Disciplina = { nome: '', codigo: '', carga_horaria: 80 };
@@ -20,7 +21,10 @@ export class DisciplinaList implements OnInit {
   }
 
   carregar() {
-    this.service.getDisciplinas().subscribe(d => this.disciplinas = d);
+    this.service.getDisciplinas().subscribe(d => {
+      this.disciplinas = d;
+      this.cdr.detectChanges();
+    });
   }
 
   adicionar() {

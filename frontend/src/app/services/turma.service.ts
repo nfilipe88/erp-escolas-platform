@@ -46,4 +46,10 @@ export class TurmaService {
   associarDisciplina(turmaId: number, disciplinaId: number): Observable<any> {
     return this.http.post(`${this.apiUrl}/turmas/${turmaId}/associar-disciplina/${disciplinaId}`, {});
   }
+
+  // Metodo desassociar disciplina da turma
+
+  desassociarDisciplina(turmaId: number, disciplinaId: number): Observable<any> {
+    return this.http.delete(`${this.apiUrl}/turmas/${turmaId}/remover-disciplina/${disciplinaId}`);
+  }
 }

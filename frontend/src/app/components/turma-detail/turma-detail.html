@@ -67,10 +67,16 @@
 
       <ul class="space-y-2 mb-6">
         @for (disc of disciplinasDaTurma; track disc.id) {
-        <li class="flex items-center gap-3 p-3 bg-gray-50 rounded border border-gray-100 hover:bg-gray-100 transition">
+        <li
+          class="flex items-center gap-3 p-3 bg-gray-50 rounded border border-gray-100 hover:bg-gray-100 transition group">
           <div class="h-2 w-2 rounded-full bg-indigo-500"></div>
           <span class="font-bold text-gray-700">{{ disc.nome }}</span>
           <span class="ml-auto text-xs font-bold text-gray-400 bg-gray-200 px-2 py-1 rounded">{{ disc.codigo }}</span>
+
+          <button (click)="desassociarDisciplina(disc.id!, disc.nome)" title="Remover da turma"
+            class="text-red-400 hover:text-red-600 hover:bg-red-50 p-1.5 rounded transition opacity-50 group-hover:opacity-100">
+            🗑️
+          </button>
         </li>
         } @empty {
         <li

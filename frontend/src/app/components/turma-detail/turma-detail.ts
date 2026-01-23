@@ -93,4 +93,18 @@ export class TurmaDetail implements OnInit {
       error: (err) => alert('Esta disciplina já está associada à turma!')
     });
   }
+
+  desassociarDisciplina(disciplinaId: number, nomeDisciplina: string) {
+    if (!this.turma?.id) return;
+
+    if (confirm(`Tem a certeza que deseja remover "${nomeDisciplina}" desta turma?`)) {
+      this.turmaService.desassociarDisciplina(this.turma.id, disciplinaId).subscribe({
+        next: () => {
+          // Recarrega a turma para atualizar a lista no ecrã
+          this.carregarTurma(this.turma!.id!);
+        },
+        error: (err) => alert('Erro ao remover disciplina.')
+      });
+    }
+  }
 }
