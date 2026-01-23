@@ -53,10 +53,10 @@
 
         </tr>
       </tbody>
+      <div *ngIf="listaPresenca.length === 0 && turma" class="text-center py-10">
+        <p class="text-gray-500">Carregando lista de alunos...</p>
+      </div>
     </table>
-    <div *ngIf="listaPresenca.length === 0 && turma" class="text-center py-10">
-      <p class="text-gray-500">Carregando lista de alunos...</p>
-    </div>
   </div>
 
   <div class="mt-8 flex justify-end gap-4 pb-10">

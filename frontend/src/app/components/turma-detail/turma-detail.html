@@ -13,10 +13,9 @@
     </div>
   </div>
 
-  <div
-    class="bg-white p-6 rounded-b-lg shadow-lg border border-gray-200 min-h-75 grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
+  <div class="bg-white p-6 rounded-b-lg shadow-lg border border-gray-200 min-h-75 grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
 
-    <div *ngIf="alunos.length === 0" class="text-center text-gray-400 py-10">
+    <div *ngIf="alunos.length === 0" class="text-center text-gray-400 py-10 md:col-span-3">
       <p>Esta turma ainda está vazia.</p>
       <a routerLink="/novo-aluno" class="text-blue-600 hover:underline mt-2 inline-block">
         Matricular Aluno
@@ -55,25 +54,32 @@
         </form>
       </div>
 
-      <ul class="space-y-2">
+      <ul class="space-y-2 mb-6">
         @for (disc of disciplinas; track disc.id) {
         <li class="flex items-center gap-2 p-2 bg-gray-50 rounded hover:bg-gray-100">
           <div class="h-2 w-2 rounded-full bg-indigo-500"></div>
           <span class="font-medium text-gray-700">{{ disc.nome }}</span>
         </li>
         } @empty {
-        <li class="text-gray-400 text-sm italic">Sem disciplinas registadas.</li>
+        <li class="text-gray-400 text-sm italic">Sem disciplinas.</li>
         }
       </ul>
-      <div class="mt-4">
+
+      <div class="flex flex-col gap-3 pt-4 border-t border-gray-100">
         <a [routerLink]="['/turma', turma?.id, 'pauta']"
-          class="bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-2 px-4 rounded shadow inline-flex items-center gap-2">
+          class="w-full bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-3 px-4 rounded shadow flex justify-center items-center gap-2 transition cursor-pointer">
           📊 Lançar Notas / Pauta
         </a>
+
+        <a [routerLink]="['/turma', turma?.id, 'chamada']"
+          class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded shadow flex justify-center items-center gap-2 transition cursor-pointer">
+          📋 Fazer Chamada
+        </a>
       </div>
+
     </div>
 
-    <div class="mt-6 pt-4 border-t border-gray-100">
+    <div class="md:col-span-3 mt-4 pt-4 border-t border-gray-100">
       <a routerLink="/lista-turmas" class="text-gray-600 hover:text-gray-900 text-sm font-medium">
         ← Voltar às Turmas
       </a>
