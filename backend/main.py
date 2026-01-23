@@ -485,3 +485,40 @@ def remover_disciplina_de_turma(
         return {"mensagem": f"Disciplina {disciplina.nome} removida da turma."}
     
     return {"mensagem": "Esta disciplina já não pertence a esta turma."}
+
+# 3. ATUALIZAR DISCIPLINA (O Lápis)
+@app.put("/disciplinas/{disciplina_id}", response_model=schemas_disciplina.Disciplina)
+def atualizar_disciplina(
+    disciplina_id: int, 
+    dados: schemas_disciplina.DisciplinaCreate, 
+    db: Session = Depends(get_db),
+    current_user: models_user.Usuario = Depends(get_current_user)
+):
+    db_disciplina = db.query(models_disciplina.Disciplina).filter(models_disciplina.Disciplina.id == disciplina_id).first()
+    if not db_disciplina:
+        raise HTTPException(status_code=404, detail="Disciplina não encontrada")
+    
+    db_disciplina.nome = dados.nome # type: ignore
+    db_disciplina.codigo = dados.codigo # type: ignore
+    db_disciplina.carga_horaria = dados.carga_horaria # type: ignore
+    
+    db.commit()
+    db.refresh(db_disciplina)
+    return db_disciplina
+
+
+# 4. ELIMINAR DISCIPLINA (O Lixo)
+@app.delete("/disciplinas/{disciplina_id}")
+def eliminar_disciplina(
+    disciplina_id: int, 
+    db: Session = Depends(get_db),
+    current_user: models_user.Usuario = Depends(get_current_user)
+):
+    db_disciplina = db.query(models_disciplina.Disciplina).filter(models_disciplina.Disciplina.id == disciplina_id).first()
+    if not db_disciplina:
+        raise HTTPException(status_code=404, detail="Disciplina não encontrada")
+    
+    # O SQLAlchemy apaga a disciplina e limpa automaticamente a tabela N:N (turma_disciplina)
+    db.delete(db_disciplina)
+    db.commit()
+    return {"mensagem": "Disciplina eliminada do catálogo e removida de todas as turmas."}

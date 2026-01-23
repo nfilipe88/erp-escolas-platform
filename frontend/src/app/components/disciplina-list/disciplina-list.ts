@@ -14,7 +14,12 @@ export class DisciplinaList implements OnInit {
   private cdr= inject(ChangeDetectorRef);
 
   disciplinas: Disciplina[] = [];
-  nova: Disciplina = { nome: '', codigo: '', carga_horaria: 80 };
+  // nova: Disciplina = { nome: '', codigo: '', carga_horaria: 80 };
+
+  // Objeto do formulário
+  formDisciplina: Disciplina = { nome: '', codigo: '', carga_horaria: 80 };
+  // Controlo se estamos a Criar ou Editar
+  editandoId: number | null = null;
 
   ngOnInit() {
     this.carregar();
@@ -27,10 +32,42 @@ export class DisciplinaList implements OnInit {
     });
   }
 
-  adicionar() {
-    this.service.criar(this.nova).subscribe(() => {
-      this.carregar(); // Recarrega a tabela
-      this.nova = { nome: '', codigo: '', carga_horaria: 80 }; // Limpa o form
-    });
+  salvar() {
+    if (this.editandoId) {
+      // MODO EDIÇÃO
+      this.service.atualizar(this.editandoId, this.formDisciplina).subscribe(() => {
+        this.carregar();
+        this.cancelarEdicao(); // Limpa o form
+      });
+    } else {
+      // MODO CRIAÇÃO
+      this.service.criar(this.formDisciplina).subscribe(() => {
+        this.carregar();
+        this.cancelarEdicao(); // Limpa o form
+      });
+    }
+  }
+
+  iniciarEdicao(d: Disciplina) {
+    this.editandoId = d.id!;
+    // Copia os dados para o formulário
+    this.formDisciplina = { nome: d.nome, codigo: d.codigo, carga_horaria: d.carga_horaria };
+  }
+
+  cancelarEdicao() {
+    this.editandoId = null;
+    this.formDisciplina = { nome: '', codigo: '', carga_horaria: 80 };
+  }
+
+  eliminar(d: Disciplina) {
+    // ALERTA DE SEGURANÇA MÁXIMA
+    const mensagem = `⚠️ ATENÇÃO: Tem a certeza que deseja eliminar a disciplina "${d.nome}"?\n\n` +
+                     `Isto irá removê-la de TODAS AS TURMAS onde está associada e poderá afetar as pautas e históricos dos alunos.`;
+
+    if (confirm(mensagem)) {
+      this.service.eliminar(d.id!).subscribe(() => {
+        this.carregar();
+      });
+    }
   }
 }

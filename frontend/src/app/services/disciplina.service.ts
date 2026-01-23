@@ -21,4 +21,12 @@ export class DisciplinaService {
   criar(dados: Disciplina): Observable<Disciplina> {
     return this.http.post<Disciplina>(`${this.apiUrl}/disciplinas/`, dados);
   }
+
+  atualizar(id: number, dados: Disciplina): Observable<Disciplina> {
+    return this.http.put<Disciplina>(`${this.apiUrl}/disciplinas/${id}`, dados);
+  }
+
+  eliminar(id: number): Observable<any> {
+    return this.http.delete(`${this.apiUrl}/disciplinas/${id}`);
+  }
 }

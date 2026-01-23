@@ -1,14 +1,28 @@
-<div class="max-w-5xl mx-auto mt-8 px-4 grid grid-cols-1 md:grid-cols-3 gap-6">
+<div class="max-w-5xl mx-auto mt-8 px-4 grid grid-cols-1 md:grid-cols-3 gap-6 pb-10">
 
   <div class="bg-white p-6 rounded-lg shadow border border-gray-100 h-fit">
-    <h3 class="text-lg font-bold text-gray-800 mb-4">Nova Disciplina ➕</h3>
-    <form (submit)="adicionar()">
-      <input [(ngModel)]="nova.nome" name="nome" placeholder="Nome (Ex: Matemática)" required class="w-full p-2 border rounded mb-3">
-      <input [(ngModel)]="nova.codigo" name="codigo" placeholder="Código (Ex: MAT)" required class="w-full p-2 border rounded mb-3">
-      <input [(ngModel)]="nova.carga_horaria" name="carga" type="number" placeholder="Carga Horária (Ex: 80)" class="w-full p-2 border rounded mb-4">
-      <button type="submit" class="w-full bg-blue-900 text-white font-bold py-2 rounded shadow hover:bg-blue-800 transition">
-        Salvar Disciplina
-      </button>
+
+    <h3 class="text-lg font-bold mb-4" [ngClass]="editandoId ? 'text-yellow-600' : 'text-gray-800'">
+      {{ editandoId ? 'Editar Disciplina ✏️' : 'Nova Disciplina ➕' }}
+    </h3>
+
+    <form (submit)="salvar()">
+      <input [(ngModel)]="formDisciplina.nome" name="nome" placeholder="Nome (Ex: Matemática)" required class="w-full p-2 border rounded mb-3 focus:ring-blue-500">
+      <input [(ngModel)]="formDisciplina.codigo" name="codigo" placeholder="Código (Ex: MAT)" required class="w-full p-2 border rounded mb-3 focus:ring-blue-500">
+      <input [(ngModel)]="formDisciplina.carga_horaria" name="carga" type="number" placeholder="Carga Horária (Ex: 80)" class="w-full p-2 border rounded mb-4 focus:ring-blue-500">
+
+      <div class="flex gap-2">
+        <button *ngIf="editandoId" type="button" (click)="cancelarEdicao()"
+                class="flex-1 bg-gray-200 text-gray-700 font-bold py-2 rounded shadow hover:bg-gray-300 transition">
+          Cancelar
+        </button>
+
+        <button type="submit"
+                [ngClass]="editandoId ? 'bg-yellow-500 hover:bg-yellow-600' : 'bg-blue-900 hover:bg-blue-800'"
+                class="flex-1 text-white font-bold py-2 rounded shadow transition">
+          {{ editandoId ? 'Atualizar Dados' : 'Salvar Disciplina' }}
+        </button>
+      </div>
     </form>
   </div>
 
@@ -19,14 +33,29 @@
           <th class="px-6 py-4 text-left">Código</th>
           <th class="px-6 py-4 text-left">Nome da Disciplina</th>
           <th class="px-6 py-4 text-center">Horas</th>
-        </tr>
+          <th class="px-6 py-4 text-center">Ações</th> </tr>
       </thead>
       <tbody class="divide-y divide-gray-100">
         @for (d of disciplinas; track d.id) {
-          <tr class="hover:bg-gray-50 transition">
+          <tr class="hover:bg-gray-50 transition" [ngClass]="{'bg-yellow-50': d.id === editandoId}">
             <td class="px-6 py-4 font-bold text-blue-900">{{ d.codigo }}</td>
             <td class="px-6 py-4 font-medium text-gray-800">{{ d.nome }}</td>
             <td class="px-6 py-4 text-center text-gray-600">{{ d.carga_horaria }}h</td>
+
+            <td class="px-6 py-4 text-center flex justify-center gap-3">
+              <button (click)="iniciarEdicao(d)" title="Editar"
+                      class="text-blue-500 hover:text-blue-700 hover:scale-110 transition bg-blue-50 p-2 rounded-full">
+                ✏️
+              </button>
+              <button (click)="eliminar(d)" title="Eliminar"
+                      class="text-red-500 hover:text-red-700 hover:scale-110 transition bg-red-50 p-2 rounded-full">
+                🗑️
+              </button>
+            </td>
+          </tr>
+        } @empty {
+          <tr>
+            <td colspan="4" class="px-6 py-10 text-center text-gray-400 italic">O catálogo de disciplinas está vazio.</td>
           </tr>
         }
       </tbody>
