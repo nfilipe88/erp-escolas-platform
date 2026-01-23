@@ -13,7 +13,8 @@
     </div>
   </div>
 
-  <div class="bg-white p-6 rounded-b-lg shadow-lg border border-gray-200 min-h-75 grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
+  <div
+    class="bg-white p-6 rounded-b-lg shadow-lg border border-gray-200 min-h-75 grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
 
     <div *ngIf="alunos.length === 0" class="text-center text-gray-400 py-10 md:col-span-3">
       <p>Esta turma ainda está vazia.</p>
@@ -38,30 +39,44 @@
       <div class="flex justify-between items-center mb-4 border-b pb-2">
         <h2 class="text-xl font-bold text-gray-800">Disciplinas</h2>
         <button (click)="mostrarFormDisciplina = !mostrarFormDisciplina"
-          class="text-blue-600 font-bold text-sm hover:underline">
-          + Adicionar
+          class="text-blue-600 font-bold text-sm hover:underline flex items-center gap-1">
+          <span *ngIf="!mostrarFormDisciplina">+ Adicionar</span>
+          <span *ngIf="mostrarFormDisciplina">✖ Fechar</span>
         </button>
       </div>
 
-      <div *ngIf="mostrarFormDisciplina" class="mb-4 bg-blue-50 p-3 rounded">
-        <form [formGroup]="formDisciplina" (ngSubmit)="salvarDisciplina()">
-          <input type="text" formControlName="nome" class="w-full p-2 border rounded text-sm mb-2"
-            placeholder="Nome (ex: Matemática)">
-          <button type="submit" [disabled]="formDisciplina.invalid"
-            class="w-full bg-blue-600 text-white text-xs py-2 rounded font-bold">
-            Salvar
-          </button>
-        </form>
+      <div *ngIf="mostrarFormDisciplina"
+        class="mb-5 bg-blue-50 p-4 rounded-lg border border-blue-100 shadow-sm animate-fade-in">
+        <label class="block text-xs font-bold text-blue-900 mb-2 uppercase tracking-wider">
+          Selecione do Catálogo:
+        </label>
+
+        <select [(ngModel)]="disciplinaSelecionadaId"
+          class="w-full p-2.5 mb-3 border border-gray-300 rounded shadow-sm focus:ring-2 focus:ring-blue-500 bg-white text-sm cursor-pointer">
+          <option [ngValue]="null" disabled selected>-- Pesquise e escolha --</option>
+          @for (d of todasDisciplinas; track d.id) {
+          <option [ngValue]="d.id">{{ d.nome }} ({{ d.codigo }})</option>
+          }
+        </select>
+
+        <button (click)="associarDisciplina()" [disabled]="!disciplinaSelecionadaId"
+          class="w-full bg-blue-900 text-white text-sm py-2.5 rounded font-bold hover:bg-blue-800 transition disabled:opacity-50 flex items-center justify-center gap-2 shadow">
+          <span>➕ Associar à Turma</span>
+        </button>
       </div>
 
       <ul class="space-y-2 mb-6">
-        @for (disc of disciplinas; track disc.id) {
-        <li class="flex items-center gap-2 p-2 bg-gray-50 rounded hover:bg-gray-100">
+        @for (disc of disciplinasDaTurma; track disc.id) {
+        <li class="flex items-center gap-3 p-3 bg-gray-50 rounded border border-gray-100 hover:bg-gray-100 transition">
           <div class="h-2 w-2 rounded-full bg-indigo-500"></div>
-          <span class="font-medium text-gray-700">{{ disc.nome }}</span>
+          <span class="font-bold text-gray-700">{{ disc.nome }}</span>
+          <span class="ml-auto text-xs font-bold text-gray-400 bg-gray-200 px-2 py-1 rounded">{{ disc.codigo }}</span>
         </li>
         } @empty {
-        <li class="text-gray-400 text-sm italic">Sem disciplinas.</li>
+        <li
+          class="text-gray-400 text-sm italic text-center py-4 bg-gray-50 rounded border border-dashed border-gray-300">
+          Nenhuma disciplina associada.
+        </li>
         }
       </ul>
 
@@ -76,7 +91,6 @@
           📋 Fazer Chamada
         </a>
       </div>
-
     </div>
 
     <div class="md:col-span-3 mt-4 pt-4 border-t border-gray-100">

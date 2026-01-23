@@ -3,9 +3,10 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router'; // Adicionar RouterLink
 import { AlunoService, Aluno } from '../../services/aluno.service';
-import { TurmaService, Turma, Disciplina } from '../../services/turma.service';
+import { TurmaService, Turma } from '../../services/turma.service';
 import { NotaService, Nota } from '../../services/nota.service';
 import { forkJoin } from 'rxjs'; // Importante para o "Salvar Tudo"
+import { Disciplina } from '../../services/disciplina.service';
 
 @Component({
   selector: 'app-nota-pauta',
@@ -51,7 +52,7 @@ export class NotaPauta implements OnInit {
     this.cdr.detectChanges();
 
     // 2. Carrega Disciplinas
-    this.turmaService.getDisciplinas(this.turmaId).subscribe(data => {
+    this.turmaService.getDisciplinasByTurma(this.turmaId).subscribe(data => {
       this.disciplinas = data;
       this.cdr.detectChanges();
     });

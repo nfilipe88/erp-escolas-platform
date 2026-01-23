@@ -1,6 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
+import { Disciplina } from './disciplina.service';
 
 export interface Turma {
   id?: number;
@@ -8,12 +9,7 @@ export interface Turma {
   ano_letivo: string; // Ex: "2024"
   turno?: string;     // Ex: "Manhã"
   escola_id: number;
-}
-
-export interface Disciplina {
-  id?: number;
-  nome: string;
-  turma_id: number;
+  disciplinas?: Disciplina[];
 }
 
 @Injectable({
@@ -38,11 +34,16 @@ export class TurmaService {
   }
 
   // Métodos para Disciplinas
-  addDisciplina(disciplina: Disciplina): Observable<Disciplina> {
-    return this.http.post<Disciplina>(`${this.apiUrl}/disciplinas/`, disciplina);
+  // addDisciplina(disciplina: Disciplina): Observable<Disciplina> {
+  //   return this.http.post<Disciplina>(`${this.apiUrl}/disciplinas/`, disciplina);
+  // }
+
+  getDisciplinasByTurma(turmaId: number): Observable<Disciplina[]> {
+    return this.http.get<Disciplina[]>(`${this.apiUrl}/turmas/${turmaId}/disciplinas`);
   }
 
-  getDisciplinas(turmaId: number): Observable<Disciplina[]> {
-    return this.http.get<Disciplina[]>(`${this.apiUrl}/turmas/${turmaId}/disciplinas`);
+  // Método para associar disciplina a turma
+  associarDisciplina(turmaId: number, disciplinaId: number): Observable<any> {
+    return this.http.post(`${this.apiUrl}/turmas/${turmaId}/associar-disciplina/${disciplinaId}`, {});
   }
 }

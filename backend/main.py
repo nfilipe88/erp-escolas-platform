@@ -269,17 +269,6 @@ def read_alunos_turma(turma_id: int, db: Session = Depends(get_db),
                       current_user: models_user.Usuario = Depends(get_current_user)):
     return crud_aluno.get_alunos_by_turma(db=db, turma_id=turma_id)
 
-@app.post("/disciplinas/", response_model=schemas_disciplina.DisciplinaResponse)
-def create_disciplina(disciplina: schemas_disciplina.DisciplinaCreate, db: Session = Depends(get_db),
-                      current_user: models_user.Usuario = Depends(get_current_user)
-                     ):
-    return crud_disciplina.create_disciplina(db=db, disciplina=disciplina)
-
-@app.get("/turmas/{turma_id}/disciplinas", response_model=list[schemas_disciplina.DisciplinaResponse])
-def read_disciplinas_turma(turma_id: int, db: Session = Depends(get_db),
-                           current_user: models_user.Usuario = Depends(get_current_user)):
-    return crud_disciplina.get_disciplinas_by_turma(db=db, turma_id=turma_id)
-
 # --- ROTA ESPECIAL DE LANÇAR NOTA COM UPLOAD ---
 @app.post("/notas/", response_model=schemas_nota.NotaResponse)
 def lancar_nota(
@@ -416,24 +405,59 @@ def read_alunos_por_turma(turma_id: int, db: Session = Depends(get_db),
     alunos = crud_aluno.get_alunos_by_turma(db, turma_id=turma_id)
     return alunos
 
+# ==========================================
+# MÓDULO DE DISCIPLINAS (CATÁLOGO GERAL N:N)
+# ==========================================
+
+# 1. Criar Disciplina (Usa o CRUD corretamente)
+@app.post("/disciplinas/", response_model=schemas_disciplina.DisciplinaResponse)
+def create_disciplina(
+    disciplina: schemas_disciplina.DisciplinaCreate, 
+    db: Session = Depends(get_db),
+    current_user: models_user.Usuario = Depends(get_current_user)
+):
+    return crud_disciplina.create_disciplina(db=db, disciplina=disciplina)
+
+
+# 2. Listar TODAS as Disciplinas da Escola (Catálogo)
+@app.get("/disciplinas/", response_model=list[schemas_disciplina.Disciplina])
+def listar_disciplinas(
+    skip: int = 0, 
+    limit: int = 100, 
+    db: Session = Depends(get_db),
+    current_user: models_user.Usuario = Depends(get_current_user)
+):
+    # Nota: Aqui chamei diretamente o modelo pois é uma query simples, 
+    # mas o ideal seria criar um crud_disciplina.get_all_disciplinas
+    return db.query(models_disciplina.Disciplina).offset(skip).limit(limit).all()
+
+
+# 3. Listar Disciplinas de UMA Turma Específica
+@app.get("/turmas/{turma_id}/disciplinas", response_model=list[schemas_disciplina.DisciplinaResponse])
+def read_disciplinas_turma(
+    turma_id: int, 
+    db: Session = Depends(get_db),
+    current_user: models_user.Usuario = Depends(get_current_user)
+):
+    return crud_disciplina.get_disciplinas_by_turma(db=db, turma_id=turma_id)
+
+
+# 4. Associar Disciplina Existente a uma Turma
 @app.post("/turmas/{turma_id}/associar-disciplina/{disciplina_id}")
 def associar_disciplina_a_turma(
     turma_id: int, 
     disciplina_id: int, 
     db: Session = Depends(get_db)
 ):
-    # 1. Busca a turma e a disciplina
     turma = crud_turma.get_turma(db, turma_id=turma_id)
     disciplina = db.query(models_disciplina.Disciplina).filter(models_disciplina.Disciplina.id == disciplina_id).first()
 
     if not turma or not disciplina:
         raise HTTPException(status_code=404, detail="Turma ou Disciplina não encontrada")
 
-    # 2. Verifica se já está associada para evitar erro de duplicação
     if disciplina in turma.disciplinas:
         return {"mensagem": "Disciplina já está associada a esta turma"}
 
-    # 3. Faz a magia do SQLAlchemy (ele insere na tabela ponte automaticamente)
     turma.disciplinas.append(disciplina)
     db.commit()
 
