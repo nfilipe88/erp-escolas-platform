@@ -5,3 +5,4 @@ from .mensalidade import Mensalidade
 from .nota import Nota
 from .turma import Turma
 from .usuario import Usuario
+from .presenca import Presenca

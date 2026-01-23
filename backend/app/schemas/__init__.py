@@ -5,3 +5,4 @@ from .turma import TurmaCreate, TurmaResponse
 from .disciplina import DisciplinaCreate, DisciplinaResponse
 from .mensalidade import MensalidadeCreate, MensalidadePagar, MensalidadeResponse
 from .usuario import UsuarioCreate, UsuarioResponse, Token
+from .presenca import PresencaBase, ChamadaDiaria, PresencaResponse

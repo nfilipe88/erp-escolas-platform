@@ -1,22 +1,52 @@
-<div class="max-w-4xl mx-auto mt-10 p-6 bg-white rounded-lg shadow-xl border border-gray-200">
+<div class="max-w-6xl mx-auto mt-10 px-4">
+
   <div class="flex justify-between items-center mb-6">
-    <h2 class="text-2xl font-bold text-gray-800">Turmas da Escola</h2>
-    <button routerLink="/nova-turma" class="bg-indigo-600 text-white px-4 py-2 rounded text-sm hover:bg-indigo-700 transition">
+    <h1 class="text-3xl font-bold text-gray-800">Turmas da Escola</h1>
+    <a routerLink="/nova-turma" class="bg-blue-900 text-white px-4 py-2 rounded shadow hover:bg-blue-800 transition">
       + Nova Turma
-    </button>
+    </a>
   </div>
 
-  <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+
     @for (turma of turmas; track turma.id) {
-      <div [routerLink]="['/turma', turma.id]" class="bg-gray-50 border border-gray-200 p-4 rounded-lg hover:shadow-md transition cursor-pointer border-l-4 border-l-indigo-500">
-        <h3 class="text-lg font-bold text-gray-800">{{ turma.nome }}</h3>
-        <p class="text-gray-600 text-sm">Ano: {{ turma.ano_letivo }}</p>
-        <span class="inline-block mt-2 text-xs bg-indigo-100 text-indigo-800 px-2 py-1 rounded">
-          {{ turma.turno }}
-        </span>
+
+    <div class="bg-white rounded-lg shadow-md border border-gray-200 p-5 flex flex-col">
+
+      <div>
+        <h3 class="text-xl font-bold text-blue-900 mb-1">{{ turma.nome }}</h3>
+        <p class="text-gray-500 text-sm mb-1">Turno: <span class="font-medium text-gray-700">{{ turma.turno }}</span>
+        </p>
+        <p class="text-gray-500 text-sm">Ano Letivo: {{ turma.ano_letivo }}</p>
       </div>
+
+      <div class="mt-4 grid grid-cols-2 gap-3">
+
+        <a [routerLink]="['/turma', turma.id, 'pauta']"
+          class="flex items-center justify-center gap-2 py-2 px-3 bg-yellow-50 text-yellow-700 border border-yellow-200 rounded hover:bg-yellow-100 transition cursor-pointer text-sm font-bold">
+          📊 Notas
+        </a>
+
+        <a [routerLink]="['/turma', turma.id, 'chamada']"
+          class="flex items-center justify-center gap-2 py-2 px-3 bg-indigo-50 text-indigo-700 border border-indigo-200 rounded hover:bg-indigo-100 transition cursor-pointer text-sm font-bold">
+          📋 Chamada
+        </a>
+
+      </div>
+
+      <div class="mt-3 pt-3 border-t border-gray-100 text-center">
+        <a routerLink="/lista-alunos" class="text-xs text-gray-400 hover:text-gray-600 uppercase tracking-wide">
+          Ver Alunos Matriculados →
+        </a>
+      </div>
+
+    </div>
+
     } @empty {
-      <p class="text-gray-500 col-span-3 text-center py-10">Nenhuma turma registada.</p>
+    <div class="col-span-3 text-center py-20 bg-gray-50 rounded border-dashed border-2 border-gray-300">
+      <p class="text-gray-500 text-lg">Nenhuma turma encontrada. Crie a primeira!</p>
+    </div>
     }
+
   </div>
 </div>

@@ -25,6 +25,7 @@ from app.schemas import dashboard as schemas_dashboard
 from app.schemas import mensalidade as schemas_fin
 from app.schemas import usuario as schemas_user
 from app.schemas import recuperar_senha as schemas_rec_senha
+from app.schemas import presenca as schemas_presenca
 from app.cruds import crud_turma as crud_turma
 from app.cruds import crud_escola as crud_escola
 from app.cruds import crud_aluno as crud_aluno
@@ -33,17 +34,14 @@ from app.cruds import crud_nota
 from app.cruds import crud_dashboard
 from app.cruds import crud_mensalidade
 from app.cruds import crud_usuario
+from app.cruds import crud_presenca
 from app.models import escola as models
 from app.models.aluno import Aluno
 from app.models import usuario as models_user
 
-# 1. Importa a função de segurança
-from app.security import create_access_token, get_current_user
-from app.schemas.recuperar_senha import EmailRequest
 from app.core.email import send_reset_password_email
-from app.schemas import usuario as schemas_user
-from app.security import verify_password, get_password_hash, SECRET_KEY, ALGORITHM
-
+# 1. Importa a função de segurança
+from app.security import create_access_token, get_current_user, verify_password, get_password_hash, SECRET_KEY, ALGORITHM
 # Criar tabelas (apenas para desenvolvimento)
 models.Base.metadata.create_all(bind=database.engine)
 
@@ -129,6 +127,51 @@ def login_access_token(form_data: OAuth2PasswordRequestForm = Depends(), db: Ses
         "nome": usuario.nome,
         "message": "Bem-vindo à API do ERP Escolar"
     }
+    
+@app.post("/auth/esqueci-senha")
+async def esqueci_senha(dados: schemas_rec_senha.EmailRequest, db: Session = Depends(get_db)):
+    user = crud_usuario.get_usuario_by_email(db, dados.email)
+    if not user:
+        return {"mensagem": "Se o email existir, enviámos um link de recuperação."}
+
+    # Converter explicitamente para string ajuda o linter, ou usa # type: ignore
+    user_email = str(user.email) 
+
+    reset_token = create_access_token(
+        data={"sub": user_email, "type": "reset"}, 
+        expires_delta=timedelta(minutes=15)
+    )
+    
+    await send_reset_password_email(user_email, reset_token)
+    
+    return {"mensagem": "Se o email existir, enviámos um link de recuperação."}
+
+@app.post("/auth/reset-senha")
+def reset_senha(dados: schemas_rec_senha.ResetPassword, db: Session = Depends(get_db)):
+    try:
+        # 1. Tenta descodificar o token recebido
+        payload = jwt.decode(dados.token, SECRET_KEY, algorithms=[ALGORITHM])
+        
+        # 2. Verifica se é um token do tipo "reset" (para não usarem token de login)
+        if payload.get("type") != "reset":
+            raise HTTPException(status_code=400, detail="Token inválido para recuperação de senha")
+        
+        email = payload.get("sub")
+        
+    except JWTError:
+        raise HTTPException(status_code=400, detail="Token expirado ou inválido")
+    
+    # 3. Busca o utilizador
+    user = crud_usuario.get_usuario_by_email(db, email) # type: ignore
+    if not user:
+        raise HTTPException(status_code=404, detail="Utilizador não encontrado")
+    
+    # 4. Define a nova senha
+    # O # type: ignore é para o editor não reclamar do SQLAlchemy
+    user.senha_hash = get_password_hash(dados.nova_senha) # type: ignore
+    db.commit()
+    
+    return {"mensagem": "Senha recuperada com sucesso! Faça login."}
 
 
 # @app.get("/")
@@ -340,47 +383,34 @@ def alterar_senha(
     
     return {"mensagem": "Senha alterada com sucesso"}
 
-@app.post("/auth/esqueci-senha")
-async def esqueci_senha(dados: schemas_rec_senha.EmailRequest, db: Session = Depends(get_db)):
-    user = crud_usuario.get_usuario_by_email(db, dados.email)
-    if not user:
-        return {"mensagem": "Se o email existir, enviámos um link de recuperação."}
+# --- MÓDULO DE ASSIDUIDADE ---
 
-    # Converter explicitamente para string ajuda o linter, ou usa # type: ignore
-    user_email = str(user.email) 
+# 1. Salvar a chamada do dia
+@app.post("/presencas/", response_model=list[schemas_presenca.PresencaResponse])
+def salvar_chamada(
+    dados: schemas_presenca.ChamadaDiaria, 
+    db: Session = Depends(get_db),
+    current_user: models_user.Usuario = Depends(get_current_user)
+):
+    return crud_presenca.registrar_chamada(db=db, chamada=dados)
 
-    reset_token = create_access_token(
-        data={"sub": user_email, "type": "reset"}, 
-        expires_delta=timedelta(minutes=15)
-    )
-    
-    await send_reset_password_email(user_email, reset_token)
-    
-    return {"mensagem": "Se o email existir, enviámos um link de recuperação."}
+# 2. Ler a chamada de uma turma numa data específica
+# Ex: /presencas/turma/5?data=2025-01-22
+@app.get("/presencas/turma/{turma_id}", response_model=list[schemas_presenca.PresencaResponse])
+def ler_chamada(
+    turma_id: int, 
+    data: str, # Recebe como string "YYYY-MM-DD"
+    db: Session = Depends(get_db),
+    current_user: models_user.Usuario = Depends(get_current_user)
+):
+    from datetime import datetime
+    # Converte string para data real
+    data_obj = datetime.strptime(data, "%Y-%m-%d").date()
+    return crud_presenca.get_presencas_dia(db=db, turma_id=turma_id, data_busca=data_obj)
 
-@app.post("/auth/reset-senha")
-def reset_senha(dados: schemas_rec_senha.ResetPassword, db: Session = Depends(get_db)):
-    try:
-        # 1. Tenta descodificar o token recebido
-        payload = jwt.decode(dados.token, SECRET_KEY, algorithms=[ALGORITHM])
-        
-        # 2. Verifica se é um token do tipo "reset" (para não usarem token de login)
-        if payload.get("type") != "reset":
-            raise HTTPException(status_code=400, detail="Token inválido para recuperação de senha")
-        
-        email = payload.get("sub")
-        
-    except JWTError:
-        raise HTTPException(status_code=400, detail="Token expirado ou inválido")
-    
-    # 3. Busca o utilizador
-    user = crud_usuario.get_usuario_by_email(db, email)
-    if not user:
-        raise HTTPException(status_code=404, detail="Utilizador não encontrado")
-    
-    # 4. Define a nova senha
-    # O # type: ignore é para o editor não reclamar do SQLAlchemy
-    user.senha_hash = get_password_hash(dados.nova_senha) # type: ignore
-    db.commit()
-    
-    return {"mensagem": "Senha recuperada com sucesso! Faça login."}
+@app.get("/turmas/{turma_id}/alunos", response_model=list[schemas_aluno.AlunoResponse])
+def read_alunos_por_turma(turma_id: int, db: Session = Depends(get_db),
+                          current_user: models_user.Usuario = Depends(get_current_user)
+                          ):
+    alunos = crud_aluno.get_alunos_by_turma(db, turma_id=turma_id)
+    return alunos

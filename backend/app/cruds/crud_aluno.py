@@ -47,4 +47,8 @@ def delete_aluno(db: Session, aluno_id: int):
     return False
 
 def get_alunos_by_turma(db: Session, turma_id: int):
-    return db.query(models.Aluno).filter(models.Aluno.turma_id == turma_id).all()
+    # Filtra por turma_id e garante que só traz alunos ativos
+    return db.query(models.Aluno).filter(
+        models.Aluno.turma_id == turma_id, 
+        models.Aluno.ativo == True
+    ).all()
