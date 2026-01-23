@@ -16,6 +16,7 @@ import { UsuarioPerfil } from './components/usuario-perfil/usuario-perfil';
 import { EsqueciSenha } from './components/esqueci-senha/esqueci-senha';
 import { ResetSenha } from './components/reset-senha/reset-senha';
 import { TurmaChamada } from './components/turma-chamada/turma-chamada';
+import { DisciplinaList } from './components/disciplina-list/disciplina-list';
 
 export const routes: Routes = [
   // Rotas públicas(livres)
@@ -42,6 +43,7 @@ export const routes: Routes = [
       { path: 'recibo/:id', component: AlunoRecibo, },
       { path: 'perfil', component: UsuarioPerfil, },
       { path: 'turma/:turmaId/chamada', component: TurmaChamada, },
+      { path: 'disciplinas', component: DisciplinaList, },
     ]
   },
   { path: '**', redirectTo: 'login' } // Rota curinga para redirecionar rotas inválidas

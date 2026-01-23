@@ -38,6 +38,7 @@ from app.cruds import crud_presenca
 from app.models import escola as models
 from app.models.aluno import Aluno
 from app.models import usuario as models_user
+from app.models import disciplina as models_disciplina
 
 from app.core.email import send_reset_password_email
 # 1. Importa a função de segurança
@@ -414,3 +415,26 @@ def read_alunos_por_turma(turma_id: int, db: Session = Depends(get_db),
                           ):
     alunos = crud_aluno.get_alunos_by_turma(db, turma_id=turma_id)
     return alunos
+
+@app.post("/turmas/{turma_id}/associar-disciplina/{disciplina_id}")
+def associar_disciplina_a_turma(
+    turma_id: int, 
+    disciplina_id: int, 
+    db: Session = Depends(get_db)
+):
+    # 1. Busca a turma e a disciplina
+    turma = crud_turma.get_turma(db, turma_id=turma_id)
+    disciplina = db.query(models_disciplina.Disciplina).filter(models_disciplina.Disciplina.id == disciplina_id).first()
+
+    if not turma or not disciplina:
+        raise HTTPException(status_code=404, detail="Turma ou Disciplina não encontrada")
+
+    # 2. Verifica se já está associada para evitar erro de duplicação
+    if disciplina in turma.disciplinas:
+        return {"mensagem": "Disciplina já está associada a esta turma"}
+
+    # 3. Faz a magia do SQLAlchemy (ele insere na tabela ponte automaticamente)
+    turma.disciplinas.append(disciplina)
+    db.commit()
+
+    return {"mensagem": f"Disciplina {disciplina.nome} adicionada à turma {turma.nome}"}
