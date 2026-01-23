@@ -18,49 +18,41 @@ export class AlunoList implements OnInit {
   escolaId = 1; // Fixo para teste
 
   ngOnInit() {
-    // 3. Lê o URL para ver se tem "?turma_id=X"
+    // Escuta os parâmetros do URL para ver se existe um filtro de turma
     this.route.queryParams.subscribe(params => {
       const turmaId = params['turma_id'];
 
       if (turmaId) {
+        // Se veio do botão da turma, carrega só os dessa turma
         this.carregarAlunosDaTurma(Number(turmaId));
       } else {
-        this.carregarTodos();
+        // Se clicou no menu principal, carrega todos os alunos da escola
+        this.carregarTodosOsAlunos();
       }
     });
   }
 
-  // carregarAlunos() {
-  //   this.alunoService.getAlunos(this.escolaId).subscribe({
-  //     next: (dados) => {
-  //       this.alunos = dados;
-  //       this.cdr.detectChanges(); // <--- Força o Angular a pintar a tela AGORA
-  //     },
-  //     error: (erro) => {
-  //       console.error('Erro ao buscar alunos', erro);
-  //     }
-  //   });
-  // }
-
-  carregarTodos() {
-    this.alunoService.getAlunos(0, 100).subscribe(dados => this.alunos = dados);
-    this.cdr.detectChanges();
+  carregarTodosOsAlunos() {
+    // Passamos o ID da Escola (ex: 1)
+    this.alunoService.getAlunos(1).subscribe(dados => {
+      this.alunos = dados;
+      this.cdr.detectChanges();
+    });
   }
 
   carregarAlunosDaTurma(turmaId: number) {
-    this.alunoService.getAlunosPorTurma(turmaId).subscribe(dados => this.alunos = dados);
-    this.cdr.detectChanges();
+    this.alunoService.getAlunosPorTurma(turmaId).subscribe(dados => {
+      this.alunos = dados;
+      this.cdr.detectChanges();
+    });
   }
 
   deletar(id: number) {
     if (confirm("Tens a certeza que queres apagar este aluno?")) {
-      this.alunoService.removerAluno(id).subscribe({
-        next: () => {
-          // Remove da lista visualmente sem precisar recarregar a página
-          this.alunos = this.alunos.filter(a => a.id !== id);
-        },
-        error: (err) => alert("Erro ao apagar aluno.")
-      })
+      this.alunoService.removerAluno(id).subscribe(() => {
+        // Após eliminar, recarrega a lista baseada no URL atual
+        this.ngOnInit();
+      });
     }
   }
 }

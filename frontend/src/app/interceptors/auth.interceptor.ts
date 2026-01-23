@@ -2,9 +2,11 @@ import { HttpErrorResponse, HttpInterceptorFn } from '@angular/common/http';
 import { inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { catchError, throwError } from 'rxjs';
+import { AuthService } from '../services/auth.service';
 
 export const authInterceptor: HttpInterceptorFn = (req, next) => {
-  const router = inject(Router);
+  // const router = inject(Router);
+  const authService = inject(AuthService);
   const token = localStorage.getItem('access_token');
 
   // Clona o pedido se houver token
@@ -25,9 +27,10 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
         localStorage.removeItem('access_token');
         localStorage.removeItem('user_name');
         localStorage.removeItem('user_perfil');
+        console.warn("Sessão expirada. A fechar a aplicação...");
 
-        // Redireciona para o login
-        router.navigate(['/login']);
+        // ISTO FAZ A MAGIA: Limpa o storage, o Signal (esconde o menu) e vai para o Login
+        authService.logout();
       }
 
       return throwError(() => error);
