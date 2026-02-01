@@ -26,6 +26,8 @@ from app.schemas import mensalidade as schemas_fin
 from app.schemas import usuario as schemas_user
 from app.schemas import recuperar_senha as schemas_rec_senha
 from app.schemas import presenca as schemas_presenca
+from app.schemas import configuracao as schemas_config
+from app.schemas import atribuicao as schemas_atribuicao
 from app.cruds import crud_turma as crud_turma
 from app.cruds import crud_escola as crud_escola
 from app.cruds import crud_aluno as crud_aluno
@@ -35,6 +37,8 @@ from app.cruds import crud_dashboard
 from app.cruds import crud_mensalidade
 from app.cruds import crud_usuario
 from app.cruds import crud_presenca
+from app.cruds import crud_configuracao
+from app.cruds import crud_atribuicao
 from app.models import escola as models
 from app.models.aluno import Aluno
 from app.models import usuario as models_user
@@ -106,7 +110,44 @@ def registar_usuario(usuario: schemas_user.UsuarioCreate, db: Session = Depends(
     db_user = crud_usuario.get_usuario_by_email(db, email=usuario.email)
     if db_user:
         raise HTTPException(status_code=400, detail="Email já registado")
-    return crud_usuario.create_usuario(db=db, usuario=usuario)
+    return crud_usuario.create_usuario(db=db, usuario=usuario, escola_id=None)
+
+# 2. Rota para CRIAR NOVOS UTILIZADORES (Apenas Admin/Secretária/Superadmin)
+
+@app.post("/usuarios/", response_model=schemas_user.UsuarioResponse)
+def criar_usuario(
+    usuario: schemas_user.UsuarioCreate, 
+    db: Session = Depends(get_db),
+    current_user: models_user.Usuario = Depends(get_current_user)
+):
+    escola_destino_id = None
+
+    if current_user.perfil == "superadmin":
+        if usuario.escola_id:
+            escola_destino_id = usuario.escola_id
+        else:
+            # Se não especificar, assume a escola do superadmin ou lança erro (opcional)
+            escola_destino_id = current_user.escola_id
+    else:
+        # Diretor só cria na sua própria escola
+        escola_destino_id = current_user.escola_id
+    
+    if not escola_destino_id:
+        raise HTTPException(status_code=400, detail="Escola não definida para o novo utilizador.")
+
+    return crud_usuario.create_usuario(db=db, usuario=usuario, escola_id=escola_destino_id)
+
+@app.get("/usuarios/", response_model=list[schemas_user.UsuarioResponse])
+def listar_usuarios(
+    db: Session = Depends(get_db),
+    current_user: models_user.Usuario = Depends(get_current_user)
+):
+    if current_user.perfil == "superadmin":
+        # Superadmin vê todos (ou filtra se quiseres)
+        return db.query(models_user.Usuario).all()
+    else:
+        # Diretor vê apenas os seus funcionários
+        return crud_usuario.get_usuarios_por_escola(db, escola_id=current_user.escola_id)
 
 # 2. Rota de LOGIN (Gera o Token)
 @app.post("/auth/login", response_model=schemas_user.Token)
@@ -126,6 +167,7 @@ def login_access_token(form_data: OAuth2PasswordRequestForm = Depends(), db: Ses
         "token_type": "bearer",
         "perfil": usuario.perfil,
         "nome": usuario.nome,
+        "escola_id": usuario.escola_id,
         "message": "Bem-vindo à API do ERP Escolar"
     }
     
@@ -195,17 +237,51 @@ def create_escola(escola: schemas_escola.EscolaCreate, db: Session = Depends(get
     # 2. Criar a escola
     return crud_escola.create_escola(db=db, escola=escola)
 
-# 2. ROTAS PARA ALUNO
+# LISTAR ESCOLAS (Apenas Superadmin deveria ver, mas deixamos aberto por enquanto)
+@app.get("/escolas/", response_model=list[schemas_escola.EscolaResponse])
+def listar_escolas(
+    skip: int = 0, 
+    limit: int = 100, 
+    db: Session = Depends(get_db),
+    current_user: models_user.Usuario = Depends(get_current_user)
+):
+    return crud_escola.get_escolas(db, skip=skip, limit=limit)
 
-@app.post("/alunos/", response_model=schemas_aluno.AlunoResponse)
-def create_aluno(aluno: schemas_aluno.AlunoCreate, db: Session = Depends(get_db),
-                    current_user: models_user.Usuario = Depends(get_current_user)
-                 ):
-    """
-    Matricula um novo aluno numa escola específica.
-    """
-    # Futuramente: Verificar se a escola existe antes de criar
-    return crud_aluno.create_aluno(db=db, aluno=aluno)
+# DETALHES DA ESCOLA (Raio-X)
+@app.get("/escolas/{escola_id}/detalhes", response_model=schemas_escola.EscolaDetalhes)
+def ver_detalhes_escola(
+    escola_id: int, 
+    db: Session = Depends(get_db),
+    current_user: models_user.Usuario = Depends(get_current_user)
+):
+    escola = crud_escola.get_escola_detalhes(db, escola_id=escola_id)
+    if not escola:
+        raise HTTPException(status_code=404, detail="Escola não encontrada")
+    return escola
+
+# 2. ROTAS PARA ALUNO
+@app.post("/alunos/", response_model=schemas_aluno.AlunoCreate)
+def criar_aluno(
+    aluno: schemas_aluno.AlunoCreate, 
+    db: Session = Depends(get_db),
+    current_user: models_user.Usuario = Depends(get_current_user)
+):
+    # Lógica SaaS para definir a escola
+    escola_destino_id = None
+
+    if current_user.perfil == "superadmin": # type: ignore
+        # Cenário 2: Superadmin DEVE enviar o ID da escola
+        if not aluno.escola_id:
+            raise HTTPException(status_code=400, detail="Superadmin deve selecionar uma escola.")
+        escola_destino_id = aluno.escola_id
+    else:
+        # Cenário 1: Admin/Secretária usa a sua própria escola
+        escola_destino_id = current_user.escola_id
+        if not escola_destino_id: # type: ignore
+             raise HTTPException(status_code=400, detail="Utilizador sem escola associada.")
+
+    # Chama o CRUD forçando o ID correto
+    return crud_aluno.create_aluno(db=db, aluno=aluno, escola_id=escola_destino_id) # type: ignore
 
 @app.get("/escolas/{escola_id}/alunos", response_model=list[schemas_aluno.AlunoResponse])
 def read_alunos_escola(escola_id: int, db: Session = Depends(get_db),
@@ -234,20 +310,43 @@ def update_aluno(aluno_id: int, aluno: schemas_aluno.AlunoUpdate, db: Session = 
         raise HTTPException(status_code=404, detail="Aluno não encontrado")
     return db_aluno
 
-@app.delete("/alunos/{aluno_id}")
-def delete_aluno(aluno_id: int, db: Session = Depends(get_db),
-                 current_user: models_user.Usuario = Depends(get_current_user)
-                ):
-    sucesso = crud_aluno.delete_aluno(db=db, aluno_id=aluno_id)
-    if not sucesso:
-        raise HTTPException(status_code=404, detail="Aluno não encontrado")
-    return {"mensagem": "Aluno removido com sucesso"}
+# @app.delete("/alunos/{aluno_id}")
+# def delete_aluno(aluno_id: int, db: Session = Depends(get_db),
+#                  current_user: models_user.Usuario = Depends(get_current_user)
+#                 ):
+#     sucesso = crud_aluno.(db=db, aluno_id=aluno_id)
+#     if not sucesso:
+#         raise HTTPException(status_code=404, detail="Aluno não encontrado")
+#     return {"mensagem": "Aluno removido com sucesso"}
 
-@app.post("/turmas/", response_model=schemas_turma.TurmaResponse)
-def create_turma(turma: schemas_turma.TurmaCreate, db: Session = Depends(get_db),
-                 current_user: models_user.Usuario = Depends(get_current_user)
-                ):
-    return crud_turma.create_turma(db=db, turma=turma)
+# backend/main.py
+
+@app.post("/turmas/", response_model=schemas_turma.TurmaCreate)
+def criar_turma(
+    turma: schemas_turma.TurmaCreate, 
+    db: Session = Depends(get_db),
+    current_user: models_user.Usuario = Depends(get_current_user)
+):
+    # ID FINAL da escola onde a turma será criada
+    escola_destino_id = None
+
+    # CENÁRIO 1: Superadmin (Pode criar para qualquer escola)
+    if current_user.perfil == "superadmin": # type: ignore
+        if not turma.escola_id:
+            # Se o Superadmin esqueceu de dizer a escola, avisamos
+            raise HTTPException(status_code=400, detail="Superadmin deve informar o ID da escola.")
+        escola_destino_id = turma.escola_id
+
+    # CENÁRIO 2: Admin da Escola / Diretor (Só cria na sua própria escola)
+    else:
+        # Ignoramos o que vem no JSON e forçamos a escola do login (Segurança)
+        escola_destino_id = current_user.escola_id
+        
+        if not escola_destino_id: # type: ignore
+             raise HTTPException(status_code=400, detail="Utilizador não está associado a nenhuma escola.")
+
+    # Chama o CRUD com o ID decidido acima
+    return crud_turma.create_turma(db=db, turma=turma, escola_id=escola_destino_id) # type: ignore
 
 @app.get("/escolas/{escola_id}/turmas", response_model=list[schemas_turma.TurmaResponse])
 def read_turmas_escola(escola_id: int, db: Session = Depends(get_db),
@@ -264,10 +363,20 @@ def read_turma(turma_id: int, db: Session = Depends(get_db),
         raise HTTPException(status_code=404, detail="Turma não encontrada")
     return db_turma
 
+@app.get("/turmas/", response_model=list[schemas_turma.TurmaResponse])
+def ler_turmas(
+    skip: int = 0, 
+    limit: int = 100, 
+    db: Session = Depends(get_db),
+    current_user: models_user.Usuario = Depends(get_current_user) # Importante!
+):
+    # O Backend força o filtro pela escola do utilizador
+    return crud_turma.get_turmas_by_escola(db, escola_id=current_user.escola_id, skip=skip, limit=limit) # type: ignore
+
 @app.get("/turmas/{turma_id}/alunos", response_model=list[schemas_aluno.AlunoResponse])
 def read_alunos_turma(turma_id: int, db: Session = Depends(get_db),
                       current_user: models_user.Usuario = Depends(get_current_user)):
-    return crud_aluno.get_alunos_by_turma(db=db, turma_id=turma_id)
+    return crud_aluno.get_alunos_por_turma(db=db, turma_id=turma_id)
 
 # --- ROTA ESPECIAL DE LANÇAR NOTA COM UPLOAD ---
 @app.post("/notas/", response_model=schemas_nota.NotaResponse)
@@ -328,35 +437,60 @@ def read_dashboard_stats(db: Session = Depends(get_db),
                          current_user: models_user.Usuario = Depends(get_current_user)):
     return crud_dashboard.get_stats(db=db)
 
-# 1. Gerar dívidas para um aluno (ex: Matrícula)
-@app.post("/alunos/{aluno_id}/financeiro/gerar", response_model=list[schemas_fin.MensalidadeResponse])
-def gerar_financeiro_aluno(aluno_id: int, ano: int = 2025, valor: float = 15000, db: Session = Depends(get_db),
-                           current_user: models_user.Usuario = Depends(get_current_user)
-                          ):
-    return crud_mensalidade.gerar_carnet_aluno(db=db, aluno_id=aluno_id, ano=ano, valor=valor)
+# ==========================================
+# MÓDULO FINANCEIRO (SaaS Profissional)
+# ==========================================
 
-# 2. Consultar Extrato do Aluno
+# 1. Gerar Carnet Inteligente (Lê as configurações da Escola)
+@app.post("/alunos/{aluno_id}/financeiro/gerar")
+def gerar_mensalidades(
+    aluno_id: int, 
+    ano: int,  # Este parâmetro vem da URL (?ano=2025)
+    db: Session = Depends(get_db), 
+    current_user: models_user.Usuario = Depends(get_current_user)
+):
+    # CORREÇÃO AQUI: mudamos 'ano=ano' para 'ano_letivo=ano'
+    return crud_mensalidade.gerar_carnet_aluno(
+        db=db, 
+        aluno_id=aluno_id, 
+        ano_letivo=ano,  # <--- O CRUD espera 'ano_letivo'
+        current_user_id=current_user.id
+    )
+
+# 2. Ver Extrato Financeiro do Aluno
 @app.get("/alunos/{aluno_id}/financeiro", response_model=list[schemas_fin.MensalidadeResponse])
-def read_financeiro_aluno(aluno_id: int, db: Session = Depends(get_db),
-                          current_user: models_user.Usuario = Depends(get_current_user)
-                         ):
+def ver_financeiro(
+    aluno_id: int, 
+    db: Session = Depends(get_db),
+    current_user: models_user.Usuario = Depends(get_current_user)
+):
     return crud_mensalidade.get_mensalidades_aluno(db=db, aluno_id=aluno_id)
 
-# 3. Pagar
-@app.put("/financeiro/{mensalidade_id}/pagar", response_model=schemas_fin.MensalidadeResponse)
-def pagar_mensalidade(mensalidade_id: int, dados: schemas_fin.MensalidadePagar, db: Session = Depends(get_db),
-                      current_user: models_user.Usuario = Depends(get_current_user)
-                     ):
-    return crud_mensalidade.pagar_mensalidade(db=db, mensalidade_id=mensalidade_id, dados_pagamento=dados)
+# 3. Efetuar Pagamento (Baixa Financeira)
+@app.put("/financeiro/{mensalidade_id}/pagar", response_model=schemas_fin.MensalidadePagar)
+def pagar_mensalidade(
+    mensalidade_id: int, 
+    dados_pagamento: schemas_fin.MensalidadePagar, 
+    db: Session = Depends(get_db),
+    current_user: models_user.Usuario = Depends(get_current_user)
+):
+    # REGRA DE SEGURANÇA:
+    # O Frontend manda a forma de pagamento, mas NÓS definimos quem recebeu (o utilizador logado)
+    dados_pagamento.pago_por_id = current_user.id
+    
+    return crud_mensalidade.pagar_mensalidade(db, mensalidade_id, dados_pagamento)
 
-@app.get("/financeiro/{id}", response_model=schemas_fin.MensalidadeResponse)
-def read_mensalidade(id: int, db: Session = Depends(get_db),
-                     current_user: models_user.Usuario = Depends(get_current_user)
-                     ):
-    mensalidade = crud_mensalidade.get_mensalidade_by_id(db=db, id=id)
-    if not mensalidade:
-        raise HTTPException(status_code=404, detail="Mensalidade não encontrada")
-    return mensalidade
+# 4. Imprimir Recibo Único
+@app.get("/financeiro/{mensalidade_id}", response_model=schemas_fin.MensalidadeResponse)
+def get_recibo(
+    mensalidade_id: int, 
+    db: Session = Depends(get_db),
+    current_user: models_user.Usuario = Depends(get_current_user)
+):
+    return crud_mensalidade.get_mensalidade(db=db, mensalidade_id=mensalidade_id)
+# ==========================================
+# FIM DO MÓDULO FINANCEIRO
+# ==========================================
 
 @app.put("/auth/me/alterar-senha")
 def alterar_senha(
@@ -447,7 +581,8 @@ def read_disciplinas_turma(
 def associar_disciplina_a_turma(
     turma_id: int, 
     disciplina_id: int, 
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: models_user.Usuario = Depends(get_current_user)
 ):
     turma = crud_turma.get_turma(db, turma_id=turma_id)
     disciplina = db.query(models_disciplina.Disciplina).filter(models_disciplina.Disciplina.id == disciplina_id).first()
@@ -522,3 +657,92 @@ def eliminar_disciplina(
     db.delete(db_disciplina)
     db.commit()
     return {"mensagem": "Disciplina eliminada do catálogo e removida de todas as turmas."}
+
+# ==========================================
+# MÓDULO DE CONFIGURAÇÕES (Admin da Escola)
+# ==========================================
+
+# 1. VER as configurações da minha escola
+@app.get("/minha-escola/configuracoes", response_model=schemas_config.ConfiguracaoResponse)
+def ler_minha_configuracao(
+    db: Session = Depends(get_db),
+    current_user: models_user.Usuario = Depends(get_current_user)
+):
+    # O Segredo: Usa o escola_id do token do utilizador!
+    config = crud_configuracao.get_config_by_escola(db, escola_id=current_user.escola_id) # type: ignore
+    if not config:
+        raise HTTPException(status_code=404, detail="Configuração não encontrada")
+    return config
+
+# 2. ATUALIZAR as configurações da minha escola
+@app.put("/minha-escola/configuracoes", response_model=schemas_config.ConfiguracaoResponse)
+def atualizar_minha_configuracao(
+    dados: schemas_config.ConfiguracaoUpdate,
+    db: Session = Depends(get_db),
+    current_user: models_user.Usuario = Depends(get_current_user)
+):
+    # O Diretor só pode atualizar a configuração da própria escola
+    return crud_configuracao.update_config(db=db, escola_id=current_user.escola_id, dados=dados) # type: ignore
+
+# ==========================================
+# GESTÃO DOCENTE (Atribuições)
+# ==========================================
+
+@app.post("/atribuicoes/", response_model=schemas_atribuicao.AtribuicaoResponse) # Alterado aqui para usar o Response simples se quiseres, ou adapta o crud para devolver o objeto simples na criação
+def atribuir_professor(
+    dados: schemas_atribuicao.AtribuicaoCreate,
+    db: Session = Depends(get_db),
+    current_user: models_user.Usuario = Depends(get_current_user)
+):
+    # Nota: O create do CRUD retorna o modelo do banco. 
+    # O Pydantic vai tentar ler 'turma_nome' mas o modelo acabou de ser criado e as relações podem não estar carregadas.
+    # Truque rápido: recarregar ou construir resposta manual.
+    # Para simplificar, vamos deixar o Pydantic tentar (se der erro ajustamos o schema de resposta do POST).
+    novo = crud_atribuicao.create_atribuicao(db, dados, escola_id=current_user.escola_id) # type: ignore
+    
+    # Montagem manual segura para resposta imediata
+    return {
+        "id": novo.id,
+        "turma_id": novo.turma_id,
+        "disciplina_id": novo.disciplina_id,
+        "professor_id": novo.professor_id,
+        "turma_nome": novo.turma.nome if novo.turma else "",
+        "disciplina_nome": novo.disciplina.nome if novo.disciplina else "",
+        "professor_nome": novo.professor.nome if novo.professor else ""
+    }
+
+@app.get("/atribuicoes/", response_model=list[schemas_atribuicao.AtribuicaoResponse])
+def listar_atribuicoes(
+    db: Session = Depends(get_db),
+    current_user: models_user.Usuario = Depends(get_current_user)
+):
+    return crud_atribuicao.get_atribuicoes_escola(db, escola_id=current_user.escola_id) # type: ignore
+
+@app.delete("/atribuicoes/{id}")
+def remover_atribuicao(
+    id: int,
+    db: Session = Depends(get_db),
+    current_user: models_user.Usuario = Depends(get_current_user)
+):
+    crud_atribuicao.delete_atribuicao(db, id)
+    return {"msg": "Atribuição removida"}
+
+@app.get("/usuarios/professores", response_model=list[schemas_user.UsuarioResponse])
+def listar_professores(
+    db: Session = Depends(get_db),
+    current_user: models_user.Usuario = Depends(get_current_user)
+):
+    # Filtra por Escola ID e pelo perfil 'professor'
+    return db.query(models_user.Usuario).filter(
+        models_user.Usuario.escola_id == current_user.escola_id,
+        models_user.Usuario.perfil == "professor"
+    ).all()
+    
+# Rota para o PROFESSOR ver as suas turmas
+@app.get("/minhas-aulas") # O schema de resposta pode ser genérico ou uma lista de dicionários
+def ver_minhas_aulas(
+    db: Session = Depends(get_db),
+    current_user: models_user.Usuario = Depends(get_current_user)
+):
+    # Segurança: Apenas professores (ou admins curiosos)
+    return crud_atribuicao.get_minhas_atribuicoes(db, professor_id=current_user.id) # type: ignore

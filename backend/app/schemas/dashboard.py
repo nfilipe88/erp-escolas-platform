@@ -6,3 +6,4 @@ class DashboardStats(BaseModel):
     total_alunos: int
     alunos_ativos: int
     total_disciplinas: int
+    receita_estimada: float

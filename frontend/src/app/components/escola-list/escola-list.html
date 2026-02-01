@@ -1,0 +1,37 @@
+<div class="max-w-6xl mx-auto mt-10 p-6 bg-white shadow-lg rounded-xl">
+  <div class="flex justify-between items-center mb-6">
+    <h1 class="text-2xl font-bold text-gray-800">🏫 Escolas Registadas (SaaS)</h1>
+    <a routerLink="/nova-escola" class="bg-green-600 text-white px-4 py-2 rounded shadow hover:bg-green-700">
+      + Nova Escola
+    </a>
+  </div>
+
+  <table class="w-full text-left border-collapse">
+    <thead>
+      <tr class="bg-gray-100 text-gray-600 uppercase text-sm">
+        <th class="p-3">ID</th>
+        <th class="p-3">Nome da Instituição</th>
+        <th class="p-3">Slug (URL)</th>
+        <th class="p-3 text-center">Estado</th>
+        <th class="p-3 text-center">Ações</th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (escola of escolas; track escola.id) {
+        <tr class="border-b hover:bg-gray-50">
+          <td class="p-3 text-gray-500">#{{ escola.id }}</td>
+          <td class="p-3 font-bold text-blue-900">{{ escola.nome }}</td>
+          <td class="p-3 text-sm text-gray-600">{{ escola.slug }}</td>
+          <td class="p-3 text-center">
+            <span class="px-2 py-1 rounded text-xs font-bold bg-green-100 text-green-700">Ativa</span>
+          </td>
+          <td class="p-3 text-center">
+            <a [routerLink]="['/escolas', escola.id]" class="text-blue-600 hover:underline text-sm font-bold">
+              Ver Detalhes →
+            </a>
+          </td>
+        </tr>
+      }
+    </tbody>
+  </table>
+</div>

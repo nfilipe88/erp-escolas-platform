@@ -7,8 +7,9 @@ class TurmaBase(BaseModel):
     ano_letivo: str
     turno: Optional[str] = "Manhã"
 
+# Create: O campo escola_id passa a ser OPCIONAL aqui
 class TurmaCreate(TurmaBase):
-    escola_id: int
+    escola_id: Optional[int] = None
 
 class TurmaResponse(TurmaBase):
     id: int

@@ -1,4 +1,5 @@
-from sqlalchemy import Column, Integer, String, Boolean
+from sqlalchemy import Column, ForeignKey, Integer, String, Boolean
+from sqlalchemy.orm import relationship
 from app.db.database import Base
 
 class Usuario(Base):
@@ -9,6 +10,9 @@ class Usuario(Base):
     email = Column(String, unique=True, index=True, nullable=False)
     senha_hash = Column(String, nullable=False)
     
-    # Perfil: 'admin' (Diretor), 'professor', 'secretaria'
+    escola_id = Column(Integer, ForeignKey("escolas.id"), nullable=True) # Pode ser Null para o Superadmin
+    escola = relationship("Escola", back_populates="usuarios")
+    
+    # Perfil: 'admin' (Diretor), 'professor', 'secretaria', 'superadmin'
     perfil = Column(String, default="professor") 
     ativo = Column(Boolean, default=True)

@@ -9,7 +9,8 @@ class AlunoBase(BaseModel):
     turma_id: Optional[int] = None
 
 class AlunoCreate(AlunoBase):
-    escola_id: int  # Obrigatório saber a escola ao criar
+    escola_id: Optional[int] = None  # Será definido pelo backend
+    ativo: bool = True  # Novo aluno é ativo por padrão
     
 class AlunoUpdate(BaseModel):
     nome: Optional[str] = None

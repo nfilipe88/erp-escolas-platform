@@ -3,11 +3,12 @@ import { CommonModule } from '@angular/common';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { FinanceiroService, Mensalidade } from '../../services/financeiro.service';
 import { AlunoService, Aluno } from '../../services/aluno.service';
+import { FormsModule } from '@angular/forms';
 
 @Component({
   selector: 'app-aluno-financeiro',
   standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [CommonModule, FormsModule],
   templateUrl: './aluno-financeiro.html',
   styleUrl: './aluno-financeiro.css'
 })
@@ -17,32 +18,56 @@ export class AlunoFinanceiro implements OnInit {
   private alunoService = inject(AlunoService);
   private cdr = inject(ChangeDetectorRef);
 
-  aluno: Aluno | null = null;
-  mensalidades: Mensalidade[] = [];
+  // aluno: Aluno | null = null;
+  // mensalidades: Mensalidade[] = [];
   mensalidadeSelecionada: Mensalidade | null = null; // Para abrir o modal de pagamento
+  alunoId!: number;
+  aluno: any = null;
+  mensalidades: any[] = [];
+  anoSelecionado = 2025;
 
   ngOnInit() {
-    const id = this.route.snapshot.paramMap.get('id');
-    if (id) {
-      this.carregarDados(Number(id));
-    }
+    this.alunoId = Number(this.route.snapshot.paramMap.get('id'));
+
+    // Carregar nome do aluno
+    this.alunoService.getAlunoById(this.alunoId).subscribe(data => this.aluno = data);
+
+    // Carregar financeiro inicial
+    this.carregarFinanceiro(); // <--- Agora chamamos o método que vamos criar abaixo
+  }
+
+  carregarFinanceiro() {
+    this.financeiroService.getMensalidades(this.alunoId).subscribe(data => {
+      this.mensalidades = data;
+    });
   }
 
   carregarDados(id: number) {
-    // Busca dados do aluno (para mostrar o nome)
     this.alunoService.getAlunoById(id).subscribe(a => this.aluno = a);
 
-    // Busca financeiro
     this.financeiroService.getMensalidades(id).subscribe(dados => {
-      this.mensalidades = dados;
+      // MAGIA: Antes de mostrar, verifica se há mensalidades atrasadas
+      const hoje = new Date();
+      this.mensalidades = dados.map(m => {
+        const dataVencimento = new Date(m.data_vencimento);
+        // Se está pendente e o dia de hoje é maior que o dia de vencimento, muda para "Atrasado"
+        if (m.estado === 'Pendente' && hoje > dataVencimento) {
+          m.estado = 'Atrasado';
+        }
+        return m;
+      });
       this.cdr.detectChanges();
     });
   }
 
   gerarCarnet() {
-    if (this.aluno && confirm('Tem a certeza que quer gerar as mensalidades de 2025?')) {
-      this.financeiroService.gerarCarnet(this.aluno.id!, 2025).subscribe(novas => {
-        this.mensalidades = novas;
+    if(confirm(`Gerar carnet para o ano letivo ${this.anoSelecionado}?`)) {
+      this.financeiroService.gerarCarnet(this.alunoId, this.anoSelecionado).subscribe({
+        next: (res) => {
+          alert('Carnet gerado com sucesso!');
+          this.carregarFinanceiro(); // Atualiza a lista
+        },
+        error: (err) => alert('Erro ao gerar carnet.')
       });
     }
   }
@@ -54,24 +79,24 @@ export class AlunoFinanceiro implements OnInit {
     }
   }
 
-  confirmarPagamento(forma: string) {
-    if (this.mensalidadeSelecionada) {
-      // 1. Chama o Backend
-      this.financeiroService.pagar(this.mensalidadeSelecionada.id, forma).subscribe({
-        next: (atualizada) => {
+  confirmarPagamento(mensalidade: any) {
+    const metodo = prompt('Forma de Pagamento (TPA, Dinheiro, Transferencia):', 'TPA');
 
-          // 2. Atualiza a lista visualmente (Vermelho -> Verde)
-          const index = this.mensalidades.findIndex(m => m.id === atualizada.id);
-          if (index !== -1) {
-            this.mensalidades[index] = atualizada;
-          }
+    if (metodo) {
+      const payload = {
+        forma_pagamento: metodo,
+        data_pagamento: new Date().toISOString().split('T')[0] // Data de hoje
+      };
 
-          // 3. --- AQUI ESTÁ A CORREÇÃO ---
-          // Forçamos o fecho do modal definindo a variável como null
-          this.mensalidadeSelecionada = null;
+      // O erro TS2345 desaparece porque o serviço agora aceita objeto
+      this.financeiroService.pagar(mensalidade.id, payload).subscribe({
+        next: (res) => {
+          alert('Pagamento registado com sucesso! 💰');
+          this.carregarFinanceiro(); // O erro TS2339 desaparece porque o método existe
         },
         error: (err) => {
-          alert('Erro ao processar pagamento. Tente novamente.');
+          console.error(err);
+          alert('Erro ao processar pagamento.');
         }
       });
     }

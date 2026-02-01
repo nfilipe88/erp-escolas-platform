@@ -6,3 +6,5 @@ from .nota import Nota
 from .turma import Turma
 from .usuario import Usuario
 from .presenca import Presenca
+from .configuracao import Configuracao
+from .atribuicao import Atribuicao

@@ -19,8 +19,10 @@ export class EscolaForm {
   // Definição do formulário e validações
   form: FormGroup = this.fb.group({
     nome: ['', [Validators.required, Validators.minLength(3)]],
-    slug: ['', [Validators.required, Validators.pattern('^[a-z0-9-]+$')]], // Só letras minúsculas e hífens
-    endereco: ['']
+    slug: ['', [Validators.required, Validators.pattern('^[A-Z0-9-]+$')]], // Só letras minúsculas e hífens
+    endereco: [''],
+    telefone:[''],
+    email:['']
   });
 
   onSubmit() {

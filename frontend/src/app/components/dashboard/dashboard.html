@@ -1,74 +1,99 @@
-<div class="max-w-6xl mx-auto mt-8 px-4">
-
-  <div class="mb-8">
-    <h1 class="text-3xl font-bold text-gray-800">Painel de Controlo</h1>
-    <p class="text-gray-500">Bem-vindo ao ERP Escolar. Hoje é {{ dataHoje | date:'fullDate' }}</p>
+<div class="p-6 max-w-7xl mx-auto">
+  <!-- Loading State -->
+  <div *ngIf="carregando" class="text-center py-20">
+    <div class="inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mb-4"></div>
+    <p class="text-gray-500">A carregar dados do sistema...</p>
   </div>
 
-  <div *ngIf="stats; else loading">
-
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
-
-      <div class="bg-white p-6 rounded-lg shadow-md border-l-4 border-blue-500 flex items-center justify-between">
-        <div>
-          <p class="text-gray-500 text-sm font-medium uppercase">Total Alunos</p>
-          <p class="text-3xl font-bold text-gray-800">{{ stats.total_alunos }}</p>
-          <p class="text-xs text-green-600 font-bold mt-1">{{ stats.alunos_ativos }} Ativos</p>
-        </div>
-        <div class="p-3 bg-blue-100 rounded-full text-blue-600 text-2xl">🎓</div>
+  <!-- Conteúdo quando carregado -->
+  <div *ngIf="!carregando">
+    <div class="mb-8 flex justify-between items-end">
+      <div>
+        <h1 class="text-3xl font-black text-gray-800">Olá, {{ nomeUsuario }} 👋</h1>
+        <p class="text-gray-500">Bem-vindo ao Painel de Controlo do ERP Escolar.</p>
       </div>
-
-      <div class="bg-white p-6 rounded-lg shadow-md border-l-4 border-yellow-500 flex items-center justify-between">
-        <div>
-          <p class="text-gray-500 text-sm font-medium uppercase">Turmas</p>
-          <p class="text-3xl font-bold text-gray-800">{{ stats.total_turmas }}</p>
-        </div>
-        <div class="p-3 bg-yellow-100 rounded-full text-yellow-600 text-2xl">🏫</div>
-      </div>
-
-      <div class="bg-white p-6 rounded-lg shadow-md border-l-4 border-purple-500 flex items-center justify-between">
-        <div>
-          <p class="text-gray-500 text-sm font-medium uppercase">Disciplinas</p>
-          <p class="text-3xl font-bold text-gray-800">{{ stats.total_disciplinas }}</p>
-        </div>
-        <div class="p-3 bg-purple-100 rounded-full text-purple-600 text-2xl">📚</div>
-      </div>
-
-      <div class="bg-white p-6 rounded-lg shadow-md border-l-4 border-indigo-500 flex items-center justify-between">
-        <div>
-          <p class="text-gray-500 text-sm font-medium uppercase">Escolas</p>
-          <p class="text-3xl font-bold text-gray-800">{{ stats.total_escolas }}</p>
-        </div>
-        <div class="p-3 bg-indigo-100 rounded-full text-indigo-600 text-2xl">🏛️</div>
-      </div>
-
+      <span class="px-3 py-1 bg-gray-200 rounded-full text-xs font-bold uppercase tracking-wide text-gray-600">
+        {{ perfil }}
+      </span>
     </div>
 
-    <h2 class="text-xl font-bold text-gray-800 mb-4">Acesso Rápido</h2>
-    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+    <!-- Admin Dashboard -->
+    <div *ngIf="perfil === 'admin' || perfil === 'superadmin'">
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8" *ngIf="stats">
+        <div class="bg-white p-6 rounded-xl shadow border-l-4 border-blue-500">
+          <div class="text-gray-500 text-sm font-bold uppercase">Total Alunos</div>
+          <div class="text-4xl font-black text-gray-800">{{ stats.total_alunos }}</div>
+          <div class="text-sm text-green-600 mt-1">{{ stats.alunos_ativos }} ativos</div>
+        </div>
+        <div class="bg-white p-6 rounded-xl shadow border-l-4 border-green-500">
+          <div class="text-gray-500 text-sm font-bold uppercase">Receita Mensal</div>
+          <div class="text-4xl font-black text-gray-800">
+            {{ stats.receita_estimada | currency:'AKZ ':'symbol':'1.0-0' }}
+          </div>
+        </div>
 
-      <a routerLink="/novo-aluno" class="flex items-center gap-3 p-4 bg-white border border-gray-200 rounded-lg hover:shadow-lg hover:border-blue-300 transition group cursor-pointer">
-        <div class="bg-blue-50 text-blue-600 p-2 rounded group-hover:bg-blue-600 group-hover:text-white transition">➕</div>
-        <span class="font-semibold text-gray-700 group-hover:text-blue-700">Matricular Aluno</span>
-      </a>
+        <div class="bg-white p-6 rounded-xl shadow border-l-4 border-yellow-500">
+          <div class="text-gray-500 text-sm font-bold uppercase">Turmas</div>
+          <div class="text-4xl font-black text-gray-800">{{ stats.total_turmas }}</div>
+        </div>
 
-      <a routerLink="/lista-turmas" class="flex items-center gap-3 p-4 bg-white border border-gray-200 rounded-lg hover:shadow-lg hover:border-yellow-300 transition group cursor-pointer">
-        <div class="bg-yellow-50 text-yellow-600 p-2 rounded group-hover:bg-yellow-500 group-hover:text-white transition">📊</div>
-        <span class="font-semibold text-gray-700 group-hover:text-yellow-700">Gerir Notas (Turmas)</span>
-      </a>
+        <div class="bg-white p-6 rounded-xl shadow border-l-4 border-purple-500">
+          <div class="text-gray-500 text-sm font-bold uppercase">Disciplinas</div>
+          <div class="text-4xl font-black text-gray-800">{{ stats.total_disciplinas }}</div>
+        </div>
 
-      <a routerLink="/lista-alunos" class="flex items-center gap-3 p-4 bg-white border border-gray-200 rounded-lg hover:shadow-lg hover:border-purple-300 transition group cursor-pointer">
-        <div class="bg-purple-50 text-purple-600 p-2 rounded group-hover:bg-purple-600 group-hover:text-white transition">🔍</div>
-        <span class="font-semibold text-gray-700 group-hover:text-purple-700">Consultar Pautas</span>
-      </a>
+        <div class="bg-white p-6 rounded-xl shadow border-l-4 border-green-500">
+          <div class="text-gray-500 text-sm font-bold uppercase">Escolas</div>
+          <div class="text-4xl font-black text-gray-800">{{ stats.total_escolas }}</div>
+        </div>
+      </div>
 
+      <div class="bg-blue-50 p-6 rounded-xl border border-blue-100 flex justify-between items-center">
+        <div>
+          <h3 class="font-bold text-blue-900 text-lg">Atribuição de Aulas</h3>
+          <p class="text-blue-700 text-sm">Defina quais professores dão aulas em que turmas.</p>
+        </div>
+        <a routerLink="/distribuicao-docente"
+          class="bg-blue-900 text-white px-6 py-2 rounded-lg font-bold hover:bg-blue-800 transition">
+          Gerir Professores →
+        </a>
+      </div>
     </div>
 
+    <!-- Professor Dashboard -->
+    <div *ngIf="perfil === 'professor'">
+      <h2 class="text-xl font-bold text-gray-800 mb-4 border-b pb-2">📚 As Minhas Cadernetas</h2>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        @for (aula of minhasAulas; track aula.id) {
+        <div
+          class="bg-white rounded-xl shadow-lg hover:shadow-2xl transition transform hover:-translate-y-1 cursor-pointer overflow-hidden border border-gray-100">
+          <div class="h-2 bg-indigo-600"></div>
+          <div class="p-6">
+            <div class="flex justify-between items-start mb-4">
+              <h3 class="text-2xl font-black text-gray-800">{{ aula.disciplina_nome }}</h3>
+              <span class="bg-indigo-100 text-indigo-700 text-xs font-bold px-2 py-1 rounded">
+                {{ aula.ano_letivo }}
+              </span>
+            </div>
+
+            <p class="text-gray-500 font-medium mb-6">
+              Turma: <span class="text-gray-900 font-bold">{{ aula.turma_nome }}</span>
+            </p>
+
+            <button
+              class="w-full bg-indigo-50 text-indigo-700 font-bold py-3 rounded-lg hover:bg-indigo-600 hover:text-white transition flex items-center justify-center gap-2">
+              📝 Lançar Notas
+            </button>
+          </div>
+        </div>
+        } @empty {
+        <div class="col-span-3 text-center py-20 bg-gray-50 rounded-xl border-dashed border-2 border-gray-300">
+          <p class="text-xl text-gray-400 font-bold">Ainda não tem turmas atribuídas.</p>
+          <p class="text-gray-400 text-sm">Fale com o Diretor Pedagógico.</p>
+        </div>
+        }
+      </div>
+    </div>
   </div>
-
-  <ng-template #loading>
-    <div class="text-center py-20 text-gray-500 animate-pulse">
-      A carregar dados do sistema...
-    </div>
-  </ng-template>
 </div>

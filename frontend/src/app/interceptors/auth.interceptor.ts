@@ -25,7 +25,7 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
       if (error.status === 401) {
         // Limpa o armazenamento
         localStorage.removeItem('access_token');
-        localStorage.removeItem('user_name');
+        localStorage.removeItem('user_nome');
         localStorage.removeItem('user_perfil');
         console.warn("Sessão expirada. A fechar a aplicação...");
 

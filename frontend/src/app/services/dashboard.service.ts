@@ -8,6 +8,7 @@ export interface DashboardStats {
   total_alunos: number;
   alunos_ativos: number;
   total_disciplinas: number;
+  receita_estimada: number;
 }
 
 @Injectable({

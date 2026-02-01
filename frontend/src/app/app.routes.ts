@@ -17,6 +17,12 @@ import { EsqueciSenha } from './components/esqueci-senha/esqueci-senha';
 import { ResetSenha } from './components/reset-senha/reset-senha';
 import { TurmaChamada } from './components/turma-chamada/turma-chamada';
 import { DisciplinaList } from './components/disciplina-list/disciplina-list';
+import { ConfiguracoesPainel } from './components/configuracoes-painel/configuracoes-painel';
+import { EscolaDetail } from './components/escola-detail/escola-detail';
+import { EscolaList } from './components/escola-list/escola-list';
+import { AtribuicaoAulas } from './components/atribuicao-aulas/atribuicao-aulas';
+import { UsuarioForm } from './components/usuario-form/usuario-form';
+import { UsuarioList } from './components/usuario-list/usuario-list';
 
 export const routes: Routes = [
   // Rotas públicas(livres)
@@ -44,6 +50,13 @@ export const routes: Routes = [
       { path: 'perfil', component: UsuarioPerfil, },
       { path: 'turma/:turmaId/chamada', component: TurmaChamada, },
       { path: 'disciplinas', component: DisciplinaList, },
+      { path: 'configuracoes', component: ConfiguracoesPainel, },
+      { path: 'escolas', component: EscolaList },
+      { path: 'escolas/:id', component: EscolaDetail },
+      { path: 'distribuicao-docente', component: AtribuicaoAulas },
+      { path: 'pauta/:turmaId/:disciplinaId', component: NotaPauta },
+      { path: 'usuarios', component: UsuarioList },
+      { path: 'novo-usuario', component: UsuarioForm },
     ]
   },
   { path: '**', redirectTo: 'login' } // Rota curinga para redirecionar rotas inválidas

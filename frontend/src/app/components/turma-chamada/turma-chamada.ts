@@ -39,7 +39,6 @@ export class TurmaChamada implements OnInit {
     this.turmaService.getTurmaById(id).subscribe(t => {
       this.turma = t;
       this.carregarAlunos(id);
-      this.cdr.detectChanges();
     });
   }
 

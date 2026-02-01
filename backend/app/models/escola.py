@@ -1,5 +1,5 @@
 # backend/app/models.py
-from sqlalchemy import Column, Integer, String, Boolean, DateTime
+from sqlalchemy import Column, Integer, String, Boolean, DateTime, Float
 from sqlalchemy.sql import func
 from app.db.database import Base
 from sqlalchemy.orm import relationship
@@ -9,20 +9,23 @@ class Escola(Base):
 
     # 1. Identificação da Escola
     # index=True torna as pesquisas por ID muito rápidas
-    id = Column(Integer, primary_key=True, index=True)
-    
+    id = Column(Integer, primary_key=True, index=True)    
     # Nome da escola (ex: "Colégio Futuro")
-    nome = Column(String, index=True, nullable=False)
-    
+    nome = Column(String, index=True, nullable=False)    
     # Slug é útil para URLs (ex: escola.com/colegio-futuro) e identificação única
+    telefone = Column(String, nullable=True)
+    email = Column(String, unique=True, nullable=True)
     slug = Column(String, unique=True, index=True, nullable=False)
     
     # 2. Dados de Controlo
     endereco = Column(String, nullable=True)
-    ativo = Column(Boolean, default=True) # Se a escola deixar de pagar, mudamos para False
+    is_active = Column(Boolean, default=True) # Se a escola deixar de pagar, mudamos para False
     
     # 3. Auditoria (Quando foi criada/atualizada)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     alunos = relationship("Aluno", back_populates="escola")
     turmas = relationship("Turma", back_populates="escola")
+    usuarios = relationship("Usuario", back_populates="escola")
+    # Relação 1:1 com a Configuração (uselist=False é o segredo do 1:1)
+    configuracao = relationship("Configuracao", back_populates="escola", uselist=False, cascade="all, delete-orphan")

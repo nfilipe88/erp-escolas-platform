@@ -37,45 +37,82 @@ def get_notas_by_disciplina(db: Session, disciplina_id: int):
     return db.query(models.Nota).filter(models.Nota.disciplina_id == disciplina_id).all()
 
 def get_boletim_aluno(db: Session, aluno_id: int):
-    # CORREÇÃO: Usa 'models_aluno.Aluno' em vez de 'models.Aluno'
-    aluno = db.query(models_aluno.Aluno).filter(models_aluno.Aluno.id == aluno_id).first()
+    # Busca o aluno
+    aluno = db.query(models_aluno.Aluno).filter(
+        models_aluno.Aluno.id == aluno_id
+    ).first()
     
     if not aluno:
         return None
-
-    notas = db.query(models.Nota).filter(models.Nota.aluno_id == aluno_id).all()
-
-    # 3. Agrupar por Disciplina (Dicionário temporário)
-    # Estrutura: { "Matemática": [Nota1, Nota2], "História": [Nota1] }
-    dados_agrupados = {}
     
-    for nota in notas:
-        disc_nome = nota.disciplina.nome
-        if disc_nome not in dados_agrupados:
-            dados_agrupados[disc_nome] = []
-        
-        dados_agrupados[disc_nome].append({
-            "trimestre": nota.trimestre,
-            "valor": nota.valor,
-            "descricao": nota.descricao
-        })
-
-    # 4. Construir a resposta final
+    # Verifica se o aluno tem turma
+    if not aluno.turma:
+        return {
+            "aluno_nome": aluno.nome,
+            "aluno_bi": aluno.bi,
+            "turma": "Sem Turma",
+            "linhas": []
+        }
+    
+    # Busca TODAS as disciplinas da turma do aluno
+    # Não apenas as que têm notas
+    disciplinas_turma = aluno.turma.disciplinas
+    
     linhas_boletim = []
-    for disc_nome, lista_notas in dados_agrupados.items():
-        # Calcula média simples das notas lançadas
-        soma = sum(n["valor"] for n in lista_notas)
-        media = soma / len(lista_notas) if lista_notas else 0
+    
+    for disciplina in disciplinas_turma:
+        # Busca todas as notas desta disciplina para este aluno
+        notas_disciplina = db.query(models.Nota).filter(
+            models.Nota.aluno_id == aluno_id,
+            models.Nota.disciplina_id == disciplina.id
+        ).all()
+        
+        # Organiza as notas por trimestre
+        notas_por_trimestre = {}
+        for nota in notas_disciplina:
+            if nota.trimestre not in notas_por_trimestre:
+                notas_por_trimestre[nota.trimestre] = []
+            notas_por_trimestre[nota.trimestre].append(nota.valor)
+        
+        # Cria a lista de notas no formato esperado
+        lista_notas_formatadas = []
+        
+        # Definir trimestres padrão
+        trimestres = ["1º Trimestre", "2º Trimestre", "3º Trimestre"]
+        
+        for trimestre in trimestres:
+            valores_trimestre = notas_por_trimestre.get(trimestre, [])
+            if valores_trimestre:
+                # Se houver múltiplas notas no mesmo trimestre, calcula média
+                media_trimestre = sum(valores_trimestre) / len(valores_trimestre)
+                lista_notas_formatadas.append({
+                    "trimestre": trimestre,
+                    "valor": round(media_trimestre, 2),
+                    "descricao": f"Média {trimestre}"
+                })
+            else:
+                # Sem notas neste trimestre
+                lista_notas_formatadas.append({
+                    "trimestre": trimestre,
+                    "valor": None,
+                    "descricao": "Sem nota"
+                })
+        
+        # Calcula a média geral das notas (apenas trimestres com notas)
+        valores_com_notas = [n["valor"] for n in lista_notas_formatadas if n["valor"] is not None]
+        media_provisoria = 0
+        if valores_com_notas:
+            media_provisoria = round(sum(valores_com_notas) / len(valores_com_notas), 2)
         
         linhas_boletim.append({
-            "disciplina": disc_nome,
-            "notas": lista_notas,
-            "media_provisoria": round(media, 1)
+            "disciplina": disciplina.nome,
+            "notas": lista_notas_formatadas,
+            "media_provisoria": media_provisoria
         })
-
+    
     return {
         "aluno_nome": aluno.nome,
         "aluno_bi": aluno.bi,
-        "turma": aluno.turma.nome if aluno.turma else "Sem Turma",
+        "turma": aluno.turma.nome,
         "linhas": linhas_boletim
     }

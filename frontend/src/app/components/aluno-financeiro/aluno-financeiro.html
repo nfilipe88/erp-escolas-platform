@@ -1,106 +1,73 @@
-<div class="max-w-5xl mx-auto mt-10 p-6">
+<div class="p-6 bg-white shadow-lg rounded-xl border-t-8 border-green-600">
 
-  <div class="flex justify-between items-center mb-8 bg-white p-6 rounded-lg shadow border border-gray-200">
+  <div class="mb-6 flex justify-between items-center border-b pb-4">
     <div>
-      <h1 class="text-2xl font-bold text-gray-800">Situação Financeira</h1>
-      <p class="text-gray-500" *ngIf="aluno">Aluno: <span class="font-bold text-blue-900">{{ aluno.nome }}</span></p>
+      <h2 class="text-2xl font-black text-gray-800">💰 Situação Financeira</h2>
+      <p class="text-gray-500" *ngIf="aluno">Aluno: {{ aluno.nome }}</p>
     </div>
-    <div class="text-right">
-      <div class="text-sm font-bold text-gray-400">Ano Letivo</div>
-      <div class="text-3xl font-bold text-blue-600">2025</div>
-    </div>
-  </div>
 
-  <div *ngIf="mensalidades.length === 0"
-    class="text-center py-20 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
-    <div class="text-5xl mb-4">📂</div>
-    <p class="text-gray-600 mb-6">Este aluno ainda não tem plano financeiro gerado para 2025.</p>
-    <button (click)="gerarCarnet()"
-      class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-8 rounded shadow-lg transition transform hover:scale-105">
-      🚀 Gerar Carnet de Propinas
-    </button>
-  </div>
-
-  <div *ngIf="mensalidades.length > 0" class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
-
-    @for (m of mensalidades; track m.id) {
-    <div (click)="selecionarParaPagar(m)"
-      class="relative p-5 rounded-lg border-2 cursor-pointer transition-all duration-200 shadow-sm hover:shadow-md"
-      [ngClass]="{
-          'border-red-200 bg-red-50 hover:border-red-400': m.estado === 'Pendente',
-          'border-green-200 bg-green-50': m.estado === 'Pago'
-        }">
-
-      <div class="flex justify-between items-start mb-2">
-        <h3 class="font-bold text-lg" [ngClass]="m.estado === 'Pago' ? 'text-green-800' : 'text-red-800'">
-          {{ m.mes }}
-        </h3>
-        <button *ngIf="m.estado === 'Pago'"
-                  [routerLink]="['/recibo', m.id]"
-                  class="bg-white text-blue-600 hover:bg-blue-50 border border-blue-200 p-1.5 rounded-full transition shadow-sm"
-                  title="Imprimir Recibo"
-                  (click)="$event.stopPropagation()"> 🖨️
-          </button>
-        <span class="text-xs font-bold px-2 py-1 rounded uppercase"
-          [ngClass]="m.estado === 'Pago' ? 'bg-green-200 text-green-800' : 'bg-red-200 text-red-800'">
-          {{ m.estado }}
-        </span>
+    @if (mensalidades.length === 0) {
+      <div class="flex items-center gap-2">
+        <select [(ngModel)]="anoSelecionado" class="p-2 border rounded font-bold text-gray-700">
+          <option [value]="2024">2024</option>
+          <option [value]="2025">2025</option>
+          <option [value]="2026">2026</option>
+        </select>
+        <button (click)="gerarCarnet()"
+          class="bg-green-700 hover:bg-green-800 text-white font-bold py-2 px-4 rounded shadow transition transform hover:scale-105">
+          ⚙️ Gerar Carnet de Propinas
+        </button>
       </div>
-
-      <p class="text-2xl font-bold text-gray-700">{{ m.valor_base | currency:'AKZ ':'symbol':'1.0-0' }}</p>
-
-      <div *ngIf="m.estado === 'Pago'" class="mt-2 text-xs text-green-700 border-t border-green-200 pt-2">
-        Pago em: {{ m.data_pagamento | date:'dd/MM' }}<br>
-        Via: {{ m.forma_pagamento }}
-      </div>
-
-      <div *ngIf="m.estado === 'Pendente'" class="mt-2 text-xs text-red-400 italic">
-        Clique para pagar
-      </div>
-
-    </div>
     }
-
   </div>
-</div>
 
-<div *ngIf="mensalidadeSelecionada" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm transition-opacity duration-300">
+  @if (mensalidades.length > 0) {
+    <div class="overflow-hidden rounded-lg border border-gray-200">
+      <table class="min-w-full divide-y divide-gray-200">
+        <thead class="bg-gray-50">
+          <tr>
+            <th class="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Mês/Descrição</th>
+            <th class="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Vencimento</th>
+            <th class="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase">Valor</th>
+            <th class="px-6 py-3 text-center text-xs font-bold text-gray-500 uppercase">Estado</th>
+            <th class="px-6 py-3 text-center text-xs font-bold text-gray-500 uppercase">Ação</th>
+          </tr>
+        </thead>
+        <tbody class="bg-white divide-y divide-gray-100">
 
-  <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden transform transition-all scale-100">
+          @for (item of mensalidades; track item.id) {
+            <tr class="hover:bg-gray-50 transition">
+              <td class="px-6 py-4 font-bold text-gray-800">{{ item.mes }} / {{ item.ano }}</td>
+              <td class="px-6 py-4 text-sm text-gray-500">{{ item.data_vencimento | date:'dd/MM/yyyy' }}</td>
+              <td class="px-6 py-4 font-mono font-bold text-gray-700">{{ item.valor_base | number }} Kz</td>
 
-    <div class="bg-blue-900 p-4 text-center">
-      <h3 class="text-white text-lg font-bold uppercase tracking-wide">Confirmar Pagamento</h3>
-      <p class="text-blue-200 text-sm mt-1">{{ mensalidadeSelecionada.mes }} / {{ mensalidadeSelecionada.ano }}</p>
+              <td class="px-6 py-4 text-center">
+                <span [class]="item.estado === 'Pago' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'"
+                      class="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide">
+                  {{ item.estado }}
+                </span>
+              </td>
+
+              <td class="px-6 py-4 text-center">
+                @if (item.estado !== 'Pago') {
+                  <button (click)="confirmarPagamento(item)"
+                    class="text-green-600 hover:text-green-800 font-bold text-sm border border-green-200 hover:bg-green-50 px-3 py-1 rounded transition">
+                    💸 Pagar
+                  </button>
+                } @else {
+                  <span class="text-gray-400 text-xs font-medium">Pago em {{ item.data_pagamento | date:'dd/MM' }}</span>
+                }
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
     </div>
-
-    <div class="p-8 text-center">
-      <p class="text-gray-500 mb-2">Valor a regularizar:</p>
-      <div class="text-4xl font-extrabold text-gray-800 mb-8">
-        {{ mensalidadeSelecionada.valor_base | currency:'AKZ ':'symbol':'1.0-0' }}
-      </div>
-
-      <p class="text-sm text-gray-400 mb-4 font-medium">Selecione o método de pagamento:</p>
-
-      <div class="grid grid-cols-2 gap-4">
-        <button (click)="confirmarPagamento('TPA')"
-          class="flex flex-col items-center justify-center p-4 border-2 border-blue-100 rounded-xl hover:bg-blue-50 hover:border-blue-500 transition group cursor-pointer">
-          <span class="text-2xl mb-2 group-hover:scale-110 transition">💳</span>
-          <span class="font-bold text-blue-800 text-sm">TPA / Multicaixa</span>
-        </button>
-
-        <button (click)="confirmarPagamento('Numerário')"
-          class="flex flex-col items-center justify-center p-4 border-2 border-green-100 rounded-xl hover:bg-green-50 hover:border-green-500 transition group cursor-pointer">
-          <span class="text-2xl mb-2 group-hover:scale-110 transition">💵</span>
-          <span class="font-bold text-green-800 text-sm">Dinheiro / Cash</span>
-        </button>
-      </div>
+  } @else {
+    <div class="text-center py-10 bg-gray-50 rounded-lg border-dashed border-2 border-gray-300">
+      <p class="text-gray-400 font-bold text-lg">Nenhum registo financeiro encontrado.</p>
+      <p class="text-gray-400 text-sm">Clique em "Gerar Carnet" acima para iniciar.</p>
     </div>
+  }
 
-    <div class="bg-gray-50 p-4 text-center border-t border-gray-100">
-      <button (click)="mensalidadeSelecionada = null" class="text-gray-500 hover:text-red-500 font-medium text-sm transition">
-        Cancelar e Voltar
-      </button>
-    </div>
-
-  </div>
 </div>

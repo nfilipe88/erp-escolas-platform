@@ -1,4 +1,5 @@
-<div class="max-w-4xl mx-auto mt-10 p-8 bg-white shadow-2xl rounded-sm border border-gray-300 print:shadow-none print:border-0 print:w-full print:max-w-none">
+<div
+  class="max-w-4xl mx-auto mt-10 p-8 bg-white shadow-2xl rounded-sm border border-gray-300 print:shadow-none print:border-0 print:w-full print:max-w-none">
 
   <div class="text-center border-b-2 border-black pb-4 mb-6">
     <h1 class="text-3xl font-bold uppercase tracking-widest text-gray-900">Boletim Escolar</h1>
@@ -28,31 +29,51 @@
         </tr>
       </thead>
       <tbody>
+        <!-- REMOVER o operador opicional aqui, pois já temos *ngIf="boletim" -->
         <tr *ngFor="let linha of boletim.linhas">
           <td class="border border-black p-3 font-bold">{{ linha.disciplina }}</td>
 
-          <td class="border border-black p-3 text-center">
-            {{ getNota(linha.notas, '1º Trimestre') }}
-          </td>
-          <td class="border border-black p-3 text-center">
-            {{ getNota(linha.notas, '2º Trimestre') }}
-          </td>
-          <td class="border border-black p-3 text-center">
-            {{ getNota(linha.notas, '3º Trimestre') }}
+          <!-- Usa a função getNota para cada trimestre -->
+          <td *ngFor="let trimestre of ['1º Trimestre', '2º Trimestre', '3º Trimestre']"
+            class="border border-black p-3 text-center">
+            {{ getNota(linha.notas, trimestre) }}
           </td>
 
           <td class="border border-black p-3 text-center font-bold bg-gray-50">
-            {{ linha.media_provisoria }}
+            {{ linha.media_provisoria | number:'1.1-1' }}
+          </td>
+        </tr>
+
+        <!-- Linha de totais (opcional) -->
+        <!-- REMOVER o operador opcional aqui também -->
+        <tr *ngIf="boletim.linhas.length" class="bg-gray-100">
+          <td class="border border-black p-3 font-bold">MÉDIA GERAL</td>
+          <td colspan="3" class="border border-black p-3 text-center">
+            Média de {{ boletim.linhas.length }} disciplinas
+          </td>
+          <td class="border border-black p-3 text-center font-bold">
+            {{ calcularMediaGeral() | number:'1.1-1' }}
           </td>
         </tr>
       </tbody>
     </table>
 
+    <div class="mt-16 pt-8 grid grid-cols-2 gap-10 text-center">
+      <div>
+        <div class="border-b border-gray-400 w-3/4 mx-auto mb-2"></div>
+        <p class="text-sm font-bold text-gray-600">Assinatura do Diretor de Turma</p>
+      </div>
+      <div>
+        <div class="border-b border-gray-400 w-3/4 mx-auto mb-2"></div>
+        <p class="text-sm font-bold text-gray-600">Assinatura do Encarregado de Educação</p>
+      </div>
+    </div>
+
     <div class="mt-12 flex justify-between items-end print:hidden">
-        <a routerLink="/lista-alunos" class="text-blue-600 hover:underline">← Voltar à Lista</a>
-        <button (click)="imprimir()" class="bg-black text-white px-6 py-2 rounded hover:bg-gray-800">
-            🖨️ Imprimir Boletim
-        </button>
+      <a routerLink="/lista-alunos" class="text-blue-600 hover:underline">← Voltar à Lista</a>
+      <button (click)="imprimir()" class="bg-black text-white px-6 py-2 rounded hover:bg-gray-800">
+        🖨️ Imprimir Boletim
+      </button>
     </div>
   </div>
 

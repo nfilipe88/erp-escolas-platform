@@ -26,4 +26,4 @@ class Aluno(Base):
     escola = relationship("Escola", back_populates="alunos")
     turma = relationship("Turma", back_populates="alunos")
     notas = relationship("Nota", back_populates="aluno")
-    mensalidades = relationship("Mensalidade", back_populates="aluno")
+    mensalidades = relationship("Mensalidade", back_populates="aluno", cascade="all, delete-orphan")

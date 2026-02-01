@@ -1,19 +1,19 @@
+from typing import Optional
 from pydantic import BaseModel, EmailStr
 
 class UsuarioBase(BaseModel):
     email: EmailStr
     nome: str
-    perfil: str = "professor"
+    perfil: str # 'admin', 'professor', 'secretaria', 'superadmin'
+    ativo: bool = True
 
 class UsuarioCreate(UsuarioBase):
     senha: str
+    escola_id: Optional[int] = None # Opcional na entrada
 
 class UsuarioResponse(UsuarioBase):
     id: int
-    ativo: bool
-
-    class Config:
-        from_attributes = True
+    escola_id: Optional[int]
 
 # Schema para o Token (Login realizado com sucesso)
 class Token(BaseModel):
@@ -24,4 +24,7 @@ class Token(BaseModel):
     
 class SenhaUpdate(BaseModel):
     senha_atual: str
-    nova_senha: str
+    nova_senha: str    
+    
+    class Config:
+        from_attributes = True

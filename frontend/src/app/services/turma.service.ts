@@ -25,8 +25,15 @@ export class TurmaService {
     return this.http.post<Turma>(`${this.apiUrl}/turmas/`, turma);
   }
 
-  getTurmas(escolaId: number): Observable<Turma[]> {
-    return this.http.get<Turma[]>(`${this.apiUrl}/escolas/${escolaId}/turmas`);
+  // Método para obter turmas, com opção de filtrar por escola
+  getTurmas(escolaId?: number): Observable<Turma[]> {
+    if (escolaId) {
+      // Se escolaId foi fornecido, busca as turmas dessa escola específica
+      return this.http.get<Turma[]>(`${this.apiUrl}/escolas/${escolaId}/turmas`);
+    } else {
+      // Se não foi fornecido, busca as turmas da escola do usuário logado
+      return this.http.get<Turma[]>(`${this.apiUrl}/turmas/`);
+    }
   }
 
   getTurmaById(id: number): Observable<Turma> {

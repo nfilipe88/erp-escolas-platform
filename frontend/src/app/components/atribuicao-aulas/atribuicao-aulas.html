@@ -1,0 +1,86 @@
+<div class="max-w-6xl mx-auto mt-10 p-6 bg-white shadow-xl rounded-xl border-t-8 border-indigo-900">
+
+  <div class="mb-8">
+    <h1 class="text-3xl font-black text-gray-800">👩‍🏫 Distribuição Docente</h1>
+    <p class="text-gray-500">Defina que professor leciona cada disciplina em cada turma.</p>
+  </div>
+
+  <div class="bg-gray-50 p-6 rounded-lg border border-gray-200 mb-8 grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+
+    <div>
+      <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Turma</label>
+      <select [(ngModel)]="novo.turma_id" class="w-full p-2 border rounded font-bold text-gray-700">
+        <option [value]="0">-- Selecione --</option>
+        @for (t of turmas; track t.id) {
+          <option [value]="t.id">{{ t.nome }} ({{ t.ano_letivo }})</option>
+        }
+      </select>
+    </div>
+
+    <div>
+      <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Disciplina</label>
+      <select [(ngModel)]="novo.disciplina_id" class="w-full p-2 border rounded font-bold text-gray-700">
+        <option [value]="0">-- Selecione --</option>
+        @for (d of disciplinas; track d.id) {
+          <option [value]="d.id">{{ d.nome }}</option>
+        }
+      </select>
+    </div>
+
+    <div>
+      <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Professor Titular</label>
+      <select [(ngModel)]="novo.professor_id" class="w-full p-2 border rounded font-bold text-gray-700">
+        <option [value]="0">-- Selecione --</option>
+        @for (p of professores; track p.id) {
+          <option [value]="p.id">{{ p.nome }}</option>
+        }
+      </select>
+    </div>
+
+    <button (click)="salvar()"
+      class="bg-indigo-900 hover:bg-indigo-800 text-white font-bold py-2 px-6 rounded shadow-lg transition h-10">
+      + Adicionar
+    </button>
+  </div>
+
+  <div class="overflow-hidden rounded-lg border border-gray-200">
+    <table class="min-w-full divide-y divide-gray-200">
+      <thead class="bg-indigo-50">
+        <tr>
+          <th class="px-6 py-3 text-left text-xs font-bold text-indigo-900 uppercase">Turma</th>
+          <th class="px-6 py-3 text-left text-xs font-bold text-indigo-900 uppercase">Disciplina</th>
+          <th class="px-6 py-3 text-left text-xs font-bold text-indigo-900 uppercase">Professor</th>
+          <th class="px-6 py-3 text-center text-xs font-bold text-indigo-900 uppercase">Ações</th>
+        </tr>
+      </thead>
+      <tbody class="bg-white divide-y divide-gray-100">
+        @for (item of atribuicoes; track item.id) {
+        <tr class="hover:bg-gray-50 transition">
+          <td class="px-6 py-4 font-bold text-gray-800">{{ item.turma_nome }}</td>
+          <td class="px-6 py-4 text-gray-700">{{ item.disciplina_nome }}</td>
+          <td class="px-6 py-4">
+            <div class="flex items-center gap-2">
+              <span class="w-8 h-8 rounded-full bg-indigo-100 text-indigo-800 flex items-center justify-center font-bold text-xs">
+                {{ item.professor_nome.charAt(0) }}
+              </span>
+              <span class="text-gray-800 font-medium">{{ item.professor_nome }}</span>
+            </div>
+          </td>
+          <td class="px-6 py-4 text-center">
+            <button (click)="remover(item.id)"
+              class="text-red-500 hover:text-red-700 text-sm font-bold hover:bg-red-50 px-2 py-1 rounded transition">
+              Remover
+            </button>
+          </td>
+        </tr>
+        } @empty {
+          <tr>
+            <td colspan="4" class="px-6 py-8 text-center text-gray-400 italic">
+              Nenhuma aula atribuída ainda. Use o formulário acima.
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+</div>

@@ -1,6 +1,6 @@
 import { HttpClient } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
-import { Observable } from 'rxjs';
+import { Observable, of, tap } from 'rxjs';
 
 export interface Aluno {
   id?: number;
@@ -20,7 +20,11 @@ export interface Boletim {
   linhas: {
     disciplina: string;
     media_provisoria: number;
-    notas: { trimestre: string; valor: number; descricao: string }[];
+    notas: {
+      trimestre: string;
+      valor: number | null;  // Permite null
+      descricao: string
+    }[];
   }[];
 }
 
@@ -57,7 +61,21 @@ export class AlunoService {
     return this.http.get<Aluno[]>(`${this.apiUrl}/turmas/${turmaId}/alunos`);
   }
 
+  // getBoletim(alunoId: number): Observable<Boletim> {
+  //   return this.http.get<Boletim>(`${this.apiUrl}/alunos/${alunoId}/boletim`);
+  // }
+
+  // No serviço, adicionar cache se necessário
+  private boletimCache = new Map<number, Boletim>();
+
   getBoletim(alunoId: number): Observable<Boletim> {
-    return this.http.get<Boletim>(`${this.apiUrl}/alunos/${alunoId}/boletim`);
+    // Opcional: implementar cache
+    if (this.boletimCache.has(alunoId)) {
+      return of(this.boletimCache.get(alunoId)!);
+    }
+
+    return this.http.get<Boletim>(`${this.apiUrl}/alunos/${alunoId}/boletim`).pipe(
+      tap(boletim => this.boletimCache.set(alunoId, boletim))
+    );
   }
 }

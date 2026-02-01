@@ -5,33 +5,34 @@
       <h1 class="text-xl font-bold">ERP Escolar</h1>
 
       <div class="hidden md:flex space-x-8">
-        <a routerLink="/dashboard" routerLinkActive="text-yellow-300 font-bold"
-          class="hover:text-yellow-200 transition cursor-pointer">
+        <a routerLink="/dashboard" routerLinkActive="text-yellow-300 font-bold" class="hover:text-yellow-200 transition cursor-pointer">
           Dashboard
         </a>
       </div>
 
       <div class="space-x-4">
-        <a routerLink="/nova-escola" routerLinkActive="text-yellow-300 font-bold"
-          class="hover:text-yellow-200 transition">
-          Criar Escola
+        <a routerLink="/escolas" routerLinkActive="text-yellow-300 font-bold" class="hover:text-yellow-200 transition">
+          Escolas
         </a>
-        <a routerLink="/novo-aluno" routerLinkActive="text-yellow-300 font-bold"
-          class="hover:text-yellow-200 transition">
-          Matricular Aluno
+        <a routerLink="/usuarios" routerLinkActive="text-yellow-300 font-bold" class="hover:text-yellow-200 transition">
+          Funcionários
         </a>
-        <a routerLink="/lista-alunos" routerLinkActive="text-yellow-300 font-bold"
-          class="hover:text-yellow-200 transition">
-          Consultar Pauta
-        </a>
-        <a routerLink="/lista-turmas" routerLinkActive="text-yellow-300 font-bold"
-          class="hover:text-yellow-200 transition">
+        <a routerLink="/lista-turmas" routerLinkActive="text-yellow-300 font-bold" class="hover:text-yellow-200 transition">
           Turmas
         </a>
-        <a routerLink="/disciplinas" routerLinkActive="text-yellow-300 font-bold"
-          class="hover:text-yellow-200 transition">
+        <a routerLink="/disciplinas" routerLinkActive="text-yellow-300 font-bold" class="hover:text-yellow-200 transition">
           Disciplinas
         </a>
+        <a routerLink="/novo-aluno" routerLinkActive="text-yellow-300 font-bold" class="hover:text-yellow-200 transition">
+          Matricular Aluno
+        </a>
+        <a routerLink="/lista-alunos" routerLinkActive="text-yellow-300 font-bold" class="hover:text-yellow-200 transition">
+          Consultar Pauta
+        </a>
+        <!-- <button [routerLink]="['/pauta', aula.turma_id, aula.disciplina_id]"
+          class="w-full bg-indigo-50 text-indigo-700 font-bold py-3 rounded-lg hover:bg-indigo-600 hover:text-white transition flex items-center justify-center gap-2">
+          📝 Lançar Notas
+        </button> -->
       </div>
       <div class="flex items-center gap-4">
 
