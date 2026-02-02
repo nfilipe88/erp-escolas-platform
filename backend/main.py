@@ -1,6 +1,5 @@
 
 from datetime import timedelta
-from datetime import timedelta
 import time
 import shutil
 import os
