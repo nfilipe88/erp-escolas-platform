@@ -33,4 +33,12 @@ export class PresencaService {
   lerChamada(turmaId: number, data: string): Observable<PresencaItem[]> {
     return this.http.get<PresencaItem[]>(`${this.apiUrl}/presencas/turma/${turmaId}?data=${data}`);
   }
+
+  registar(payload: any): Observable<any> {
+    return this.http.post(`${this.apiUrl}/presencas/`, payload);
+  }
+
+  consultar(turmaId: number, data: string): Observable<any[]> {
+    return this.http.get<any[]>(`${this.apiUrl}/presencas/${turmaId}/${data}`);
+  }
 }

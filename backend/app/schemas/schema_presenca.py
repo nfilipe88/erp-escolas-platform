@@ -21,5 +21,10 @@ class PresencaResponse(PresencaBase):
     data: date
     turma_id: int
     
+class PresencaCreate(BaseModel):
+    turma_id: int
+    data: date
+    lista: List[PresencaBase] # Recebe a lista completa da turma
+    
     class Config:
         from_attributes = True

@@ -1,10 +1,11 @@
 from sqlalchemy.orm import Session
 from app.models import presenca as models
-from app.schemas import presenca as schemas
+from app.schemas import schema_presenca
+from app.schemas import schema_presenca
 from datetime import date
 
 # 1. Registrar Chamada (Upsert: Cria ou Atualiza)
-def registrar_chamada(db: Session, chamada: schemas.ChamadaDiaria):
+def registrar_chamada(db: Session, chamada: schema_presenca.ChamadaDiaria):
     registros_processados = []
 
     for item in chamada.lista_alunos:
@@ -49,3 +50,33 @@ def count_faltas_aluno(db: Session, aluno_id: int):
         models.Presenca.aluno_id == aluno_id,
         models.Presenca.presente == False  # Só conta se faltou
     ).count()
+    
+def registar_chamada(db: Session, dados: schema_presenca.PresencaCreate, escola_id: int):
+    # 1. Limpar registos anteriores dessa turma naquele dia (para evitar duplicados/conflitos)
+    # Esta é a abordagem mais simples: apagar e reescrever o dia.
+    db.query(models.Presenca).filter(
+        models.Presenca.turma_id == dados.turma_id,
+        models.Presenca.data == dados.data
+    ).delete()
+    
+    # 2. Criar os novos registos
+    novas_presencas = []
+    for item in dados.lista:
+        nova = models.Presenca(
+            escola_id=escola_id,
+            turma_id=dados.turma_id,
+            aluno_id=item.aluno_id,
+            data=dados.data,
+            # status=item.status
+        )
+        novas_presencas.append(nova)
+    
+    db.add_all(novas_presencas)
+    db.commit()
+    return {"msg": "Chamada registada com sucesso", "total": len(novas_presencas)}
+
+def ler_chamada_dia(db: Session, turma_id: int, data: str):
+    return db.query(models.Presenca).filter(
+        models.Presenca.turma_id == turma_id,
+        models.Presenca.data == data
+    ).all()

@@ -2,9 +2,9 @@
 
 from sqlalchemy.orm import Session
 from app.models import disciplina as models
-from app.schemas import disciplina as schemas
+from app.schemas import schema_disciplina
 
-def create_disciplina(db: Session, disciplina: schemas.DisciplinaCreate):
+def create_disciplina(db: Session, disciplina: schema_disciplina.DisciplinaCreate):
     # REMOVIDO o turma_id=disciplina.turma_id daqui
     db_disciplina = models.Disciplina(
         nome=disciplina.nome,

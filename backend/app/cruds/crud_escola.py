@@ -6,7 +6,7 @@ from app.models import configuracao as models_config
 from app.models import aluno as models_aluno
 from app.models import turma as models_turma
 from app.models import usuario as models_usuario
-from app.schemas import escola as schemas
+from app.schemas import schema_escola
 
 # --- FUNÇÃO NOVA ADICIONADA ---
 def get_escola_by_slug(db: Session, slug: str):
@@ -67,7 +67,7 @@ def gerar_slug(nome: str) -> str:
     slug = re.sub(r'[\s-]+', '-', slug)
     return slug
 
-def create_escola(db: Session, escola: schemas.EscolaCreate):
+def create_escola(db: Session, escola: schema_escola.EscolaCreate):
     # 1. Gerar Slug Automático se não vier preenchido
     slug_final = escola.slug
     if not slug_final:

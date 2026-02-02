@@ -5,7 +5,7 @@ from app.models import mensalidade as models
 from app.models import aluno as models_aluno
 from app.models import escola as models_escola
 from app.models import configuracao as models_config
-from app.schemas import mensalidade as schemas
+from app.schemas import schema_mensalidade
 from datetime import date
 from fastapi import HTTPException
 from app.cruds import crud_configuracao
@@ -91,7 +91,7 @@ def get_mensalidades_aluno(db: Session, aluno_id: int):
     return db.query(models.Mensalidade).filter(models.Mensalidade.aluno_id == aluno_id).order_by(models.Mensalidade.data_vencimento).all()
 
 # 3. Pagar uma mensalidade (COM LÓGICA DE MULTA AUTOMÁTICA)
-def pagar_mensalidade(db: Session, mensalidade_id: int, dados_pagamento: schemas.MensalidadePagar):
+def pagar_mensalidade(db: Session, mensalidade_id: int, dados_pagamento: schema_mensalidade.MensalidadePagar):
     db_mensalidade = db.query(models.Mensalidade).filter(models.Mensalidade.id == mensalidade_id).first()
     
     if db_mensalidade:

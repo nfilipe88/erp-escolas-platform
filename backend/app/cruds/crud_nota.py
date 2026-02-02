@@ -2,10 +2,10 @@
 from sqlalchemy.orm import Session
 from app.models import nota as models
 from app.models import aluno as models_aluno
-from app.schemas import nota as schemas
-from app.schemas import boletim as schemas_boletim
+from app.schemas import schema_nota
+from app.schemas import schema_boletim
 
-def lancar_nota(db: Session, nota: schemas.NotaCreate):
+def lancar_nota(db: Session, nota: schema_nota.NotaCreate):
     # Verifica se já existe nota (mesmo aluno, disciplina, trimestre e descrição)
     nota_existente = db.query(models.Nota).filter(
         models.Nota.aluno_id == nota.aluno_id,

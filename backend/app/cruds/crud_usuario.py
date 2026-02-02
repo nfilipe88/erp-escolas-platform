@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Session
 from app.models import usuario as models
-from app.schemas import usuario as schemas
+from app.schemas import schema_usuario
 from app.security import get_password_hash
 
 def get_usuario_by_email(db: Session, email: str):
@@ -9,7 +9,7 @@ def get_usuario_by_email(db: Session, email: str):
 def get_usuarios_por_escola(db: Session, escola_id: int):
     return db.query(models.Usuario).filter(models.Usuario.escola_id == escola_id).all()
 
-def create_usuario(db: Session, usuario: schemas.UsuarioCreate, escola_id: int):
+def create_usuario(db: Session, usuario: schema_usuario.UsuarioCreate, escola_id: int):
     hashed_password = get_password_hash(usuario.senha)
     db_usuario = models.Usuario(
         nome=usuario.nome,

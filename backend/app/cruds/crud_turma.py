@@ -1,8 +1,8 @@
 from sqlalchemy.orm import Session
 from app.models import turma as models
-from app.schemas import turma as schemas
+from app.schemas import schema_turma
 
-def create_turma(db: Session, turma: schemas.TurmaCreate, escola_id: int):
+def create_turma(db: Session, turma: schema_turma.TurmaCreate, escola_id: int):
     db_turma = models.Turma(
         nome=turma.nome,
         ano_letivo=turma.ano_letivo,

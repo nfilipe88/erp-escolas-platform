@@ -1,7 +1,7 @@
 # app/cruds/crud_aluno.py
 from sqlalchemy.orm import Session
 from app.models import aluno as models
-from app.schemas import aluno as schemas
+from app.schemas import schema_aluno
 
 def get_aluno(db: Session, aluno_id: int):
     return db.query(models.Aluno).filter(models.Aluno.id == aluno_id).first()
@@ -14,7 +14,7 @@ def get_alunos_por_turma(db: Session, turma_id: int):
     return db.query(models.Aluno).filter(models.Aluno.turma_id == turma_id).all()
 
 # Atualizamos a assinatura para aceitar 'escola_id' explicitamente
-def create_aluno(db: Session, aluno: schemas.AlunoCreate, escola_id: int):
+def create_aluno(db: Session, aluno: schema_aluno.AlunoCreate, escola_id: int):
     db_aluno = models.Aluno(
         nome=aluno.nome,
         bi=aluno.bi,
@@ -40,7 +40,7 @@ def create_aluno(db: Session, aluno: schemas.AlunoCreate, escola_id: int):
 #         db.commit()
 #         db.refresh(db_aluno)
 #     return db_aluno
-def update_aluno(db: Session, aluno_id: int, aluno_update: schemas.AlunoUpdate):
+def update_aluno(db: Session, aluno_id: int, aluno_update: schema_aluno.AlunoUpdate):
     db_aluno = db.query(models.Aluno).filter(models.Aluno.id == aluno_id).first()
     
     if not db_aluno:

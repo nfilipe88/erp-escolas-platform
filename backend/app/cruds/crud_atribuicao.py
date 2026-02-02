@@ -1,11 +1,11 @@
 # app/cruds/crud_atribuicao.py
 from sqlalchemy.orm import Session
 from app.models import atribuicao as models
-from app.schemas import atribuicao as schemas
+from app.schemas import schema_atribuicao
 from fastapi import HTTPException
 
 # 1. CRIAR ATRIBUIÇÃO (Associar Professor)
-def create_atribuicao(db: Session, dados: schemas.AtribuicaoCreate, escola_id: int):
+def create_atribuicao(db: Session, dados: schema_atribuicao.AtribuicaoCreate, escola_id: int):
     # Verificar se já existe professor para esta disciplina nesta turma
     existente = db.query(models.Atribuicao).filter(
         models.Atribuicao.turma_id == dados.turma_id,
@@ -14,7 +14,7 @@ def create_atribuicao(db: Session, dados: schemas.AtribuicaoCreate, escola_id: i
 
     if existente:
         # Se já existe, atualizamos o professor (Troca de professor)
-        existente.professor_id = dados.professor_id
+        existente.professor_id = dados.professor_id # type: ignore
         db.commit()
         db.refresh(existente)
         return existente

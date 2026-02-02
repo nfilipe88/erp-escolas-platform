@@ -1,4 +1,4 @@
-import { Component, inject, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, inject, OnInit } from '@angular/core';
 import { Usuario, UsuarioService } from '../../services/usuario.service';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
@@ -12,6 +12,7 @@ import { RouterLink } from '@angular/router';
 export class UsuarioList implements OnInit {
   usuarioService = inject(UsuarioService);
   usuarios: Usuario[] = [];
+  private cdr= inject(ChangeDetectorRef);
 
   ngOnInit() {
     this.carregarUsuarios();
@@ -20,6 +21,7 @@ export class UsuarioList implements OnInit {
   carregarUsuarios() {
     this.usuarioService.getUsuarios().subscribe(data => {
       this.usuarios = data;
+      this.cdr.detectChanges();
     });
   }
 }

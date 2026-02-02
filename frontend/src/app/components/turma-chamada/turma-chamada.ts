@@ -1,103 +1,79 @@
 import { ChangeDetectorRef, Component, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { ActivatedRoute, RouterLink } from '@angular/router';
-import { TurmaService, Turma } from '../../services/turma.service';
+import { ActivatedRoute, Router } from '@angular/router';
 import { AlunoService } from '../../services/aluno.service';
-import { PresencaService, PresencaItem } from '../../services/presenca.service';
+import { PresencaService } from '../../services/presenca.service';
 
 @Component({
   selector: 'app-turma-chamada',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink],
-  templateUrl: './turma-chamada.html',
-  styleUrl: './turma-chamada.css'
+  imports: [CommonModule, FormsModule],
+  templateUrl: './turma-chamada.html'
 })
 export class TurmaChamada implements OnInit {
-  private route = inject(ActivatedRoute);
-  private turmaService = inject(TurmaService);
-  private alunoService = inject(AlunoService);
-  private presencaService = inject(PresencaService);
-  private cdr = inject(ChangeDetectorRef);
+  route = inject(ActivatedRoute);
+  router = inject(Router);
+  alunoService = inject(AlunoService);
+  presencaService = inject(PresencaService);
+  private cdr= inject(ChangeDetectorRef);
 
-  turma: Turma | null = null;
-  listaPresenca: PresencaItem[] = [];
-
-  // Data de Hoje (formato YYYY-MM-DD para o input type="date")
-  dataSelecionada = new Date().toISOString().split('T')[0];
-  sucesso = '';
+  turmaId!: number;
+  dataSelecionada: string = new Date().toISOString().split('T')[0];
+  alunos: any[] = [];
+  loading = false;
 
   ngOnInit() {
-    const id = this.route.snapshot.paramMap.get('id');
-    if (id) {
-      this.carregarTurma(Number(id));
-    }
+    this.turmaId = Number(this.route.snapshot.paramMap.get('id'));
+    this.carregarDados();
   }
 
-  carregarTurma(id: number) {
-    // 1. Busca dados da turma
-    this.turmaService.getTurmaById(id).subscribe(t => {
-      this.turma = t;
-      this.carregarAlunos(id);
-    });
-  }
+  carregarDados() {
+    this.loading = true;
+    // 1. Carregar Alunos da Turma
+    this.alunoService.getAlunosPorTurma(this.turmaId).subscribe(listaAlunos => {
 
-  carregarAlunos(turmaId: number) {
-    // 2. Busca alunos DIRETAMENTE da turma
-    this.alunoService.getAlunosPorTurma(turmaId).subscribe({
-      next: (alunos) => {
-        console.log('Alunos carregados:', alunos); // Para debug
+      // 2. Verificar se já houve chamada neste dia
+      this.presencaService.consultar(this.turmaId, this.dataSelecionada).subscribe(presencas => {
 
-        // Inicializa a lista local
-        this.listaPresenca = alunos.map(a => ({
-          aluno_id: a.id!,
-          aluno_nome: a.nome,
-          presente: true,
-          justificado: false,
-          observacao: ''
-        }));
-
-        // 3. Verifica se já existe chamada nesta data
-        this.verificarExistencia();
-        this.cdr.detectChanges();
-      },
-      error: (err) => {
-        console.error('Erro ao carregar alunos:', err);
-        // Adicione tratamento de erro (ex: mostrar mensagem ao usuário)
-      }
-    });
-  }
-
-  verificarExistencia() {
-    if (!this.turma) return;
-
-    this.presencaService.lerChamada(this.turma.id!, this.dataSelecionada).subscribe(registros => {
-      if (registros.length > 0) {
-        // Se já existe, atualiza a nossa lista local com o que veio do banco
-        registros.forEach(reg => {
-          const item = this.listaPresenca.find(i => i.aluno_id === reg.aluno_id);
-          if (item) {
-            item.presente = reg.presente;
-            item.justificado = reg.justificado;
-            item.observacao = reg.observacao;
-          }
+        // Combinar dados: Se já existe presença, usa o status. Se não, padrão é 'P' (Presente)
+        this.alunos = listaAlunos.map(aluno => {
+          const registo = presencas.find((p: any) => p.aluno_id === aluno.id);
+          return {
+            ...aluno,
+            status: registo ? registo.status : 'P' // Padrão: Todos Presentes
+          };
         });
-      }
+        this.cdr.detectChanges();
+
+        this.loading = false;
+      });
     });
   }
 
-  salvar() {
-    if (!this.turma) return;
+  mudarStatus(aluno: any) {
+    // Ciclo: P (Presente) -> F (Falta) -> FJ (Falta Justificada) -> P
+    if (aluno.status === 'P') aluno.status = 'F';
+    else if (aluno.status === 'F') aluno.status = 'FJ';
+    else aluno.status = 'P';
+  }
 
+  salvarChamada() {
     const payload = {
-      turma_id: this.turma.id!,
+      turma_id: this.turmaId,
       data: this.dataSelecionada,
-      lista_alunos: this.listaPresenca
+      lista: this.alunos.map(a => ({
+        aluno_id: a.id,
+        status: a.status
+      }))
     };
 
-    this.presencaService.salvarChamada(payload).subscribe(() => {
-      this.sucesso = 'Chamada registada com sucesso!';
-      setTimeout(() => this.sucesso = '', 3000);
+    this.presencaService.registar(payload).subscribe({
+      next: () => {
+        alert('Chamada registada com sucesso! ✅');
+        this.router.navigate(['/']); // Volta ao dashboard ou mantém na página
+      },
+      error: () => alert('Erro ao salvar chamada.')
     });
   }
 }

@@ -15,19 +15,19 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi import FastAPI, Request
 from sqlalchemy.orm import Session
 from app.db import database
-from app.schemas import escola as schemas_escola
-from app.schemas import aluno as schemas_aluno
-from app.schemas import turma as schemas_turma
-from app.schemas import disciplina as schemas_disciplina
-from app.schemas import nota as schemas_nota
-from app.schemas import boletim as schemas_boletim
-from app.schemas import dashboard as schemas_dashboard
-from app.schemas import mensalidade as schemas_fin
-from app.schemas import usuario as schemas_user
-from app.schemas import recuperar_senha as schemas_rec_senha
-from app.schemas import presenca as schemas_presenca
-from app.schemas import configuracao as schemas_config
-from app.schemas import atribuicao as schemas_atribuicao
+from app.schemas import schema_escola as schemas_escola
+from app.schemas import schema_aluno as schemas_aluno
+from app.schemas import schema_turma as schemas_turma
+from app.schemas import schema_disciplina as schemas_disciplina
+from app.schemas import schema_nota as schemas_nota
+from app.schemas import schema_boletim as schemas_boletim
+from app.schemas import schema_dashboard as schemas_dashboard
+from app.schemas import schema_mensalidade as schemas_fin
+from app.schemas import schema_usuario as schemas_user
+from app.schemas import schema_recuperar_senha as schemas_rec_senha
+from app.schemas import schema_presenca
+from app.schemas import schema_configuracao as schemas_config
+from app.schemas import schema_atribuicao as schemas_atribuicao
 from app.cruds import crud_turma as crud_turma
 from app.cruds import crud_escola as crud_escola
 from app.cruds import crud_aluno as crud_aluno
@@ -122,19 +122,23 @@ def criar_usuario(
 ):
     escola_destino_id = None
 
+    # Lógica SaaS Robusta
     if current_user.perfil == "superadmin":
+        # Se o Superadmin mandou um ID de escola, usamos esse.
         if usuario.escola_id:
             escola_destino_id = usuario.escola_id
-        else:
-            # Se não especificar, assume a escola do superadmin ou lança erro (opcional)
-            escola_destino_id = current_user.escola_id
-    else:
-        # Diretor só cria na sua própria escola
-        escola_destino_id = current_user.escola_id
-    
-    if not escola_destino_id:
-        raise HTTPException(status_code=400, detail="Escola não definida para o novo utilizador.")
+        
+        # Opcional: Se estiver a criar um 'admin' (Diretor) e não mandou escola, podes bloquear.
+        if usuario.perfil in ['admin', 'professor', 'secretaria'] and not escola_destino_id:
+             raise HTTPException(status_code=400, detail="Superadmin deve selecionar uma escola para criar este tipo de utilizador.")
 
+    else:
+        # Diretor (Admin) cria sempre para a sua própria escola
+        escola_destino_id = current_user.escola_id
+        if not escola_destino_id:
+             raise HTTPException(status_code=400, detail="O utilizador logado não tem escola associada.")
+
+    # Chama o CRUD com o ID decidido (pode ser None se for criar outro Superadmin)
     return crud_usuario.create_usuario(db=db, usuario=usuario, escola_id=escola_destino_id)
 
 @app.get("/usuarios/", response_model=list[schemas_user.UsuarioResponse])
@@ -510,17 +514,16 @@ def alterar_senha(
 # --- MÓDULO DE ASSIDUIDADE ---
 
 # 1. Salvar a chamada do dia
-@app.post("/presencas/", response_model=list[schemas_presenca.PresencaResponse])
+@app.post("/presencas/", response_model=list[schema_presenca.PresencaResponse])
 def salvar_chamada(
-    dados: schemas_presenca.ChamadaDiaria, 
+    dados: schema_presenca.ChamadaDiaria, 
     db: Session = Depends(get_db),
     current_user: models_user.Usuario = Depends(get_current_user)
 ):
     return crud_presenca.registrar_chamada(db=db, chamada=dados)
 
 # 2. Ler a chamada de uma turma numa data específica
-# Ex: /presencas/turma/5?data=2025-01-22
-@app.get("/presencas/turma/{turma_id}", response_model=list[schemas_presenca.PresencaResponse])
+@app.get("/presencas/turma/{turma_id}", response_model=list[schema_presenca.PresencaResponse])
 def ler_chamada(
     turma_id: int, 
     data: str, # Recebe como string "YYYY-MM-DD"
@@ -532,11 +535,28 @@ def ler_chamada(
     data_obj = datetime.strptime(data, "%Y-%m-%d").date()
     return crud_presenca.get_presencas_dia(db=db, turma_id=turma_id, data_busca=data_obj)
 
+@app.post("/presencas/")
+def realizar_chamada(
+    dados: schema_presenca.PresencaCreate,
+    db: Session = Depends(get_db),
+    current_user: models_user.Usuario = Depends(get_current_user)
+):
+    return crud_presenca.registar_chamada(db, dados, current_user.escola_id)
+
+@app.get("/presencas/{turma_id}/{data}")
+def consultar_chamada(
+    turma_id: int, 
+    data: str, # Formato YYYY-MM-DD
+    db: Session = Depends(get_db),
+    current_user: models_user.Usuario = Depends(get_current_user)
+):
+    return crud_presenca.ler_chamada_dia(db, turma_id, data)
+
 @app.get("/turmas/{turma_id}/alunos", response_model=list[schemas_aluno.AlunoResponse])
 def read_alunos_por_turma(turma_id: int, db: Session = Depends(get_db),
                           current_user: models_user.Usuario = Depends(get_current_user)
                           ):
-    alunos = crud_aluno.get_alunos_by_turma(db, turma_id=turma_id)
+    alunos = crud_aluno.get_alunos_por_turma(db, turma_id=turma_id)
     return alunos
 
 # ==========================================

@@ -1,83 +1,93 @@
-<div
-  class="max-w-4xl mx-auto mt-10 p-8 bg-white shadow-2xl rounded-sm border border-gray-300 print:shadow-none print:border-0 print:w-full print:max-w-none">
+<div class="max-w-4xl mx-auto mt-10 p-8 bg-white shadow-2xl rounded-sm border border-gray-300 print:shadow-none print:border-0 print:w-full print:max-w-none">
 
   <div class="text-center border-b-2 border-black pb-4 mb-6">
+    <div class="flex justify-center mb-2">
+      <span class="text-4xl">🎓</span>
+    </div>
     <h1 class="text-3xl font-bold uppercase tracking-widest text-gray-900">Boletim Escolar</h1>
-    <p class="text-gray-500">Ano Letivo 2025</p>
+    <p class="text-gray-500 font-bold">Ano Letivo 2025</p>
   </div>
 
   <div *ngIf="boletim; else loading">
-    <div class="flex justify-between mb-8 text-sm uppercase">
+    <div class="flex justify-between mb-8 text-sm uppercase bg-gray-50 p-4 border border-gray-200 rounded">
       <div>
-        <p><span class="font-bold">Aluno:</span> {{ boletim.aluno_nome }}</p>
-        <p><span class="font-bold">BI:</span> {{ boletim.aluno_bi || '---' }}</p>
+        <p><span class="font-bold text-gray-600">Aluno:</span> <span class="text-lg ml-2">{{ boletim.aluno_nome }}</span></p>
+        <p><span class="font-bold text-gray-600">Nº BI:</span> <span class="ml-2">{{ boletim.aluno_bi || '---' }}</span></p>
       </div>
       <div class="text-right">
-        <p><span class="font-bold">Turma:</span> {{ boletim.turma }}</p>
-        <p><span class="font-bold">Data:</span> {{ dataHoje | date:'dd/MM/yyyy' }}</p>
+        <p><span class="font-bold text-gray-600">Turma:</span> <span class="ml-2">{{ boletim.turma }}</span></p>
+        <p><span class="font-bold text-gray-600">Emissão:</span> <span class="ml-2">{{ dataHoje | date:'dd/MM/yyyy' }}</span></p>
       </div>
     </div>
 
     <table class="w-full border-collapse border border-black text-sm">
       <thead class="bg-gray-100">
         <tr>
-          <th class="border border-black p-3 text-left w-1/3">Disciplina</th>
-          <th class="border border-black p-3 text-center">1º Trimestre</th>
-          <th class="border border-black p-3 text-center">2º Trimestre</th>
-          <th class="border border-black p-3 text-center">3º Trimestre</th>
-          <th class="border border-black p-3 text-center bg-gray-200">Média</th>
+          <th class="border border-black p-3 text-left w-1/3 uppercase">Disciplina</th>
+          <th class="border border-black p-3 text-center w-1/6">1º Tri</th>
+          <th class="border border-black p-3 text-center w-1/6">2º Tri</th>
+          <th class="border border-black p-3 text-center w-1/6">3º Tri</th>
+          <th class="border border-black p-3 text-center w-1/6 bg-gray-200">Média Final</th>
         </tr>
       </thead>
       <tbody>
-        <!-- REMOVER o operador opicional aqui, pois já temos *ngIf="boletim" -->
         <tr *ngFor="let linha of boletim.linhas">
           <td class="border border-black p-3 font-bold">{{ linha.disciplina }}</td>
 
-          <!-- Usa a função getNota para cada trimestre -->
           <td *ngFor="let trimestre of ['1º Trimestre', '2º Trimestre', '3º Trimestre']"
-            class="border border-black p-3 text-center">
-            {{ getNota(linha.notas, trimestre) }}
+            class="border border-black p-3 text-center font-medium">
+            <span [class.text-red-600]="getValorNota(linha.notas, trimestre) !== null && getValorNota(linha.notas, trimestre)! < 10"
+                  [class.text-gray-400]="getValorNota(linha.notas, trimestre) === null">
+              {{ getNota(linha.notas, trimestre) }}
+            </span>
           </td>
 
           <td class="border border-black p-3 text-center font-bold bg-gray-50">
-            {{ linha.media_provisoria | number:'1.1-1' }}
+            <span [class.text-red-600]="linha.media_provisoria < 10"
+                  [class.text-green-700]="linha.media_provisoria >= 10">
+              {{ linha.media_provisoria | number:'1.1-1' }}
+            </span>
           </td>
         </tr>
 
-        <!-- Linha de totais (opcional) -->
-        <!-- REMOVER o operador opcional aqui também -->
-        <tr *ngIf="boletim.linhas.length" class="bg-gray-100">
-          <td class="border border-black p-3 font-bold">MÉDIA GERAL</td>
-          <td colspan="3" class="border border-black p-3 text-center">
-            Média de {{ boletim.linhas.length }} disciplinas
+        <tr *ngIf="boletim.linhas.length" class="bg-gray-800 text-white print:bg-gray-200 print:text-black">
+          <td class="border border-black p-3 font-bold uppercase">Média Geral</td>
+          <td colspan="3" class="border border-black p-3 text-center text-xs opacity-70">
+            (Calculada com base nas disciplinas avaliadas)
           </td>
-          <td class="border border-black p-3 text-center font-bold">
-            {{ calcularMediaGeral() | number:'1.1-1' }}
+          <td class="border border-black p-3 text-center font-black text-lg">
+            {{ calcularMediaGeral() | number:'1.1-1' }} v.
           </td>
         </tr>
       </tbody>
     </table>
 
-    <div class="mt-16 pt-8 grid grid-cols-2 gap-10 text-center">
+    <div class="mt-20 pt-10 grid grid-cols-2 gap-16 text-center page-break-inside-avoid">
       <div>
-        <div class="border-b border-gray-400 w-3/4 mx-auto mb-2"></div>
-        <p class="text-sm font-bold text-gray-600">Assinatura do Diretor de Turma</p>
+        <div class="border-b border-black w-3/4 mx-auto mb-2"></div>
+        <p class="text-xs font-bold uppercase text-gray-600">O Diretor de Turma</p>
       </div>
       <div>
-        <div class="border-b border-gray-400 w-3/4 mx-auto mb-2"></div>
-        <p class="text-sm font-bold text-gray-600">Assinatura do Encarregado de Educação</p>
+        <div class="border-b border-black w-3/4 mx-auto mb-2"></div>
+        <p class="text-xs font-bold uppercase text-gray-600">O Encarregado de Educação</p>
       </div>
     </div>
 
-    <div class="mt-12 flex justify-between items-end print:hidden">
-      <a routerLink="/lista-alunos" class="text-blue-600 hover:underline">← Voltar à Lista</a>
-      <button (click)="imprimir()" class="bg-black text-white px-6 py-2 rounded hover:bg-gray-800">
-        🖨️ Imprimir Boletim
+    <div class="mt-12 flex justify-between items-center print:hidden border-t pt-6">
+      <a routerLink="/lista-alunos" class="text-indigo-600 hover:text-indigo-800 font-bold">
+        ← Voltar à Lista
+      </a>
+      <button (click)="imprimir()"
+        class="bg-indigo-900 text-white px-8 py-3 rounded-lg shadow-lg hover:bg-indigo-800 transition flex items-center gap-2 font-bold">
+        🖨️ Imprimir Boletim PDF
       </button>
     </div>
   </div>
 
   <ng-template #loading>
-    <p class="text-center py-10">A carregar boletim...</p>
+    <div class="text-center py-20">
+      <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-900 mx-auto mb-4"></div>
+      <p class="text-gray-500">A processar notas académicas...</p>
+    </div>
   </ng-template>
 </div>

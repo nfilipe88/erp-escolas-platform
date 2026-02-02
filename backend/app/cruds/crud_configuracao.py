@@ -1,12 +1,12 @@
 # app/cruds/crud_configuracao.py
 from sqlalchemy.orm import Session
 from app.models import configuracao as models
-from app.schemas import configuracao as schemas
+from app.schemas import schema_configuracao
 
 def get_config_by_escola(db: Session, escola_id: int):
     return db.query(models.Configuracao).filter(models.Configuracao.escola_id == escola_id).first()
 
-def update_config(db: Session, escola_id: int, dados: schemas.ConfiguracaoUpdate):
+def update_config(db: Session, escola_id: int, dados: schema_configuracao.ConfiguracaoUpdate):
     db_config = get_config_by_escola(db, escola_id)
     
     # Se por algum motivo não existir, cria-se agora como medida de segurança

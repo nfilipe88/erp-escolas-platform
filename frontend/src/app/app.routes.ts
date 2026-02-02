@@ -57,6 +57,7 @@ export const routes: Routes = [
       { path: 'pauta/:turmaId/:disciplinaId', component: NotaPauta },
       { path: 'usuarios', component: UsuarioList },
       { path: 'novo-usuario', component: UsuarioForm },
+      { path: 'chamada/:id',component: TurmaChamada },
     ]
   },
   { path: '**', redirectTo: 'login' } // Rota curinga para redirecionar rotas inválidas

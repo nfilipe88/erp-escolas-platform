@@ -1,72 +1,69 @@
-<div class="max-w-4xl mx-auto mt-8 px-4">
+<div class="max-w-4xl mx-auto mt-10 p-6 bg-white shadow-xl rounded-xl border-t-8 border-indigo-900">
 
-  <div class="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
+  <div class="flex justify-between items-end mb-8 border-b pb-4">
     <div>
-      <h1 class="text-2xl font-bold text-gray-800">📋 Registo de Assiduidade</h1>
-      <p class="text-gray-500" *ngIf="turma">Turma: <span class="font-bold text-blue-900">{{ turma.nome }}</span></p>
+      <h1 class="text-3xl font-black text-gray-800">📅 Diário de Aulas</h1>
+      <p class="text-gray-500">Registo de Assiduidade • Turma #{{ turmaId }}</p>
     </div>
 
-    <div class="flex items-center gap-2 bg-white p-2 rounded shadow border">
-      <span class="text-sm font-bold text-gray-500 uppercase">Data:</span>
-      <input type="date" [(ngModel)]="dataSelecionada" (change)="verificarExistencia()"
-        class="border-none outline-none font-bold text-gray-700 cursor-pointer">
+    <div>
+      <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Data da Chamada</label>
+      <input type="date" [(ngModel)]="dataSelecionada" (change)="carregarDados()"
+             class="p-2 border-2 border-indigo-100 rounded-lg font-bold text-indigo-900 cursor-pointer">
     </div>
   </div>
 
-  <div *ngIf="sucesso"
-    class="mb-4 p-4 bg-green-100 text-green-700 rounded border border-green-200 flex items-center gap-2 animate-bounce">
-    ✅ {{ sucesso }}
+  <div *ngIf="loading" class="text-center py-10 text-gray-400">
+    A carregar alunos...
   </div>
 
-  <div class="bg-white shadow-md rounded-lg overflow-hidden border border-gray-200">
-    <table class="min-w-full divide-y divide-gray-200">
-      <thead class="bg-gray-50">
-        <tr>
-          <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Aluno</th>
-          <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Presente?</th>
-          <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Justificado?</th>
-          <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Observações</th>
-        </tr>
-      </thead>
-      <tbody class="bg-white divide-y divide-gray-200">
-        <tr *ngFor="let item of listaPresenca" [ngClass]="{'bg-red-50': !item.presente}">
+  <div *ngIf="!loading">
+    <div class="grid grid-cols-1 gap-3">
+      @for (aluno of alunos; track aluno.id) {
+        <div class="flex items-center justify-between p-4 rounded-lg border transition cursor-pointer select-none"
+             [ngClass]="{
+               'bg-white border-gray-200 hover:border-gray-300': aluno.status === 'P',
+               'bg-red-50 border-red-200': aluno.status === 'F',
+               'bg-yellow-50 border-yellow-200': aluno.status === 'FJ'
+             }"
+             (click)="mudarStatus(aluno)">
 
-          <td class="px-6 py-4 whitespace-nowrap">
-            <div class="font-medium text-gray-900">{{ item.aluno_nome }}</div>
-          </td>
+          <div class="flex items-center gap-4">
+            <div class="w-10 h-10 rounded-full flex items-center justify-center font-bold text-white"
+                 [ngClass]="{
+                   'bg-green-500': aluno.status === 'P',
+                   'bg-red-500': aluno.status === 'F',
+                   'bg-yellow-500': aluno.status === 'FJ'
+                 }">
+              {{ aluno.status }}
+            </div>
+            <div>
+              <p class="font-bold text-gray-800 text-lg">{{ aluno.nome }}</p>
+              <p class="text-xs text-gray-500 font-mono">{{ aluno.bi || 'Sem BI' }}</p>
+            </div>
+          </div>
 
-          <td class="px-6 py-4 whitespace-nowrap text-center">
-            <input type="checkbox" [(ngModel)]="item.presente"
-              class="w-6 h-6 text-blue-600 rounded focus:ring-blue-500 cursor-pointer">
-          </td>
+          <div class="text-sm font-bold uppercase tracking-wider"
+               [ngClass]="{
+                 'text-green-700': aluno.status === 'P',
+                 'text-red-700': aluno.status === 'F',
+                 'text-yellow-700': aluno.status === 'FJ'
+               }">
+            <span *ngIf="aluno.status === 'P'">Presente</span>
+            <span *ngIf="aluno.status === 'F'">Falta</span>
+            <span *ngIf="aluno.status === 'FJ'">Justificada</span>
+          </div>
+        </div>
+      } @empty {
+        <p class="text-center text-gray-400 py-8">Nenhum aluno nesta turma.</p>
+      }
+    </div>
 
-          <td class="px-6 py-4 whitespace-nowrap text-center">
-            <input *ngIf="!item.presente" type="checkbox" [(ngModel)]="item.justificado"
-              class="w-5 h-5 text-yellow-500 rounded focus:ring-yellow-400 cursor-pointer">
-            <span *ngIf="item.presente" class="text-gray-300">-</span>
-          </td>
-
-          <td class="px-6 py-4 whitespace-nowrap">
-            <input type="text" [(ngModel)]="item.observacao" placeholder="..."
-              class="w-full text-sm border-b border-gray-300 focus:border-blue-500 outline-none bg-transparent">
-          </td>
-
-        </tr>
-      </tbody>
-      <div *ngIf="listaPresenca.length === 0 && turma" class="text-center py-10">
-        <p class="text-gray-500">Carregando lista de alunos...</p>
-      </div>
-    </table>
+    <div class="mt-8 flex justify-end">
+      <button (click)="salvarChamada()"
+        class="bg-indigo-900 hover:bg-indigo-800 text-white font-bold py-3 px-8 rounded-lg shadow-lg transition transform hover:-translate-y-1">
+        💾 Salvar Diário
+      </button>
+    </div>
   </div>
-
-  <div class="mt-8 flex justify-end gap-4 pb-10">
-    <a routerLink="/lista-turmas" class="px-6 py-3 text-gray-600 hover:bg-gray-100 rounded font-medium cursor-pointer">
-      Cancelar
-    </a>
-    <button (click)="salvar()"
-      class="px-8 py-3 bg-blue-900 text-white font-bold rounded shadow-lg hover:bg-blue-800 transition transform hover:scale-105 flex items-center gap-2">
-      💾 Salvar Chamada
-    </button>
-  </div>
-
 </div>

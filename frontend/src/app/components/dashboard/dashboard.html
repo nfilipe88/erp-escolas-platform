@@ -81,10 +81,17 @@
               Turma: <span class="text-gray-900 font-bold">{{ aula.turma_nome }}</span>
             </p>
 
-            <button
-              class="w-full bg-indigo-50 text-indigo-700 font-bold py-3 rounded-lg hover:bg-indigo-600 hover:text-white transition flex items-center justify-center gap-2">
-              📝 Lançar Notas
-            </button>
+            <div class="flex gap-2">
+              <button [routerLink]="['/pauta', aula.turma_id, aula.disciplina_id]"
+                class="flex-1 bg-indigo-50 text-indigo-700 font-bold py-3 rounded-lg hover:bg-indigo-600 hover:text-white transition">
+                📝 Notas
+              </button>
+
+              <button [routerLink]="['/chamada', aula.turma_id]"
+                class="flex-1 bg-yellow-50 text-yellow-700 font-bold py-3 rounded-lg hover:bg-yellow-600 hover:text-white transition">
+                📅 Chamada
+              </button>
+            </div>
           </div>
         </div>
         } @empty {

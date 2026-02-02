@@ -10,7 +10,6 @@ export interface Aluno {
   escola_id: number;
   turma_id?: number;   // <--- (com ponto de interrogação pois pode ser nulo)
   ativo?: boolean;     // <--- Adicionei isto para mostrar na tabela
-  created_at?: string; // <--- Adicionei isto para mostrar a data
 }
 
 export interface Boletim {
@@ -61,21 +60,21 @@ export class AlunoService {
     return this.http.get<Aluno[]>(`${this.apiUrl}/turmas/${turmaId}/alunos`);
   }
 
-  // getBoletim(alunoId: number): Observable<Boletim> {
-  //   return this.http.get<Boletim>(`${this.apiUrl}/alunos/${alunoId}/boletim`);
-  // }
+  getBoletim(alunoId: number): Observable<Boletim> {
+    return this.http.get<Boletim>(`${this.apiUrl}/alunos/${alunoId}/boletim`);
+  }
 
   // No serviço, adicionar cache se necessário
-  private boletimCache = new Map<number, Boletim>();
+  // private boletimCache = new Map<number, Boletim>();
 
-  getBoletim(alunoId: number): Observable<Boletim> {
-    // Opcional: implementar cache
-    if (this.boletimCache.has(alunoId)) {
-      return of(this.boletimCache.get(alunoId)!);
-    }
+  // getBoletim(alunoId: number): Observable<Boletim> {
+  //   // Opcional: implementar cache
+  //   if (this.boletimCache.has(alunoId)) {
+  //     return of(this.boletimCache.get(alunoId)!);
+  //   }
 
-    return this.http.get<Boletim>(`${this.apiUrl}/alunos/${alunoId}/boletim`).pipe(
-      tap(boletim => this.boletimCache.set(alunoId, boletim))
-    );
-  }
+  //   return this.http.get<Boletim>(`${this.apiUrl}/alunos/${alunoId}/boletim`).pipe(
+  //     tap(boletim => this.boletimCache.set(alunoId, boletim))
+  //   );
+  // }
 }
