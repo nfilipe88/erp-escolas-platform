@@ -1,5 +1,6 @@
 # app/models/atribuicao.py
-from sqlalchemy import Column, Integer, ForeignKey, UniqueConstraint
+from sqlalchemy import Column, Integer, ForeignKey, UniqueConstraint, DateTime
+from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
 from app.db.database import Base
 
@@ -27,3 +28,7 @@ class Atribuicao(Base):
     __table_args__ = (
         UniqueConstraint('turma_id', 'disciplina_id', name='unica_disciplina_por_turma'),
     )
+    
+    # Auditoria
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())

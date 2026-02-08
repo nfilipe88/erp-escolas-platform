@@ -1,9 +1,14 @@
 from logging.config import fileConfig
+import os
+from dotenv import load_dotenv
 
 from sqlalchemy import engine_from_config
 from sqlalchemy import pool
 
 from alembic import context
+
+# Load environment variables
+load_dotenv()
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
@@ -14,11 +19,14 @@ config = context.config
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
+# Set the database URL from .env
+config.set_main_option('sqlalchemy.url', os.getenv('DATABASE_URL', ''))
+
 # add your model's MetaData object here
 # for 'autogenerate' support
-# from myapp import mymodel
-# target_metadata = mymodel.Base.metadata
-target_metadata = None
+from app.models import aluno, usuario, escola, turma, disciplina, atribuicao, presenca, nota, horario, mensalidade, ponto_professor, diario, configuracao
+from app.db.database import Base
+target_metadata = Base.metadata
 
 # other values from the config, defined by the needs of env.py,
 # can be acquired:
@@ -57,8 +65,17 @@ def run_migrations_online() -> None:
     and associate a connection with the context.
 
     """
+    # Convert async PostgreSQL URL to sync for Alembic
+    database_url = config.get_main_option("sqlalchemy.url")
+    if database_url and "postgresql+asyncpg://" in database_url:
+        database_url = database_url.replace("postgresql+asyncpg://", "postgresql://")
+        config.set_main_option("sqlalchemy.url", database_url)
+    
+    configuration = config.get_section(config.config_ini_section)
+    configuration["sqlalchemy.url"] = database_url
+    
     connectable = engine_from_config(
-        config.get_section(config.config_ini_section, {}),
+        configuration,
         prefix="sqlalchemy.",
         poolclass=pool.NullPool,
     )

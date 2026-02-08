@@ -23,6 +23,9 @@ import { EscolaList } from './components/escola-list/escola-list';
 import { AtribuicaoAulas } from './components/atribuicao-aulas/atribuicao-aulas';
 import { UsuarioForm } from './components/usuario-form/usuario-form';
 import { UsuarioList } from './components/usuario-list/usuario-list';
+import { GestaoHorario } from './components/gestao-horario/gestao-horario';
+import { PontoProfessores } from './components/ponto-professores/ponto-professores';
+import { RelatoriosFinanceiros } from './components/relatorios-financeiros/relatorios-financeiros';
 
 export const routes: Routes = [
   // Rotas públicas(livres)
@@ -58,6 +61,9 @@ export const routes: Routes = [
       { path: 'usuarios', component: UsuarioList },
       { path: 'novo-usuario', component: UsuarioForm },
       { path: 'chamada/:id',component: TurmaChamada },
+      { path: 'gestao-horarios', component: GestaoHorario }, // Rota para gestão de horário
+      { path: 'ponto-professores', component: PontoProfessores }, // Rota para ponto eletrônico
+      { path: 'relatorios-financeiros', component: RelatoriosFinanceiros },
     ]
   },
   { path: '**', redirectTo: 'login' } // Rota curinga para redirecionar rotas inválidas

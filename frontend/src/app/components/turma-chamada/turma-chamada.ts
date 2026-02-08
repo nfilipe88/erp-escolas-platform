@@ -29,27 +29,72 @@ export class TurmaChamada implements OnInit {
   }
 
   carregarDados() {
-    this.loading = true;
-    // 1. Carregar Alunos da Turma
-    this.alunoService.getAlunosPorTurma(this.turmaId).subscribe(listaAlunos => {
+  this.loading = true;
 
-      // 2. Verificar se já houve chamada neste dia
-      this.presencaService.consultar(this.turmaId, this.dataSelecionada).subscribe(presencas => {
+  // 1. Carregar Alunos da Turma
+  this.alunoService.getAlunosPorTurma(this.turmaId).subscribe({
+    next: (listaAlunos) => {
+      console.log('Alunos carregados:', listaAlunos); // Debug
 
-        // Combinar dados: Se já existe presença, usa o status. Se não, padrão é 'P' (Presente)
-        this.alunos = listaAlunos.map(aluno => {
-          const registo = presencas.find((p: any) => p.aluno_id === aluno.id);
-          return {
-            ...aluno,
-            status: registo ? registo.status : 'P' // Padrão: Todos Presentes
-          };
-        });
-        this.cdr.detectChanges();
-
+      if (!listaAlunos || listaAlunos.length === 0) {
+        this.alunos = [];
         this.loading = false;
+        this.cdr.detectChanges();
+        return;
+      }
+
+      // 2. Verificar presenças existentes
+      this.presencaService.consultar(this.turmaId, this.dataSelecionada).subscribe({
+        next: (presencas: any[]) => {
+          console.log('Presenças existentes:', presencas); // Debug
+
+          this.alunos = listaAlunos.map(aluno => {
+            // Garantir que estamos usando a chave correta
+            const registo = presencas?.find((p: any) =>
+              p.aluno_id === aluno.id ||
+              p.aluno?.id === aluno.id ||
+              p.alunoId === aluno.id
+            );
+
+            // Status padrão é 'P' (Presente)
+            let status = 'P';
+
+            if (registo) {
+              // Verificar diferentes possíveis nomes de campo
+              status = registo.status || registo.presenca || 'P';
+            }
+
+            return {
+              ...aluno,
+              status: status
+            };
+          });
+
+          this.cdr.detectChanges();
+          this.loading = false;
+        },
+        error: (error) => {
+          console.error('Erro ao carregar presenças:', error);
+
+          // Se erro, todos os alunos como presentes por padrão
+          this.alunos = listaAlunos.map(aluno => ({
+            ...aluno,
+            status: 'P'
+          }));
+
+          this.cdr.detectChanges();
+          this.loading = false;
+        }
       });
-    });
-  }
+    },
+    error: (error) => {
+      console.error('Erro ao carregar alunos:', error);
+      this.alunos = [];
+      this.loading = false;
+      this.cdr.detectChanges();
+    }
+  });
+}
 
   mudarStatus(aluno: any) {
     // Ciclo: P (Presente) -> F (Falta) -> FJ (Falta Justificada) -> P

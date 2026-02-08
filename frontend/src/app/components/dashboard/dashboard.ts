@@ -51,13 +51,16 @@ export class Dashboard implements OnInit {
     console.log('Perfil detectado:', this.perfil); // DEBUG
 
     // 2. Carregar dados consoante o perfil
-    if (this.perfil === 'admin' || this.perfil === 'superadmin') {
+
+    if (this.perfil === 'admin' || this.perfil === 'secretaria') {
+      // Trata Secretaria igual a Admin (mostra stats)
       this.carregarDashboardAdmin();
+    } else if (this.perfil === 'superadmin') {
+      this.carregarDashboardAdmin(); // Superadmin também vê stats
     } else if (this.perfil === 'professor') {
       this.carregarDashboardProfessor();
     } else {
       console.warn('Perfil não reconhecido:', this.perfil);
-      this.carregando = false;
     }
   }
 

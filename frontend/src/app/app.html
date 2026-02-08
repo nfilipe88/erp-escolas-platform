@@ -1,63 +1,96 @@
-<div class="min-h-screen bg-gray-100">
+<div class="flex h-screen bg-gray-100" *ngIf="isLoggedIn">
 
-  <nav *ngIf="authService.currentUser()" class="bg-blue-900 text-white shadow-lg print:hidden">
-    <div class="container mx-auto flex justify-between items-center">
-      <h1 class="text-xl font-bold">ERP Escolar</h1>
-
-      <div class="hidden md:flex space-x-8">
-        <a routerLink="/dashboard" routerLinkActive="text-yellow-300 font-bold" class="hover:text-yellow-200 transition cursor-pointer">
-          Dashboard
-        </a>
-      </div>
-
-      <div class="space-x-4">
-        <a routerLink="/escolas" routerLinkActive="text-yellow-300 font-bold" class="hover:text-yellow-200 transition">
-          Escolas
-        </a>
-        <a routerLink="/usuarios" routerLinkActive="text-yellow-300 font-bold" class="hover:text-yellow-200 transition">
-          Funcionários
-        </a>
-        <a routerLink="/lista-turmas" routerLinkActive="text-yellow-300 font-bold" class="hover:text-yellow-200 transition">
-          Turmas
-        </a>
-        <a routerLink="/disciplinas" routerLinkActive="text-yellow-300 font-bold" class="hover:text-yellow-200 transition">
-          Disciplinas
-        </a>
-        <a routerLink="/novo-aluno" routerLinkActive="text-yellow-300 font-bold" class="hover:text-yellow-200 transition">
-          Matricular Aluno
-        </a>
-        <a routerLink="/lista-alunos" routerLinkActive="text-yellow-300 font-bold" class="hover:text-yellow-200 transition">
-          Consultar Pauta
-        </a>
-        <!-- <button [routerLink]="['/pauta', aula.turma_id, aula.disciplina_id]"
-          class="w-full bg-indigo-50 text-indigo-700 font-bold py-3 rounded-lg hover:bg-indigo-600 hover:text-white transition flex items-center justify-center gap-2">
-          📝 Lançar Notas
-        </button> -->
-      </div>
-      <div class="flex items-center gap-4">
-
-        <a routerLink="/perfil"
-          class="flex items-center gap-2 text-blue-100 hover:text-white transition cursor-pointer group">
-          <div
-            class="w-8 h-8 bg-blue-700 rounded-full flex items-center justify-center border border-blue-500 group-hover:bg-blue-600">
-            👤
-          </div>
-          <span class="text-sm font-medium hidden md:block">Minha Conta</span>
-        </a>
-
-        <div class="h-6 w-px bg-blue-700"></div>
-
-        <button (click)="logout()"
-          class="text-red-300 hover:text-red-100 font-bold text-sm uppercase transition flex items-center gap-1">
-          Sair <span class="text-lg">🚪</span>
-        </button>
-
-      </div>
+  <aside class="w-64 bg-indigo-900 text-white flex flex-col shadow-2xl">
+    <div class="p-6 text-center border-b border-indigo-800">
+      <h2 class="text-2xl font-black tracking-tighter">🎓 ERP Escolar</h2>
+      <p class="text-xs text-indigo-300 mt-1 uppercase">{{ perfil }}</p>
     </div>
-  </nav>
 
-  <div class="container mx-auto py-10">
+    <nav class="flex-1 overflow-y-auto py-4">
+
+      <div class="mb-6">
+        <p class="px-6 text-xs text-indigo-400 font-bold uppercase mb-2">Geral</p>
+        <a routerLink="/" routerLinkActive="text-yellow-300 font-bold"
+          class=" px-6 py-2 hover:bg-indigo-800 transition flex items-center gap-2">
+          🏠 Dashboard
+        </a>
+      </div>
+
+      <div *ngIf="perfil === 'admin' || perfil === 'secretaria'" class="mb-6">
+        <p class="px-6 text-xs text-indigo-400 font-bold uppercase mb-2">Administrativo</p>
+
+        <a routerLink="/lista-alunos" routerLinkActive="text-yellow-300 font-bold"
+          class=" px-6 py-2 hover:bg-indigo-800 transition flex items-center gap-2">
+          🎓 Alunos & Matrículas
+        </a>
+        <a routerLink="/lista-turmas" routerLinkActive="text-yellow-300 font-bold"
+          class=" px-6 py-2 hover:bg-indigo-800 transition flex items-center gap-2">
+          🏫 Turmas
+        </a>
+        <a routerLink="/disciplinas" routerLinkActive="text-yellow-300 font-bold"
+          class=" px-6 py-2 hover:bg-indigo-800 transition flex items-center gap-2">
+          📚 Disciplinas
+        </a>
+
+        <a routerLink="/gestao-horarios" routerLinkActive="text-yellow-300 font-bold"
+          class=" px-6 py-2 hover:bg-indigo-800 transition flex items-center gap-2">
+          📅 Horários
+        </a>
+        <a routerLink="/ponto-professores" routerLinkActive="text-yellow-300 font-bold"
+          class=" px-6 py-2 hover:bg-indigo-800 transition flex items-center gap-2">
+          📋 Ponto Docente
+        </a>
+      </div>
+
+      <div *ngIf="perfil === 'admin' || perfil === 'secretaria'" class="mb-6">
+        <p class="px-6 text-xs text-indigo-400 font-bold uppercase mb-2">Financeiro</p>
+        <a routerLink="/lista-alunos" routerLinkActive="text-yellow-300 font-bold"
+          class=" px-6 py-2 hover:bg-indigo-800 transition flex items-center gap-2">
+          💰 Mensalidades
+        </a>
+        <a routerLink="/relatorios-financeiros" routerLinkActive="text-yellow-300 font-bold"
+          class=" px-6 py-2 hover:bg-indigo-800 transition flex items-center gap-2">
+          📊 Relatórios Financeiros
+        </a>
+      </div>
+
+      <div *ngIf="perfil === 'admin' || perfil === 'superadmin'" class="mb-6">
+        <p class="px-6 text-xs text-indigo-400 font-bold uppercase mb-2">Recursos Humanos</p>
+        <a routerLink="/usuarios" routerLinkActive="text-yellow-300 font-bold"
+          class=" px-6 py-2 hover:bg-indigo-800 transition flex items-center gap-2">
+          👥 Funcionários
+        </a>
+      </div>
+
+      <div *ngIf="perfil === 'professor'" class="mb-6">
+        <p class="px-6 text-xs text-indigo-400 font-bold uppercase mb-2">Sala de Aula</p>
+        <a routerLink="/minhas-aulas" class=" px-6 py-2 hover:bg-indigo-800 transition flex items-center gap-2">
+          📅 Aulas de Hoje
+        </a>
+      </div>
+
+      <div *ngIf="perfil === 'superadmin'" class="mb-6">
+        <p class="px-6 text-xs text-indigo-400 font-bold uppercase mb-2">SaaS Master</p>
+        <a routerLink="/escolas" class=" px-6 py-2 hover:bg-indigo-800 transition flex items-center gap-2">
+          🏢 Gestão de Escolas
+        </a>
+      </div>
+
+    </nav>
+
+    <div class="p-4 border-t border-indigo-800 bg-indigo-950">
+      <button (click)="logout()"
+        class="w-full text-left text-red-300 hover:text-red-100 transition text-sm font-bold flex items-center gap-2">
+        🚪 Terminar Sessão
+      </button>
+    </div>
+  </aside>
+
+  <main class="flex-1 overflow-y-auto p-8">
     <router-outlet></router-outlet>
-  </div>
+  </main>
+</div>
 
+<div *ngIf="!isLoggedIn">
+  <router-outlet></router-outlet>
 </div>

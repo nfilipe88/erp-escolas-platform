@@ -1,0 +1,104 @@
+<div class="max-w-7xl mx-auto mt-8 p-6 bg-white shadow-xl rounded-xl border-t-8 border-green-700">
+
+  <h1 class="text-3xl font-black text-gray-800 mb-8">📊 Painel Financeiro</h1>
+
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10" *ngIf="resumo">
+
+    <div class="bg-green-50 p-6 rounded-lg border border-green-200 shadow-sm">
+      <p class="text-green-600 font-bold uppercase text-xs tracking-wider">Receita Este Mês</p>
+      <p class="text-3xl font-black text-green-800 mt-2">{{ resumo.total_arrecadado_mes | number }} Kz</p>
+      <p class="text-xs text-green-500 mt-1">Entradas confirmadas</p>
+    </div>
+
+    <div class="bg-red-50 p-6 rounded-lg border border-red-200 shadow-sm">
+      <p class="text-red-600 font-bold uppercase text-xs tracking-wider">Dívida Acumulada</p>
+      <p class="text-3xl font-black text-red-800 mt-2">{{ resumo.total_atrasado_geral | number }} Kz</p>
+      <p class="text-xs text-red-500 mt-1">Total em atraso (Todos os alunos)</p>
+    </div>
+
+    <div class="bg-blue-50 p-6 rounded-lg border border-blue-200 shadow-sm">
+      <p class="text-blue-600 font-bold uppercase text-xs tracking-wider">Previsão Mensal</p>
+      <p class="text-3xl font-black text-blue-800 mt-2">{{ resumo.previsao_receita_mes | number }} Kz</p>
+      <p class="text-xs text-blue-500 mt-1">Total a faturar este mês</p>
+    </div>
+  </div>
+
+  <div class="flex border-b border-gray-200 mb-6">
+    <button (click)="abaAtiva = 'fluxo'"
+      class="px-6 py-3 font-bold text-sm uppercase transition border-b-4"
+      [class.border-green-600]="abaAtiva === 'fluxo'"
+      [class.text-green-700]="abaAtiva === 'fluxo'"
+      [class.border-transparent]="abaAtiva !== 'fluxo'"
+      [class.text-gray-500]="abaAtiva !== 'fluxo'">
+      📥 Últimos Pagamentos
+    </button>
+
+    <button (click)="abaAtiva = 'devedores'"
+      class="px-6 py-3 font-bold text-sm uppercase transition border-b-4"
+      [class.border-red-600]="abaAtiva === 'devedores'"
+      [class.text-red-700]="abaAtiva === 'devedores'"
+      [class.border-transparent]="abaAtiva !== 'devedores'"
+      [class.text-gray-500]="abaAtiva !== 'devedores'">
+      ⚠️ Lista de Devedores
+    </button>
+  </div>
+
+  <div *ngIf="abaAtiva === 'fluxo'">
+    <table class="w-full text-left border-collapse">
+      <thead class="bg-gray-100 text-gray-600 uppercase text-xs">
+        <tr>
+          <th class="p-3">Data</th>
+          <th class="p-3">Aluno</th>
+          <th class="p-3">Descrição</th>
+          <th class="p-3">Forma</th>
+          <th class="p-3 text-right">Valor</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (item of fluxo; track item.id) {
+          <tr class="border-b hover:bg-gray-50">
+            <td class="p-3 text-gray-500">{{ item.data_pagamento | date:'dd/MM/yyyy' }}</td>
+            <td class="p-3 font-bold text-gray-800">{{ item.aluno_nome }} <span class="text-xs font-normal text-gray-500">({{ item.turma }})</span></td>
+            <td class="p-3 text-gray-600">{{ item.descricao }}</td>
+            <td class="p-3 text-xs uppercase font-bold text-blue-600">{{ item.forma_pagamento }}</td>
+            <td class="p-3 text-right font-mono font-bold text-green-700">+ {{ item.valor | number }}</td>
+          </tr>
+        } @empty {
+          <tr><td colspan="5" class="text-center p-8 text-gray-400">Sem movimentos recentes.</td></tr>
+        }
+      </tbody>
+    </table>
+  </div>
+
+  <div *ngIf="abaAtiva === 'devedores'">
+    <table class="w-full text-left border-collapse">
+      <thead class="bg-red-50 text-red-800 uppercase text-xs">
+        <tr>
+          <th class="p-3">Aluno</th>
+          <th class="p-3">Turma</th>
+          <th class="p-3 text-center">Meses em Atraso</th>
+          <th class="p-3 text-right">Dívida Total</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (divida of devedores; track divida.aluno_id) {
+          <tr class="border-b hover:bg-red-50 transition">
+            <td class="p-3 font-bold text-gray-800">{{ divida.aluno_nome }}</td>
+            <td class="p-3 text-gray-600">{{ divida.turma }}</td>
+            <td class="p-3 text-center">
+              <span class="bg-red-100 text-red-800 px-2 py-1 rounded font-bold text-xs">
+                {{ divida.meses_atraso }} meses
+              </span>
+            </td>
+            <td class="p-3 text-right font-mono font-black text-red-600">
+              {{ divida.total_divida | number }} Kz
+            </td>
+          </tr>
+        } @empty {
+          <tr><td colspan="4" class="text-center p-8 text-green-600 font-bold">Parabéns! Ninguém deve nada. 🎉</td></tr>
+        }
+      </tbody>
+    </table>
+  </div>
+
+</div>

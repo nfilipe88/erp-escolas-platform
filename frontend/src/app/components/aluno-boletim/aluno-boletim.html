@@ -1,11 +1,15 @@
-<div class="max-w-4xl mx-auto mt-10 p-8 bg-white shadow-2xl rounded-sm border border-gray-300 print:shadow-none print:border-0 print:w-full print:max-w-none">
+<div id="conteudo-boletim" class="max-w-4xl mx-auto mt-10 p-8 bg-white shadow-2xl rounded-sm border border-gray-300 print:shadow-none print:border-0 print:w-full print:max-w-none">
 
   <div class="text-center border-b-2 border-black pb-4 mb-6">
     <div class="flex justify-center mb-2">
       <span class="text-4xl">🎓</span>
     </div>
-    <h1 class="text-3xl font-bold uppercase tracking-widest text-gray-900">Boletim Escolar</h1>
-    <p class="text-gray-500 font-bold">Ano Letivo 2025</p>
+    <div class="mb-2">
+       <h2 class="text-xl font-serif font-bold uppercase">República de Angola</h2>
+       <h3 class="text-sm font-serif uppercase">Ministério da Educação</h3>
+       <h1 class="text-2xl font-black uppercase mt-2 text-indigo-900">{{ boletim?.escola_nome }}</h1>
+    </div>
+    <p class="text-gray-500 font-bold">Boletim de Notas - Ano Letivo {{ boletim?.ano_letivo }}</p>
   </div>
 
   <div *ngIf="boletim; else loading">

@@ -25,20 +25,34 @@ export class PresencaService {
   private apiUrl = 'http://127.0.0.1:8000';
 
   // 1. Salvar a chamada
-  salvarChamada(dados: ChamadaDiaria): Observable<any> {
-    return this.http.post(`${this.apiUrl}/presencas/`, dados);
-  }
+    registar(payload: any): Observable<any> {
+      return this.http.post(`${this.apiUrl}/presencas/`, payload);
+    }
 
   // 2. Ler a chamada de um dia (para ver se já foi feita)
   lerChamada(turmaId: number, data: string): Observable<PresencaItem[]> {
     return this.http.get<PresencaItem[]>(`${this.apiUrl}/presencas/turma/${turmaId}?data=${data}`);
   }
 
-  registar(payload: any): Observable<any> {
-    return this.http.post(`${this.apiUrl}/presencas/`, payload);
-  }
+  // consultar(turmaId: number, data: string): Observable<any[]> {
+  //   return this.http.get<any[]>(`${this.apiUrl}/presencas/${turmaId}/${data}`);
+  // }
 
   consultar(turmaId: number, data: string): Observable<any[]> {
-    return this.http.get<any[]>(`${this.apiUrl}/presencas/${turmaId}/${data}`);
+    const url = `${this.apiUrl}/presencas/${turmaId}/${data}`;
+    console.log('Consultando presenças:', url); // Debug
+    return this.http.get<any[]>(url);
+  }
+
+  // --- MÉTODOS PARA PROFESSORES (Refatorização) ---
+
+  // 1. Buscar lista de presença do dia
+  getPontoProfessores(data: string): Observable<any[]> {
+    return this.http.get<any[]>(`${this.apiUrl}/ponto-professores/${data}`);
+  }
+
+  // 2. Salvar lista de presença
+  salvarPontoProfessores(payload: { data: string, lista: any[] }): Observable<any> {
+    return this.http.post(`${this.apiUrl}/ponto-professores/`, payload);
   }
 }

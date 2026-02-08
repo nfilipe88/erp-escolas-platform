@@ -8,3 +8,6 @@ from .usuario import Usuario
 from .presenca import Presenca
 from .configuracao import Configuracao
 from .atribuicao import Atribuicao
+from .horario import Horario
+from .diario import Diario
+from .ponto_professor import PontoProfessor

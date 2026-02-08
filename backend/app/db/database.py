@@ -1,25 +1,23 @@
-# backend/app/database.py
+import os
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
+from dotenv import load_dotenv
 
-# 1. URL de Conexão com o Banco de Dados
-# Formato: postgresql://usuario:senha@localhost/nome_do_banco
-# ATENÇÃO: Substitui 'postgres' e 'password' pelas tuas credenciais reais do pgAdmin
-SQLALCHEMY_DATABASE_URL = "postgresql://postgres:1qaz2wsX@localhost/erp_escolas_db"
+# Carrega as variáveis do ficheiro .env
+load_dotenv()
 
-# 2. Criar o Engine (o motor que fala com o banco)
+# Lê a URL da variável de ambiente. Se não existir, lança erro.
+SQLALCHEMY_DATABASE_URL = os.getenv("DATABASE_URL")
+if not SQLALCHEMY_DATABASE_URL:
+    raise ValueError("A variável DATABASE_URL não está definida no ficheiro .env")
+
 engine = create_engine(SQLALCHEMY_DATABASE_URL)
 
-# 3. Criar a Sessão Local
-# Cada pedido (request) terá a sua própria sessão de banco de dados
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
-# 4. Base para os Modelos
-# Todas as nossas tabelas vão herdar desta classe 'Base'
 Base = declarative_base()
 
-# 5. Dependência para obter a BD (usaremos isto nas rotas do FastAPI)
 def get_db():
     db = SessionLocal()
     try:

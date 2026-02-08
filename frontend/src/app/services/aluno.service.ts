@@ -15,6 +15,8 @@ export interface Aluno {
 export interface Boletim {
   aluno_nome: string;
   aluno_bi: string;
+  escola_nome: string;
+  ano_letivo: string;
   turma: string;
   linhas: {
     disciplina: string;
@@ -63,18 +65,4 @@ export class AlunoService {
   getBoletim(alunoId: number): Observable<Boletim> {
     return this.http.get<Boletim>(`${this.apiUrl}/alunos/${alunoId}/boletim`);
   }
-
-  // No serviço, adicionar cache se necessário
-  // private boletimCache = new Map<number, Boletim>();
-
-  // getBoletim(alunoId: number): Observable<Boletim> {
-  //   // Opcional: implementar cache
-  //   if (this.boletimCache.has(alunoId)) {
-  //     return of(this.boletimCache.get(alunoId)!);
-  //   }
-
-  //   return this.http.get<Boletim>(`${this.apiUrl}/alunos/${alunoId}/boletim`).pipe(
-  //     tap(boletim => this.boletimCache.set(alunoId, boletim))
-  //   );
-  // }
 }

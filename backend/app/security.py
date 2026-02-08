@@ -1,17 +1,27 @@
 from datetime import datetime, timedelta
+import os
 from typing import Optional
+import dotenv
 from jose import jwt, JWTError
 from passlib.context import CryptContext
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 from app.db.database import get_db
+from dotenv import load_dotenv # Importar dotenv
 from app.models import usuario as models
 
 # Configurações de Segurança (Em produção, isto deve vir de variáveis de ambiente)
-SECRET_KEY = "uma-frase-muito-secreta-e-dificil-de-adivinhar"
-ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 # 1 dia
+# Carrega variáveis
+load_dotenv()
+
+# Lê do .env
+SECRET_KEY = os.getenv("SECRET_KEY")
+ALGORITHM = os.getenv("ALGORITHM", "HS256") # Valor default se não encontrar
+ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", 1440))
+
+if not SECRET_KEY:
+    raise ValueError("SECRET_KEY não definida no ficheiro .env!")
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 

@@ -18,7 +18,7 @@
     </div>
 
     <!-- Admin Dashboard -->
-    <div *ngIf="perfil === 'admin' || perfil === 'superadmin'">
+    <div *ngIf="perfil === 'admin' || perfil === 'superadmin' || perfil === 'secretaria'">
       <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8" *ngIf="stats">
         <div class="bg-white p-6 rounded-xl shadow border-l-4 border-blue-500">
           <div class="text-gray-500 text-sm font-bold uppercase">Total Alunos</div>
@@ -42,7 +42,7 @@
           <div class="text-4xl font-black text-gray-800">{{ stats.total_disciplinas }}</div>
         </div>
 
-        <div class="bg-white p-6 rounded-xl shadow border-l-4 border-green-500">
+        <div *ngIf="perfil === 'superadmin'" class="bg-white p-6 rounded-xl shadow border-l-4 border-green-500">
           <div class="text-gray-500 text-sm font-bold uppercase">Escolas</div>
           <div class="text-4xl font-black text-gray-800">{{ stats.total_escolas }}</div>
         </div>

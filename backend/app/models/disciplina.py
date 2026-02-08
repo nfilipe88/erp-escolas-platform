@@ -11,8 +11,6 @@ class Disciplina(Base):
     nome = Column(String, nullable=False) # Ex: "Matemática", "Língua Portuguesa"
     codigo = Column(String, unique=True, index=True, nullable=False) 
     carga_horaria = Column(Integer, default=80)
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
         
     # 1. Relacionamento de volta para as turmas (N:N)
     turmas = relationship("Turma", secondary=turma_disciplina, back_populates="disciplinas")
@@ -20,3 +18,7 @@ class Disciplina(Base):
     # 2. <-- LINHA EM FALTA ADICIONADA AQUI -->
     # Relacionamento com as notas (1:N)
     notas = relationship("Nota", back_populates="disciplina")
+    
+    # Auditoria
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())

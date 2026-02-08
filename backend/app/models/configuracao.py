@@ -1,5 +1,6 @@
 # app/models/configuracao.py
-from sqlalchemy import Column, Integer, Float, ForeignKey, Boolean, String
+from sqlalchemy import Column, Integer, Float, ForeignKey, Boolean, String, DateTime
+from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
 from app.db.database import Base
 
@@ -22,3 +23,6 @@ class Configuracao(Base):
     nota_minima_aprovacao = Column(Float, default=10.0) # Algumas escolas exigem 10, outras 14
     # Relação de volta
     escola = relationship("Escola", back_populates="configuracao")
+    # Auditoria
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())

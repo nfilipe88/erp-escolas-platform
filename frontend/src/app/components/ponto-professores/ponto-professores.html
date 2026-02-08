@@ -1,0 +1,37 @@
+<div class="max-w-4xl mx-auto mt-10 p-6 bg-white shadow-xl rounded-xl border-t-8 border-orange-500">
+
+  <div class="flex justify-between items-center mb-6">
+    <h1 class="text-2xl font-black text-gray-800">📋 Ponto dos Professores</h1>
+    <input type="date" [(ngModel)]="dataSelecionada" (change)="carregarPonto()"
+           class="p-2 border rounded font-bold text-gray-700">
+  </div>
+
+  <div class="grid gap-3">
+    @for (prof of professores; track prof.professor_id) {
+      <div class="flex items-center justify-between p-4 border rounded hover:bg-gray-50 transition"
+           [class.bg-red-50]="!prof.presente" [class.border-red-200]="!prof.presente">
+
+        <div class="flex items-center gap-4">
+          <div (click)="alternarPresenca(prof)" class="cursor-pointer">
+            <div class="w-12 h-12 rounded-full flex items-center justify-center font-bold text-white text-xl transition-all"
+                 [ngClass]="prof.presente ? 'bg-green-500 hover:bg-green-600' : 'bg-red-500 hover:bg-red-600'">
+              {{ prof.presente ? 'P' : 'F' }}
+            </div>
+          </div>
+          <div>
+            <p class="font-bold text-lg text-gray-800">{{ prof.professor_nome }}</p>
+            <p class="text-xs text-gray-500">{{ prof.ja_registado ? 'Registado' : 'Pendente' }}</p>
+          </div>
+        </div>
+
+        <input type="text" [(ngModel)]="prof.observacao" placeholder="Obs (ex: Doença)"
+               class="border-b border-gray-300 focus:border-orange-500 outline-none bg-transparent p-1 w-1/3 text-sm">
+      </div>
+    }
+  </div>
+
+  <button (click)="salvar()"
+    class="w-full mt-8 bg-orange-600 text-white font-bold py-3 rounded shadow hover:bg-orange-700 transition">
+    💾 Guardar Registo Diário
+  </button>
+</div>

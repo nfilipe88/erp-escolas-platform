@@ -1,7 +1,8 @@
-import { ChangeDetectorRef, Component, inject, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, inject, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { AlunoService, Boletim } from '../../services/aluno.service';
+import { PdfService } from '../../services/pdf.service';
 
 @Component({
   selector: 'app-aluno-boletim',
@@ -12,9 +13,9 @@ import { AlunoService, Boletim } from '../../services/aluno.service';
 export class AlunoBoletim implements OnInit {
   private route = inject(ActivatedRoute);
   private alunoService = inject(AlunoService);
-  private cdr = inject(ChangeDetectorRef);
+  private pdfService = inject(PdfService);
 
-  boletim: Boletim | null = null;
+  boletim = signal<Boletim[]>([]);
   dataHoje = new Date();
   trimestres = ['1º Trimestre', '2º Trimestre', '3º Trimestre'];
 
@@ -22,8 +23,7 @@ export class AlunoBoletim implements OnInit {
     const id = this.route.snapshot.paramMap.get('id');
     if (id) {
       this.alunoService.getBoletim(Number(id)).subscribe(dados => {
-        this.boletim = this.estruturarBoletim(dados);
-        this.cdr.detectChanges();
+        this.boletim.set(dados);
       });
     }
   }
@@ -70,6 +70,8 @@ export class AlunoBoletim implements OnInit {
   }
 
   imprimir() {
-    window.print();
+    // Passamos o ID da div principal e o nome do ficheiro
+    const nomeArquivo = `Boletim_${this.boletim?.aluno_nome}`;
+    this.pdfService.gerarPDF('conteudo-boletim', nomeArquivo);
   }
 }

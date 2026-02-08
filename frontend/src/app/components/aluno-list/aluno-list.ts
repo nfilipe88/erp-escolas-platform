@@ -1,4 +1,4 @@
-import { ChangeDetectorRef, Component, inject, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, inject, OnInit, signal } from '@angular/core';
 import { AlunoService, Aluno } from '../../services/aluno.service';
 import { CommonModule, DatePipe } from '@angular/common';
 import { ActivatedRoute, RouterLink } from '@angular/router';
@@ -12,10 +12,9 @@ import { ActivatedRoute, RouterLink } from '@angular/router';
 export class AlunoList implements OnInit {
   private alunoService = inject(AlunoService);
   private route = inject(ActivatedRoute);
-  private cdr = inject(ChangeDetectorRef);
 
-  alunos: Aluno[] = [];
-  escolaId = 1; // Fixo para teste
+  alunos = signal<Aluno[]>([])
+  escolaId: number = 0; // Fixo para teste
 
   ngOnInit() {
     // Escuta os parâmetros do URL para ver se existe um filtro de turma
@@ -34,16 +33,14 @@ export class AlunoList implements OnInit {
 
   carregarTodosOsAlunos() {
     // Passamos o ID da Escola (ex: 1)
-    this.alunoService.getAlunos(1).subscribe(dados => {
-      this.alunos = dados;
-      this.cdr.detectChanges();
+    this.alunoService.getAlunos(this.escolaId).subscribe(dados => {
+      this.alunos.set(dados);
     });
   }
 
   carregarAlunosDaTurma(turmaId: number) {
     this.alunoService.getAlunosPorTurma(turmaId).subscribe(dados => {
-      this.alunos = dados;
-      this.cdr.detectChanges();
+      this.alunos.set(dados);
     });
   }
 

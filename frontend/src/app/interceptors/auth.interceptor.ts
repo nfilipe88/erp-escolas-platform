@@ -5,7 +5,7 @@ import { catchError, throwError } from 'rxjs';
 import { AuthService } from '../services/auth.service';
 
 export const authInterceptor: HttpInterceptorFn = (req, next) => {
-  // const router = inject(Router);
+  const router = inject(Router);
   const authService = inject(AuthService);
   const token = localStorage.getItem('access_token');
 
@@ -22,7 +22,7 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
     catchError((error: HttpErrorResponse) => {
 
       // Se o erro for 401 (Não Autorizado / Token Expirado)
-      if (error.status === 401) {
+      if (error.status === 401 || error.status === 403) {
         // Limpa o armazenamento
         localStorage.removeItem('access_token');
         localStorage.removeItem('user_nome');

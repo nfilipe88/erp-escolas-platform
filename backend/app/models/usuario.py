@@ -1,4 +1,5 @@
-from sqlalchemy import Column, ForeignKey, Integer, String, Boolean
+from sqlalchemy import Column, ForeignKey, Integer, String, Boolean, DateTime
+from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
 from app.db.database import Base
 
@@ -16,3 +17,6 @@ class Usuario(Base):
     # Perfil: 'admin' (Diretor), 'professor', 'secretaria', 'superadmin'
     perfil = Column(String, default="professor") 
     ativo = Column(Boolean, default=True)
+    # Auditoria
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())

@@ -28,7 +28,6 @@ class Mensalidade(Base):
     # Auditoria (Quem fez o quê?)
     criado_por_id = Column(Integer, ForeignKey("usuarios.id"), nullable=False)
     criado_por = relationship("Usuario", foreign_keys=[criado_por_id])
-    created_at = Column(DateTime, default=datetime.utcnow)
     pago_por_id = Column(Integer, ForeignKey("usuarios.id"), nullable=True)
     pago_por = relationship("Usuario", foreign_keys=[pago_por_id])
     
@@ -39,5 +38,5 @@ class Mensalidade(Base):
     escola = relationship("Escola")
 
     # Auditoria
-    # created_at = Column(DateTime(timezone=True), server_default=func.now())
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())

@@ -45,4 +45,17 @@ export class FinanceiroService {
   getMensalidadeById(id: number): Observable<Mensalidade> {
     return this.http.get<Mensalidade>(`${this.apiUrl}/financeiro/${id}`);
   }
+
+  // MÉTODOS DE RELATÓRIO FINANCEIRO
+  getResumoFinanceiro(): Observable<any> {
+    return this.http.get(`${this.apiUrl}/financeiro/resumo`);
+  }
+
+  getFluxoCaixa(): Observable<any[]> {
+    return this.http.get<any[]>(`${this.apiUrl}/financeiro/fluxo`);
+  }
+
+  getDevedores(): Observable<any[]> {
+    return this.http.get<any[]>(`${this.apiUrl}/financeiro/devedores`);
+  }
 }
