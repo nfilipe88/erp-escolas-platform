@@ -68,32 +68,8 @@ def get_fluxo_caixa(db: Session, escola_id: int, limit: int = 50):
     return lista_retorno
 
 def get_top_devedores(db: Session, escola_id: int):
-    hoje = date.today()
-    
-    results = db.query(models_fin.Mensalidade, models_aluno.Aluno, models_turma.Turma)\
-        .join(models_aluno.Aluno, models_fin.Mensalidade.aluno_id == models_aluno.Aluno.id)\
-        .join(models_turma.Turma, models_aluno.Aluno.turma_id == models_turma.Turma.id)\
-        .filter(
-            models_fin.Mensalidade.escola_id == escola_id,
-            models_fin.Mensalidade.estado == 'Pendente',
-            models_fin.Mensalidade.data_vencimento < hoje
-        ).all()
-    
-    mapa = {}
-    for mens, aluno, turma in results:
-        if aluno.id not in mapa:
-            mapa[aluno.id] = {
-                "aluno_id": aluno.id,
-                "aluno_nome": aluno.nome,
-                "turma": turma.nome,
-                "meses_atraso": 0,
-                "total_divida": 0.0
-            }
-        
-        mapa[aluno.id]["meses_atraso"] += 1
-        mapa[aluno.id]["total_divida"] += float(mens.valor_base or 0)
-        
-    lista = list(mapa.values())
-    lista.sort(key=lambda x: x["total_divida"], reverse=True)
-    
-    return lista
+    return db.query(models_aluno.Aluno)\
+             .join(models_fin.Mensalidade)\
+             .filter(models_aluno.Aluno.escola_id == escola_id)\
+             .filter(models_fin.Mensalidade.estado == "Pendente")\
+             .limit(10).all()

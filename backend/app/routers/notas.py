@@ -53,4 +53,5 @@ def lancar_nota(
 @router.get("/disciplinas/{disciplina_id}/notas", response_model=list[schemas_nota.NotaResponse])
 def read_notas_disciplina(disciplina_id: int, db: Session = Depends(get_db),
                           current_user: models_user.Usuario = Depends(get_current_user)):
-    return crud_nota.get_notas_by_disciplina(db=db, disciplina_id=disciplina_id)
+    escola_id = current_user.escola_id if current_user.perfil != "superadmin" else None
+    return crud_nota.get_notas_by_disciplina(db, disciplina_id, escola_id=escola_id)

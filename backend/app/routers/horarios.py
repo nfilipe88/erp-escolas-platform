@@ -11,7 +11,10 @@ from app.security import get_current_user
 router = APIRouter(prefix="/horarios", tags=["Horários"])
 
 @router.put("/{id}")
-def atualizar_slot(id: int, dados: schema_horario.HorarioCreate, db: Session = Depends(get_db)):
+def atualizar_slot(id: int, dados: schema_horario.HorarioCreate, 
+                   db: Session = Depends(get_db),
+                   current_user: models_user.Usuario = Depends(get_current_user)
+                   ):
     slot = db.query(models_horario.Horario).filter(models_horario.Horario.id == id).first()
     if slot:
         slot.disciplina_id = dados.disciplina_id
@@ -20,7 +23,10 @@ def atualizar_slot(id: int, dados: schema_horario.HorarioCreate, db: Session = D
     return slot
 
 @router.get("/{id}/validar-tempo")
-def validar_tempo_aula(id: int, db: Session = Depends(get_db)):
+def validar_tempo_aula(id: int, 
+                       db: Session = Depends(get_db),
+                       current_user: models_user.Usuario = Depends(get_current_user)
+                       ):
     slot = db.query(models_horario.Horario).filter(models_horario.Horario.id == id).first()
     if not slot:
         raise HTTPException(status_code=404, detail="Horário não encontrado")
@@ -48,7 +54,10 @@ def ver_meus_horarios_hoje(
 
 # 1. Listar Horário da Turma (Para Secretária editar e Professor ver)
 @router.get("/turmas/{turma_id}/horario")
-def ver_horario(turma_id: int, db: Session = Depends(get_db)):
+def ver_horario(turma_id: int, 
+                db: Session = Depends(get_db),
+                current_user: models_user.Usuario = Depends(get_current_user)
+                ):
     return db.query(models_horario.Horario).filter(models_horario.Horario.turma_id == turma_id).order_by(models_horario.Horario.dia_semana, models_horario.Horario.hora_inicio).all()
 
 # 2. Secretária: Gerar Grade Automática

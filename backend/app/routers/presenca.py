@@ -38,8 +38,10 @@ def ler_chamada_lista(
     db: Session = Depends(get_db),
     current_user: models_user.Usuario = Depends(get_current_user)
 ):
+    # Se não for superadmin, passa o ID da escola para validar se a turma é dele
+    escola_check = current_user.escola_id if current_user.perfil != "superadmin" else None
     data_obj = datetime.strptime(data, "%Y-%m-%d").date()
-    return crud_presenca.get_presencas_dia(db=db, turma_id=turma_id, data_busca=data_obj)
+    return crud_presenca.get_presencas_dia(db=db, turma_id=turma_id, data_busca=data_obj, escola_id=escola_check)
 
 # --- Diário de Aula (Professor) ---
 

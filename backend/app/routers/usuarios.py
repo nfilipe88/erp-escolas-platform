@@ -38,15 +38,22 @@ def criar_usuario(
 
     return crud_usuario.create_usuario(db=db, usuario=usuario, escola_id=escola_destino_id)
 
-@router.get("/usuarios/", response_model=List[schemas_user.UsuarioResponse])
+# app/routers/usuarios.py
+
+@router.get("/", response_model=List[schemas_user.UsuarioResponse])
 def listar_usuarios(
+    skip: int = 0, limit: int = 100,
     db: Session = Depends(get_db),
     current_user: models_user.Usuario = Depends(get_current_user)
 ):
-    if current_user.perfil == "superadmin":
-        return db.query(models_user.Usuario).all()
-    else:
-        return crud_usuario.get_usuarios_por_escola(db, escola_id=current_user.escola_id)
+    filtro_escola_id = None
+    
+    if current_user.perfil != "superadmin":
+        filtro_escola_id = current_user.escola_id
+        if not filtro_escola_id:
+            return []
+
+    return crud_usuario.get_usuarios(db, skip=skip, limit=limit, escola_id=filtro_escola_id)
 
 @router.get("/usuarios/professores", response_model=List[schemas_user.UsuarioResponse])
 def listar_professores(db: Session = Depends(get_db),

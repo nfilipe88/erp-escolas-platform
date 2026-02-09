@@ -6,8 +6,15 @@ from app.schemas import schema_aluno
 def get_aluno(db: Session, aluno_id: int):
     return db.query(models.Aluno).filter(models.Aluno.id == aluno_id).first()
 
-def get_alunos(db: Session, skip: int = 0, limit: int = 100):
-    return db.query(models.Aluno).offset(skip).limit(limit).all()
+def get_alunos(db: Session, skip: int = 0, limit: int = 100, escola_id: int = None):
+    # Inicia a query base
+    query = db.query(models.Aluno)
+    
+    # Se um escola_id for passado, aplica o filtro!
+    if escola_id:
+        query = query.filter(models.Aluno.escola_id == escola_id)
+    
+    return query.offset(skip).limit(limit).all()
 
 # Esta função é usada pela Pauta Digital (nota-pauta)
 def get_alunos_por_turma(db: Session, turma_id: int):

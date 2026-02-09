@@ -7,6 +7,7 @@ from app.security import get_current_user
 from app.schemas import schema_aluno as schemas_aluno
 from app.schemas import schema_boletim as schemas_boletim
 from app.cruds import crud_aluno, crud_nota
+from app.cruds import crud_turma
 from app.models import usuario as models_user
 from app.models.aluno import Aluno
 
@@ -53,6 +54,37 @@ def read_boletim(aluno_id: int, db: Session = Depends(get_db),
     if not boletim:
         raise HTTPException(status_code=404, detail="Aluno não encontrado")
     return boletim
+
+@router.get("/", response_model=List[schemas_aluno.AlunoResponse])
+def read_alunos(
+    skip: int = 0, 
+    limit: int = 100, 
+    db: Session = Depends(get_db),
+    current_user: models_user.Usuario = Depends(get_current_user)
+):
+    filtro_escola_id = None
+    
+    # Lógica de Segurança Multi-Tenant
+    if current_user.perfil != "superadmin":
+        if not current_user.escola_id:
+            # Se utilizador não tem escola, não vê nada (segurança)
+            return []
+        filtro_escola_id = current_user.escola_id
+
+    return crud_aluno.get_alunos(db, skip=skip, limit=limit, escola_id=filtro_escola_id)
+
+@router.get("/{turma_id}/alunos", response_model=List[schemas_aluno.AlunoResponse])
+def read_alunos_turma(turma_id: int, db: Session = Depends(get_db),
+                      current_user: models_user.Usuario = Depends(get_current_user)):
+    
+    # 1. Segurança: Verificar se a turma pertence à escola do utilizador
+    filtro_escola = current_user.escola_id if current_user.perfil != "superadmin" else None
+    turma = crud_turma.get_turma(db, turma_id=turma_id, escola_id=filtro_escola)
+    
+    if not turma:
+        raise HTTPException(status_code=404, detail="Turma não encontrada")
+
+    return crud_aluno.get_alunos_por_turma(db=db, turma_id=turma_id)
 
 # @app.delete("/alunos/{aluno_id}")
 # def delete_aluno(aluno_id: int, db: Session = Depends(get_db),

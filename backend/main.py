@@ -1,25 +1,14 @@
-
-from datetime import datetime, timedelta, date
 import time
-import shutil
 import os
-from jose import jwt, JWTError
 from uuid import uuid4
 from fastapi import UploadFile, File, Form
 from fastapi.staticfiles import StaticFiles # Para servir os arquivos
 
-from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from fastapi import FastAPI, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi import FastAPI, Request
-from sqlalchemy.orm import Session
-from app.db import database
-from app.cruds import crud_turma as crud_turma
-from app.cruds import crud_escola as crud_escola
-from app.cruds import crud_aluno as crud_aluno
-from app.models import escola as models
 
-from app.routers import auth, alunos, usuarios, escolas, turmas, disciplinas, notas, dashboard, horarios, presenca, financeiro
+from app.routers import auth, alunos, usuarios, escolas, turmas, disciplinas, notas, dashboard, horarios, presenca, financeiro, atribuicoes
 # Criar tabelas (apenas para desenvolvimento)
 # Note: Use Alembic migrations instead of create_all with async engines
 # models.Base.metadata.create_all(bind=database.engine)
@@ -68,14 +57,6 @@ app.add_middleware(
     allow_headers=["*"], # Permite todos os cabeçalhos
 )
 
-# Dependência para pegar a sessão do banco
-def get_db():
-    db = database.SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
-
 # 1. Rota para CRIAR O PRIMEIRO UTILIZADOR (Registo)
 app.include_router(auth.router)
 app.include_router(dashboard.router)
@@ -88,6 +69,7 @@ app.include_router(horarios.router)
 app.include_router(presenca.router)
 app.include_router(notas.router)
 app.include_router(financeiro.router)
+app.include_router(atribuicoes.router)
 
 
 @app.get("/")

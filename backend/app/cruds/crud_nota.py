@@ -33,8 +33,12 @@ def lancar_nota(db: Session, nota: schema_nota.NotaCreate):
         db.refresh(db_nota)
         return db_nota
 
-def get_notas_by_disciplina(db: Session, disciplina_id: int):
-    return db.query(models.Nota).filter(models.Nota.disciplina_id == disciplina_id).all()
+def get_notas_by_disciplina(db: Session, disciplina_id: int, escola_id: int = None):
+    query = db.query(models.Nota).join(models_aluno.Aluno)
+    
+    if escola_id:
+        query = query.filter(models_aluno.Aluno.escola_id == escola_id)        
+    return query.filter(models.Nota.disciplina_id == disciplina_id).all()
 
 def get_boletim_aluno(db: Session, aluno_id: int):
     # Busca o aluno

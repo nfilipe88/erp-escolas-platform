@@ -8,6 +8,7 @@ from app.models import diario as models_diario
 from app.models import turma as models_turma
 from app.models import disciplina as models_disciplina
 from app.models import usuario as models_usuario
+from app.models import horario, turma
 
 def get_horario_professor_hoje(db: Session, professor_id: int):
     # 0=Segunda, 1=Terça ... 4=Sexta, 5=Sábado, 6=Domingo
@@ -25,6 +26,14 @@ def get_horario_professor_hoje(db: Session, professor_id: int):
     # Nota: Como temos relacionamentos (lazy='joined' ou padrão), 
     # o Pydantic vai conseguir ler 'turma.nome' e 'disciplina.nome' na resposta.
     return aulas
+
+def get_todos_horarios(db: Session, escola_id: int = None):
+    query = db.query(horario.Horario).join(turma.Turma)
+    
+    if escola_id:
+        query = query.filter(turma.Turma.escola_id == escola_id)
+        
+    return query.all()
 
 # 1. GERAÇÃO AUTOMÁTICA DE SLOTS (Para facilitar a vida da secretária)
 def gerar_grade_horaria(db: Session, turma_id: int, escola_id: int):

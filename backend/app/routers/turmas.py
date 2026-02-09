@@ -34,16 +34,33 @@ def criar_turma(
     return crud_turma.create_turma(db=db, turma=turma, escola_id=escola_destino_id)
 
 @router.get("/", response_model=List[schemas_turma.TurmaResponse])
-def ler_turmas(skip: int = 0, limit: int = 100, 
-               db: Session = Depends(get_db),
-               current_user: models_user.Usuario = Depends(get_current_user)):
-    return crud_turma.get_turmas_by_escola(db, escola_id=current_user.escola_id, skip=skip, limit=limit)
+def ler_turmas(
+    skip: int = 0, limit: int = 100, 
+    db: Session = Depends(get_db),
+    current_user: models_user.Usuario = Depends(get_current_user)
+):
+    filtro_escola_id = None
+    
+    if current_user.perfil != "superadmin":
+        filtro_escola_id = current_user.escola_id
+        # Se um utilizador normal tentar listar turmas sem ter escola, erro ou lista vazia
+        if not filtro_escola_id:
+            return []
+
+    return crud_turma.get_turmas(db, skip=skip, limit=limit, escola_id=filtro_escola_id)
 
 @router.get("/{turma_id}", response_model=schemas_turma.TurmaResponse)
 def read_turma(turma_id: int, db: Session = Depends(get_db),
                current_user: models_user.Usuario = Depends(get_current_user)):
-    db_turma = crud_turma.get_turma(db, turma_id=turma_id)
+    
+    # Define o filtro: se não é superadmin, usa a escola do user
+    filtro_escola = current_user.escola_id if current_user.perfil != "superadmin" else None
+    
+    db_turma = crud_turma.get_turma(db, turma_id=turma_id, escola_id=filtro_escola)
+    
     if db_turma is None:
+        # Se a turma existe mas é de outra escola, o crud retorna None
+        # O utilizador recebe 404, o que é ótimo (não sabe sequer que o ID existe)
         raise HTTPException(status_code=404, detail="Turma não encontrada")
     return db_turma
 
@@ -62,11 +79,19 @@ def read_disciplinas_turma(turma_id: int, db: Session = Depends(get_db),
 def associar_disciplina_a_turma(turma_id: int, disciplina_id: int, 
                                 db: Session = Depends(get_db),
                                 current_user: models_user.Usuario = Depends(get_current_user)):
-    turma = crud_turma.get_turma(db, turma_id=turma_id)
-    disciplina = db.query(models_disciplina.Disciplina).filter(models_disciplina.Disciplina.id == disciplina_id).first()
+    
+    # 1. Segurança: Validar Turma
+    filtro_escola = current_user.escola_id if current_user.perfil != "superadmin" else None
+    turma = crud_turma.get_turma(db, turma_id=turma_id, escola_id=filtro_escola)
 
-    if not turma or not disciplina:
-        raise HTTPException(status_code=404, detail="Turma ou Disciplina não encontrada")
+    if not turma:
+        raise HTTPException(status_code=404, detail="Turma não encontrada")
+
+    # 2. Validar Disciplina
+    disciplina = db.query(models_disciplina.Disciplina).filter(models_disciplina.Disciplina.id == disciplina_id).first()
+    if not disciplina:
+        raise HTTPException(status_code=404, detail="Disciplina não encontrada")
+        
     if disciplina in turma.disciplinas:
         return {"mensagem": "Disciplina já está associada a esta turma"}
 
@@ -78,11 +103,18 @@ def associar_disciplina_a_turma(turma_id: int, disciplina_id: int,
 def remover_disciplina_de_turma(turma_id: int, disciplina_id: int, 
                                 db: Session = Depends(get_db),
                                 current_user: models_user.Usuario = Depends(get_current_user)):
-    turma = crud_turma.get_turma(db, turma_id=turma_id)
-    disciplina = db.query(models_disciplina.Disciplina).filter(models_disciplina.Disciplina.id == disciplina_id).first()
+    
+    # 1. Segurança: Validar Turma
+    filtro_escola = current_user.escola_id if current_user.perfil != "superadmin" else None
+    turma = crud_turma.get_turma(db, turma_id=turma_id, escola_id=filtro_escola)
 
-    if not turma or not disciplina:
-        raise HTTPException(status_code=404, detail="Turma ou Disciplina não encontrada")
+    if not turma:
+        raise HTTPException(status_code=404, detail="Turma não encontrada")
+    
+    disciplina = db.query(models_disciplina.Disciplina).filter(models_disciplina.Disciplina.id == disciplina_id).first()
+    
+    if not disciplina:
+        raise HTTPException(status_code=404, detail="Disciplina não encontrada")
     
     if disciplina in turma.disciplinas:
         turma.disciplinas.remove(disciplina)
@@ -92,7 +124,8 @@ def remover_disciplina_de_turma(turma_id: int, disciplina_id: int,
 
 # Horários da Turma
 @router.get("/{turma_id}/horario")
-def ver_horario(turma_id: int, db: Session = Depends(get_db)):
+def ver_horario(turma_id: int, db: Session = Depends(get_db),
+                current_user: models_user.Usuario = Depends(get_current_user)):
     return db.query(models_horario.Horario).filter(models_horario.Horario.turma_id == turma_id)\
              .order_by(models_horario.Horario.dia_semana, models_horario.Horario.hora_inicio).all()
 
@@ -100,8 +133,16 @@ def ver_horario(turma_id: int, db: Session = Depends(get_db)):
 def gerar_horario_automatico(turma_id: int, db: Session = Depends(get_db), 
                              current_user: models_user.Usuario = Depends(get_current_user)):
     if current_user.perfil not in ['admin', 'secretaria', 'superadmin']:
-        raise HTTPException(status_code=403, detail="Apenas secretaria pode gerar horários")
-    return crud_horario.gerar_grade_horaria(db, turma_id, current_user.escola_id)
+        raise HTTPException(status_code=403, detail="Permissão negada")
+    
+    # 1. Segurança: Validar Turma
+    filtro_escola = current_user.escola_id if current_user.perfil != "superadmin" else None
+    turma = crud_turma.get_turma(db, turma_id=turma_id, escola_id=filtro_escola)
+    
+    if not turma:
+        raise HTTPException(status_code=404, detail="Turma não encontrada")
+
+    return crud_horario.gerar_grade_horaria(db, turma_id, turma.escola_id)
 
 @router.get("/escolas/{escola_id}/turmas", response_model=list[schemas_turma.TurmaResponse])
 def read_turmas_escola(escola_id: int, db: Session = Depends(get_db),

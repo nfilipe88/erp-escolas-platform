@@ -11,7 +11,7 @@ class Disciplina(Base):
     nome = Column(String, nullable=False) # Ex: "Matemática", "Língua Portuguesa"
     codigo = Column(String, unique=True, index=True, nullable=False) 
     carga_horaria = Column(Integer, default=80)
-        
+
     # 1. Relacionamento de volta para as turmas (N:N)
     turmas = relationship("Turma", secondary=turma_disciplina, back_populates="disciplinas")
     

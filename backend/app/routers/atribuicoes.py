@@ -38,7 +38,11 @@ def listar_atribuicoes(
     db: Session = Depends(get_db),
     current_user: models_user.Usuario = Depends(get_current_user)
 ):
-    return crud_atribuicao.get_atribuicoes_escola(db, escola_id=current_user.escola_id)
+    filtro_escola_id = None
+    if current_user.perfil != "superadmin":
+        filtro_escola_id = current_user.escola_id
+        
+    return crud_atribuicao.get_atribuicoes_escola(db, escola_id=filtro_escola_id)
 
 @router.delete("/{id}")
 def remover_atribuicao(
@@ -48,22 +52,3 @@ def remover_atribuicao(
 ):
     crud_atribuicao.delete_atribuicao(db, id)
     return {"msg": "Atribuição removida com sucesso"}
-
-@router.get("/ponto-professores/{data}")
-def ver_ponto_professores(
-    data: str, 
-    db: Session = Depends(get_db), 
-    current_user: models_user.Usuario = Depends(get_current_user)
-):
-    # Converte string "2025-02-03" para date
-    data_obj = datetime.strptime(data, "%Y-%m-%d").date()
-    return crud_ponto.get_ponto_dia(db, current_user.escola_id, data_obj)
-
-@router.post("/ponto-professores/")
-def registrar_ponto_professores(
-    payload: Dict[str, Any], # Espera: { "data": "...", "lista": [...] }
-    db: Session = Depends(get_db),
-    current_user: models_user.Usuario = Depends(get_current_user)
-):
-    data_obj = datetime.strptime(payload['data'], "%Y-%m-%d").date()
-    return crud_ponto.salvar_ponto(db, current_user.escola_id, payload['lista'], data_obj)

@@ -1,6 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
+import { environment } from '../../environments/environment.development';
 
 // Definimos o tipo de dados que esperamos (igual ao Schema do Python)
 export interface Escola {
@@ -49,7 +50,7 @@ export interface EscolaDetalhes extends Escola { // Herda nome, slug, etc.
 })
 export class EscolaService {
   private http = inject(HttpClient);
-  private apiUrl = 'http://127.0.0.1:8000'; // O endereço do teu Python
+  private apiUrl = environment.apiUrl;
 
   constructor() { }
 

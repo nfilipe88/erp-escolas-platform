@@ -2,6 +2,7 @@ import { HttpClient } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { Disciplina } from './disciplina.service';
+import { environment } from '../../environments/environment.development';
 
 export interface Turma {
   id?: number;
@@ -17,7 +18,7 @@ export interface Turma {
 })
 export class TurmaService {
   private http = inject(HttpClient);
-  private apiUrl = 'http://127.0.0.1:8000';
+  private apiUrl = environment.apiUrl;
 
   constructor() { }
 

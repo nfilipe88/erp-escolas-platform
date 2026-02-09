@@ -93,15 +93,3 @@ def alterar_senha(
     db.commit()
     
     return {"mensagem": "Senha alterada com sucesso"}
-
-@router.get("/usuarios/", response_model=list[schemas_user.UsuarioResponse])
-def listar_usuarios(
-    db: Session = Depends(get_db),
-    current_user: models_user.Usuario = Depends(get_current_user)
-):
-    if current_user.perfil == "superadmin":
-        # Superadmin vê todos (ou filtra se quiseres)
-        return db.query(models_user.Usuario).all()
-    else:
-        # Diretor vê apenas os seus funcionários
-        return crud_usuario.get_usuarios_por_escola(db, escola_id=current_user.escola_id)

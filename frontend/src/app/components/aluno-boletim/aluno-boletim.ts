@@ -15,7 +15,9 @@ export class AlunoBoletim implements OnInit {
   private alunoService = inject(AlunoService);
   private pdfService = inject(PdfService);
 
-  boletim = signal<Boletim[]>([]);
+  // CORREÇÃO: Inicializa como null, pois é um único objeto, não uma lista array
+  boletim = signal<Boletim | null>(null);
+
   dataHoje = new Date();
   trimestres = ['1º Trimestre', '2º Trimestre', '3º Trimestre'];
 
@@ -23,26 +25,10 @@ export class AlunoBoletim implements OnInit {
     const id = this.route.snapshot.paramMap.get('id');
     if (id) {
       this.alunoService.getBoletim(Number(id)).subscribe(dados => {
+        // CORREÇÃO: Agora o tipo bate certo (Boletim)
         this.boletim.set(dados);
       });
     }
-  }
-
-  estruturarBoletim(boletim: Boletim): Boletim {
-    return {
-      ...boletim,
-      linhas: boletim.linhas.map(linha => {
-        const notasCompletas = this.trimestres.map(trimestre => {
-          const notaExistente = linha.notas.find(n => n.trimestre === trimestre);
-          return notaExistente || {
-            trimestre,
-            valor: null,
-            descricao: 'Sem nota'
-          };
-        });
-        return { ...linha, notas: notasCompletas };
-      })
-    };
   }
 
   // Retorna string formatada para o HTML
@@ -51,17 +37,17 @@ export class AlunoBoletim implements OnInit {
     return nota && nota.valor !== null ? nota.valor.toFixed(1) : '-';
   }
 
-  // Retorna número puro para lógica de cores (novo helper)
+  // Retorna número puro para lógica de cores
   getValorNota(notas: any[], trimestre: string): number | null {
     const nota = notas.find(n => n.trimestre === trimestre);
     return nota ? nota.valor : null;
   }
 
   calcularMediaGeral(): number {
-    if (!this.boletim || !this.boletim.linhas.length) return 0;
+    const dados = this.boletim(); // CORREÇÃO: Acede ao valor do signal
+    if (!dados || !dados.linhas.length) return 0;
 
-    // Consideramos apenas disciplinas com média > 0 para o cálculo da geral
-    const linhasValidas = this.boletim.linhas.filter(l => l.media_provisoria > 0);
+    const linhasValidas = dados.linhas.filter(l => l.media_provisoria > 0);
 
     if (linhasValidas.length === 0) return 0;
 
@@ -70,8 +56,10 @@ export class AlunoBoletim implements OnInit {
   }
 
   imprimir() {
-    // Passamos o ID da div principal e o nome do ficheiro
-    const nomeArquivo = `Boletim_${this.boletim?.aluno_nome}`;
-    this.pdfService.gerarPDF('conteudo-boletim', nomeArquivo);
+    const dados = this.boletim(); // CORREÇÃO: Acede ao valor do signal
+    if (dados) {
+      const nomeArquivo = `Boletim_${dados.aluno_nome}`;
+      this.pdfService.gerarPDF('conteudo-boletim', nomeArquivo);
+    }
   }
 }

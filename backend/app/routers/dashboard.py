@@ -9,6 +9,12 @@ from app.models import usuario as models_user
 router = APIRouter(prefix="/dashboard", tags=["Dashboard"])
 
 @router.get("/stats", response_model=schemas_dashboard.DashboardStats)
-def read_dashboard_stats(db: Session = Depends(get_db),
-                         current_user: models_user.Usuario = Depends(get_current_user)):
-    return crud_dashboard.get_stats(db=db)
+def read_dashboard_stats(
+    db: Session = Depends(get_db),
+    current_user: models_user.Usuario = Depends(get_current_user)
+):
+    filtro_escola_id = None
+    if current_user.perfil != "superadmin":
+        filtro_escola_id = current_user.escola_id
+        
+    return crud_dashboard.get_stats(db=db, escola_id=filtro_escola_id)

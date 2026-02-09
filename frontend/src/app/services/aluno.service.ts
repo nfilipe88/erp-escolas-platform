@@ -1,6 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import { Observable, of, tap } from 'rxjs';
+import { environment } from '../../environments/environment.development';
 
 export interface Aluno {
   id?: number;
@@ -34,7 +35,7 @@ export interface Boletim {
 })
 export class AlunoService {
   private http = inject(HttpClient);
-  private apiUrl = 'http://127.0.0.1:8000';
+  private apiUrl = environment.apiUrl;
 
   constructor() { }
 

@@ -1,6 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
+import { environment } from '../../environments/environment.development';
 
 export interface Disciplina {
   id?: number;
@@ -12,7 +13,7 @@ export interface Disciplina {
 @Injectable({ providedIn: 'root' })
 export class DisciplinaService {
   private http = inject(HttpClient);
-  private apiUrl = 'http://127.0.0.1:8000';
+  private apiUrl = environment.apiUrl;
 
   getDisciplinas(): Observable<Disciplina[]> {
     return this.http.get<Disciplina[]>(`${this.apiUrl}/disciplinas/`);

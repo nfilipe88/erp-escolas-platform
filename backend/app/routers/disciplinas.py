@@ -112,3 +112,13 @@ def remover_disciplina_de_turma(
         return {"mensagem": f"Disciplina {disciplina.nome} removida da turma."}
     
     return {"mensagem": "Esta disciplina já não pertence a esta turma."}
+
+@router.get("/", response_model=List[schemas_disciplina.Disciplina])
+def listar_disciplinas(
+    skip: int = 0, limit: int = 100, 
+    db: Session = Depends(get_db),
+    current_user: models_user.Usuario = Depends(get_current_user)
+):
+    # Passamos o escola_id para filtrar (se o modelo suportar)
+    filtro = current_user.escola_id if current_user.perfil != "superadmin" else None
+    return crud_disciplina.get_disciplinas(db, skip=skip, limit=limit, escola_id=filtro)
