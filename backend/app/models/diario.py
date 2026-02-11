@@ -14,8 +14,12 @@ class Diario(Base):
     
     resumo_aula = Column(Text, nullable=True) # O professor escreve o sumário
     fechado = Column(Boolean, default=False)  # Se True, professor não edita mais (foi enviado à secretaria)
+    escola_id = Column(Integer, ForeignKey("escolas.id"), nullable=False) 
+    
+    # Relações
     
     # Relacionamentos
+    escola = relationship("Escola", back_populates="diarios")
     horario = relationship("Horario")
     professor = relationship("Usuario")
     # Auditoria

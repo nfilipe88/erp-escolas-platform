@@ -14,11 +14,11 @@ class Disciplina(Base):
 
     # 1. Relacionamento de volta para as turmas (N:N)
     turmas = relationship("Turma", secondary=turma_disciplina, back_populates="disciplinas")
+    escola_id = Column(Integer, ForeignKey("escolas.id"), nullable=False) 
     
-    # 2. <-- LINHA EM FALTA ADICIONADA AQUI -->
-    # Relacionamento com as notas (1:N)
+    # Relacionamentos
     notas = relationship("Nota", back_populates="disciplina")
-    
+    escola = relationship("Escola", back_populates="disciplinas")
     # Auditoria
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())

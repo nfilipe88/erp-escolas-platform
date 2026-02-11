@@ -17,8 +17,10 @@ class Nota(Base):
     # Chaves Estrangeiras (A nota pertence a um aluno numa disciplina)
     aluno_id = Column(Integer, ForeignKey("alunos.id"), nullable=False)
     disciplina_id = Column(Integer, ForeignKey("disciplinas.id"), nullable=False)
-
-    # Relacionamentos
+    escola_id = Column(Integer, ForeignKey("escolas.id"), nullable=False) 
+    
+    # Relações
+    escola = relationship("Escola", back_populates="notas")
     aluno = relationship("Aluno", back_populates="notas")
     disciplina = relationship("Disciplina", back_populates="notas")
 

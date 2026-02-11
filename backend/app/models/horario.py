@@ -22,7 +22,7 @@ class Horario(Base):
     turma = relationship("Turma")
     disciplina = relationship("Disciplina")
     professor = relationship("Usuario")
-    escola = relationship("Escola")
+    escola = relationship("Escola", back_populates="horarios")
     # Auditoria
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())

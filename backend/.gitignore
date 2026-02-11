@@ -2,3 +2,5 @@
 /backend/alembic/
 /backend/__pycache__/
 /backend/*.pyc
+.env
+.env.*

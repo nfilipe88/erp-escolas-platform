@@ -35,7 +35,7 @@ class Mensalidade(Base):
     aluno_id = Column(Integer, ForeignKey("alunos.id"), nullable=False)
     aluno = relationship("Aluno", back_populates="mensalidades")
     escola_id = Column(Integer, ForeignKey("escolas.id", ondelete="CASCADE"), nullable=False)
-    escola = relationship("Escola")
+    escola = relationship("Escola", back_populates="mensalidades")
 
     # Auditoria
     created_at = Column(DateTime(timezone=True), server_default=func.now())

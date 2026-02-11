@@ -10,6 +10,7 @@ from app.cruds import crud_aluno, crud_nota
 from app.cruds import crud_turma
 from app.models import usuario as models_user
 from app.models.aluno import Aluno
+from app.security_decorattors import get_current_escola_id
 
 router = APIRouter(prefix="/alunos", tags=["Alunos"])
 
@@ -55,23 +56,13 @@ def read_boletim(aluno_id: int, db: Session = Depends(get_db),
         raise HTTPException(status_code=404, detail="Aluno não encontrado")
     return boletim
 
-@router.get("/", response_model=List[schemas_aluno.AlunoResponse])
+@router.get("/")
 def read_alunos(
-    skip: int = 0, 
-    limit: int = 100, 
+    skip: int = 0, limit: int = 100,
     db: Session = Depends(get_db),
-    current_user: models_user.Usuario = Depends(get_current_user)
+    escola_id: int | None = Depends(get_current_escola_id)
 ):
-    filtro_escola_id = None
-    
-    # Lógica de Segurança Multi-Tenant
-    if current_user.perfil != "superadmin":
-        if not current_user.escola_id:
-            # Se utilizador não tem escola, não vê nada (segurança)
-            return []
-        filtro_escola_id = current_user.escola_id
-
-    return crud_aluno.get_alunos(db, skip=skip, limit=limit, escola_id=filtro_escola_id)
+    return crud_aluno.get_alunos(db, skip, limit, escola_id=escola_id)
 
 @router.get("/{turma_id}/alunos", response_model=List[schemas_aluno.AlunoResponse])
 def read_alunos_turma(turma_id: int, db: Session = Depends(get_db),

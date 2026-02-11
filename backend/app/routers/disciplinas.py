@@ -10,20 +10,30 @@ from app.cruds import crud_disciplina, crud_nota
 from app.cruds import crud_turma
 from app.models import usuario as models_user
 from app.models import disciplina as models_disciplina
+# Importa a nova dependência
+from app.security_decorattors import get_current_escola_id, require_escola_id
 
 router = APIRouter(prefix="/disciplinas", tags=["Disciplinas"])
 
-@router.post("/", response_model=schemas_disciplina.DisciplinaResponse)
-def create_disciplina(disciplina: schemas_disciplina.DisciplinaCreate, 
-                      db: Session = Depends(get_db),
-                      current_user: models_user.Usuario = Depends(get_current_user)):
-    return crud_disciplina.create_disciplina(db=db, disciplina=disciplina)
+@router.get("/", response_model=List[schemas_disciplina.DisciplinaResponse])
+def listar_disciplinas(
+    skip: int = 0, limit: int = 100,
+    db: Session = Depends(get_db),
+    # A dependência faz a lógica suja de verificar admin vs professor
+    escola_id: int | None = Depends(get_current_escola_id) 
+):
+    return crud_disciplina.get_disciplinas(db, skip, limit, escola_id=escola_id)
 
-@router.get("/", response_model=List[schemas_disciplina.Disciplina])
-def listar_disciplinas(skip: int = 0, limit: int = 100, 
-                       db: Session = Depends(get_db),
-                       current_user: models_user.Usuario = Depends(get_current_user)):
-    return db.query(models_disciplina.Disciplina).offset(skip).limit(limit).all()
+@router.post("/", response_model=schemas_disciplina.DisciplinaResponse)
+def criar_disciplina(
+    disciplina: schemas_disciplina.DisciplinaCreate,
+    db: Session = Depends(get_db),
+    # Aqui exigimos um ID. Se for superadmin, ele tem de vir no corpo ou contexto
+    # Para users normais, usamos o ID deles.
+    escola_id: int = Depends(require_escola_id)
+):
+    # FORÇAMOS o escola_id do user logado no objeto antes de salvar
+    return crud_disciplina.create_disciplina(db, disciplina, escola_id=escola_id)
 
 @router.put("/{disciplina_id}", response_model=schemas_disciplina.Disciplina)
 def atualizar_disciplina(disciplina_id: int, dados: schemas_disciplina.DisciplinaCreate, 

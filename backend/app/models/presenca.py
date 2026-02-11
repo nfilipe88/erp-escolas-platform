@@ -17,7 +17,10 @@ class Presenca(Base):
     # Relacionamentos
     aluno_id = Column(Integer, ForeignKey("alunos.id"), nullable=False)
     turma_id = Column(Integer, ForeignKey("turmas.id"), nullable=False)
+    escola_id = Column(Integer, ForeignKey("escolas.id"), nullable=False) 
     
+    # Relações
+    escola = relationship("Escola", back_populates="presencas")    
     aluno = relationship("Aluno")
     turma = relationship("Turma")
     # Auditoria

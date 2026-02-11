@@ -18,7 +18,7 @@ class Atribuicao(Base):
     professor_id = Column(Integer, ForeignKey("usuarios.id"), nullable=False)
 
     # Relacionamentos (para podermos aceder aos nomes depois)
-    escola = relationship("Escola")
+    escola = relationship("Escola", back_populates="atribuicoes")
     turma = relationship("Turma")
     disciplina = relationship("Disciplina")
     professor = relationship("Usuario")
