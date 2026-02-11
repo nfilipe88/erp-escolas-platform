@@ -14,7 +14,7 @@ class Aluno(Base):
     
     # RELACIONAMENTO (A chave mágica 🗝️)
     # Aqui dizemos: "Este aluno pertence à escola com este ID"
-    escola_id = Column(Integer, ForeignKey("escolas.id"), nullable=False, index=True)
+    escola_id = Column(Integer, ForeignKey("escolas.id"), ondelete="CASCADE", nullable=False, index=True)
     turma_id = Column(Integer, ForeignKey("turmas.id"), nullable=True)
     
     # Dados de Controlo
@@ -23,7 +23,8 @@ class Aluno(Base):
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     
     # Vínculo bidirecional (para acederes a aluno.escola)
-    escola = relationship("Escola", back_populates="alunos", cascade="all, delete-orphan")
-    turma = relationship("Turma", back_populates="alunos", cascade="all, delete-orphan")
+    escola = relationship("Escola", back_populates="alunos")
+    turma = relationship("Turma", back_populates="alunos")
     notas = relationship("Nota", back_populates="aluno", cascade="all, delete-orphan")
     mensalidades = relationship("Mensalidade", back_populates="aluno", cascade="all, delete-orphan")
+    presencas = relationship("Presenca", back_populates="aluno", cascade="all, delete-orphan")
