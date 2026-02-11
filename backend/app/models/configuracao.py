@@ -9,7 +9,7 @@ class Configuracao(Base):
 
     id = Column(Integer, primary_key=True, index=True)    
     # RELAÇÃO 1:1 COM A ESCOLA (unique=True garante que cada escola só tem 1 configuração)
-    escola_id = Column(Integer, ForeignKey("escolas.id", ondelete="CASCADE"), unique=True, nullable=False)
+    escola_id = Column(Integer, ForeignKey("escolas.id"), unique=True, nullable=False)
     # --- REGRAS FINANCEIRAS ---
     valor_mensalidade_padrao = Column(Float, default= 5000.0)
     dia_vencimento = Column(Integer, default=10) # Dia limite
@@ -22,7 +22,7 @@ class Configuracao(Base):
     # --- REGRAS ACADÉMICAS (Futuro) ---
     nota_minima_aprovacao = Column(Float, default=10.0) # Algumas escolas exigem 10, outras 14
     # Relação de volta
-    escola = relationship("Escola", back_populates="configuracao")
+    escola = relationship("Escola", back_populates="configuracao", cascade="all, delete-orphan")
     # Auditoria
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())

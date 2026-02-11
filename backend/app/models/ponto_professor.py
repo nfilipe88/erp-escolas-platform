@@ -8,16 +8,15 @@ class PontoProfessor(Base):
     __tablename__ = "ponto_professores"
 
     id = Column(Integer, primary_key=True, index=True)
-    professor_id = Column(Integer, ForeignKey("usuarios.id"))
     data = Column(Date)
     presente = Column(Boolean, default=True)
     observacao = Column(String, nullable=True)
+    
+    professor_id = Column(Integer, ForeignKey("usuarios.id"))
     escola_id = Column(Integer, ForeignKey("escolas.id"), nullable=False) 
-    
     # Relações
-    escola = relationship("Escola", back_populates="ponto_professores")
-    
-    professor = relationship("Usuario")
+    escola = relationship("Escola", back_populates="ponto_professores", cascade="all, delete-orphan")    
+    professor = relationship("Usuario", back_populates="ponto_professores", cascade="all, delete-orphan")
     # Auditoria
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())

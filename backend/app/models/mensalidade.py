@@ -27,15 +27,15 @@ class Mensalidade(Base):
     
     # Auditoria (Quem fez o quê?)
     criado_por_id = Column(Integer, ForeignKey("usuarios.id"), nullable=False)
-    criado_por = relationship("Usuario", foreign_keys=[criado_por_id])
     pago_por_id = Column(Integer, ForeignKey("usuarios.id"), nullable=True)
-    pago_por = relationship("Usuario", foreign_keys=[pago_por_id])
+    aluno_id = Column(Integer, ForeignKey("alunos.id"), nullable=False)
+    escola_id = Column(Integer, ForeignKey("escolas.id", ondelete="CASCADE"), nullable=False)
     
     # Relacionamento com Aluno
-    aluno_id = Column(Integer, ForeignKey("alunos.id"), nullable=False)
-    aluno = relationship("Aluno", back_populates="mensalidades")
-    escola_id = Column(Integer, ForeignKey("escolas.id", ondelete="CASCADE"), nullable=False)
-    escola = relationship("Escola", back_populates="mensalidades")
+    pago_por = relationship("Usuario", foreign_keys=[pago_por_id])
+    criado_por = relationship("Usuario", foreign_keys=[criado_por_id])
+    aluno = relationship("Aluno", back_populates="mensalidades", cascade="all, delete-orphan")
+    escola = relationship("Escola", back_populates="mensalidades", cascade="all, delete-orphan")
 
     # Auditoria
     created_at = Column(DateTime(timezone=True), server_default=func.now())

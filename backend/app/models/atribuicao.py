@@ -18,10 +18,10 @@ class Atribuicao(Base):
     professor_id = Column(Integer, ForeignKey("usuarios.id"), nullable=False)
 
     # Relacionamentos (para podermos aceder aos nomes depois)
-    escola = relationship("Escola", back_populates="atribuicoes")
-    turma = relationship("Turma")
-    disciplina = relationship("Disciplina")
-    professor = relationship("Usuario")
+    escola = relationship("Escola", back_populates="atribuicoes", cascade="all, delete-orphan")
+    turma = relationship("Turma", back_populates="atribuicoes", cascade="all, delete-orphan")
+    disciplina = relationship("Disciplina", back_populates="atribuicoes", cascade="all, delete-orphan")
+    professor = relationship("Usuario", back_populates="atribuicoes", cascade="all, delete-orphan")
 
     # Regra de Ouro: Numa turma, uma disciplina só pode ter UM professor titular
     # (Evita duplicados como "João dá Mat na 7A" e "Maria dá Mat na 7A" ao mesmo tempo)

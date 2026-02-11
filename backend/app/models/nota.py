@@ -20,9 +20,9 @@ class Nota(Base):
     escola_id = Column(Integer, ForeignKey("escolas.id"), nullable=False) 
     
     # Relações
-    escola = relationship("Escola", back_populates="notas")
-    aluno = relationship("Aluno", back_populates="notas")
-    disciplina = relationship("Disciplina", back_populates="notas")
+    escola = relationship("Escola", back_populates="notas", cascade="all, delete-orphan")
+    aluno = relationship("Aluno", back_populates="notas", cascade="all, delete-orphan")
+    disciplina = relationship("Disciplina", back_populates="notas", cascade="all, delete-orphan")
 
     # Auditoria
     created_at = Column(DateTime(timezone=True), server_default=func.now())

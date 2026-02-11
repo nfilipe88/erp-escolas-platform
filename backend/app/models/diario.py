@@ -19,9 +19,9 @@ class Diario(Base):
     # Relações
     
     # Relacionamentos
-    escola = relationship("Escola", back_populates="diarios")
-    horario = relationship("Horario")
-    professor = relationship("Usuario")
+    escola = relationship("Escola", back_populates="diarios", cascade="all, delete-orphan")
+    horario = relationship("Horario", back_populates="diarios", cascade="all, delete-orphan")
+    professor = relationship("Usuario", back_populates="diarios", cascade="all, delete-orphan")
     # Auditoria
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())

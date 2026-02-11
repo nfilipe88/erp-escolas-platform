@@ -12,7 +12,7 @@ class Usuario(Base):
     senha_hash = Column(String, nullable=False)
     
     escola_id = Column(Integer, ForeignKey("escolas.id"), nullable=True) # Pode ser Null para o Superadmin
-    escola = relationship("Escola", back_populates="usuarios")
+    escola = relationship("Escola", back_populates="usuarios" , cascade="all, delete-orphan")
     
     # Perfil: 'admin' (Diretor), 'professor', 'secretaria', 'superadmin'
     perfil = Column(String, default="professor") 

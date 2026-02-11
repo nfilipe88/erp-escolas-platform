@@ -2,7 +2,7 @@ from sqlalchemy import Column, DateTime, Integer, String, ForeignKey
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from app.db.database import Base
-from app.models.turma import turma_disciplina # Importa a tabela ponte
+from backend.app.models.associacoes import turma_disciplina # Importa a tabela ponte
 
 class Disciplina(Base):
     __tablename__ = "disciplinas"
@@ -13,12 +13,12 @@ class Disciplina(Base):
     carga_horaria = Column(Integer, default=80)
 
     # 1. Relacionamento de volta para as turmas (N:N)
-    turmas = relationship("Turma", secondary=turma_disciplina, back_populates="disciplinas")
+    turmas = relationship("Turma", secondary=turma_disciplina, back_populates="disciplinas", cascade="all, delete-orphan")
     escola_id = Column(Integer, ForeignKey("escolas.id"), nullable=False) 
     
     # Relacionamentos
-    notas = relationship("Nota", back_populates="disciplina")
-    escola = relationship("Escola", back_populates="disciplinas")
+    notas = relationship("Nota", back_populates="disciplina", cascade="all, delete-orphan")
+    escola = relationship("Escola", back_populates="disciplinas", cascade="all, delete-orphan")
     # Auditoria
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
