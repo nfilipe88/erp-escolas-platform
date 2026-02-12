@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from datetime import date, datetime
 from typing import Optional
 
@@ -9,7 +9,6 @@ class AlunoBase(BaseModel):
     turma_id: Optional[int] = None
 
 class AlunoCreate(AlunoBase):
-    escola_id: Optional[int] = None  # Será definido pelo backend
     ativo: bool = True  # Novo aluno é ativo por padrão
     
 class AlunoUpdate(BaseModel):
@@ -22,8 +21,9 @@ class AlunoUpdate(BaseModel):
 class AlunoResponse(AlunoBase):
     id: int
     escola_id: int
+    escola_nome: Optional[str] = None  # Para mostrar o nome da escola
+    turma_nome: Optional[str] = None   # Para mostrar o nome da turma
     ativo: bool
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)

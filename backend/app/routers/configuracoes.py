@@ -1,20 +1,32 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from typing import List
+
 from app.db.database import get_db
 from app.schemas import schema_configuracao as schemas_config
 from app.cruds import crud_configuracao
-# Importa a nova dependência
-from backend.app.security_decorattors import get_current_escola_id, require_escola_id
+from app.security_decorators import require_escola_id
+from app.models.configuracao import Configuracao
 
-@router.get("/minha-escola/configuracoes")
+router = APIRouter(prefix="/escolas", tags=["Configurações"])
+
+@router.get("/minha-escola/configuracoes", response_model=schemas_config.ConfiguracaoResponse)
 def ler_config(
     db: Session = Depends(get_db),
-    escola_id: int = Depends(require_escola_id) # Obriga a ter escola
+    escola_id: int = Depends(require_escola_id)
 ):
-    # O CRUD usa este ID. Impossível ver config de outros.
     config = crud_configuracao.get_config_by_escola(db, escola_id)
     if not config:
-        # Se não existir, cria uma default automaticamente (UX melhor)
-        return crud_configuracao.create_default_config(db, escola_id)
+        # Criar configuração padrão
+        config = Configuracao(escola_id=escola_id)
+        db.add(config)
+        db.commit()
+        db.refresh(config)
     return config
+
+@router.put("/minha-escola/configuracoes", response_model=schemas_config.ConfiguracaoResponse)
+def atualizar_config(
+    dados: schemas_config.ConfiguracaoUpdate,
+    db: Session = Depends(get_db),
+    escola_id: int = Depends(require_escola_id)
+):
+    return crud_configuracao.update_config(db, escola_id, dados)

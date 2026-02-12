@@ -1,8 +1,7 @@
-from pydantic import BaseModel
-from datetime import time, date
+from pydantic import BaseModel, ConfigDict
+from datetime import time
 from typing import Optional
 
-# --- HORÁRIO ---
 class HorarioCreate(BaseModel):
     turma_id: int
     disciplina_id: int
@@ -10,11 +9,12 @@ class HorarioCreate(BaseModel):
     dia_semana: int
     hora_inicio: time
     hora_fim: time
+    # escola_id será injetado
 
 class HorarioResponse(HorarioCreate):
     id: int
+    escola_id: int
     disciplina_nome: Optional[str] = ""
     professor_nome: Optional[str] = ""
-    
-    class Config:
-        from_attributes = True
+
+    model_config = ConfigDict(from_attributes=True)

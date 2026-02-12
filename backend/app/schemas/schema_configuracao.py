@@ -1,5 +1,5 @@
 # app/schemas/configuracao.py
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 class ConfiguracaoBase(BaseModel):
     valor_mensalidade_padrao: float = Field(..., gt=0, description="O valor base em Kz")
@@ -20,5 +20,4 @@ class ConfiguracaoResponse(ConfiguracaoBase):
     id: int
     escola_id: int
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)

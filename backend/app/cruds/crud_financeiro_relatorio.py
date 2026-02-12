@@ -8,13 +8,11 @@ from datetime import date
 
 def get_resumo_mes(db: Session, escola_id: int):
     hoje = date.today()
-    
-    # Validação segura para evitar None
+
     def safe_sum(query):
         val = query.scalar()
         return float(val) if val else 0.0
 
-    # 1. Receita (Pago este mês)
     receita = safe_sum(db.query(func.sum(models_fin.Mensalidade.valor_base)).filter(
         models_fin.Mensalidade.escola_id == escola_id,
         models_fin.Mensalidade.estado == 'Pago',
@@ -22,14 +20,12 @@ def get_resumo_mes(db: Session, escola_id: int):
         extract('year', models_fin.Mensalidade.data_pagamento) == hoje.year
     ))
 
-    # 2. Atrasado (Pendente e Vencido)
     atrasado = safe_sum(db.query(func.sum(models_fin.Mensalidade.valor_base)).filter(
         models_fin.Mensalidade.escola_id == escola_id,
         models_fin.Mensalidade.estado == 'Pendente',
         models_fin.Mensalidade.data_vencimento < hoje
     ))
 
-    # 3. Previsão (Vence este mês)
     previsao = safe_sum(db.query(func.sum(models_fin.Mensalidade.valor_base)).filter(
         models_fin.Mensalidade.escola_id == escola_id,
         extract('month', models_fin.Mensalidade.data_vencimento) == hoje.month,
@@ -43,20 +39,19 @@ def get_resumo_mes(db: Session, escola_id: int):
     }
 
 def get_fluxo_caixa(db: Session, escola_id: int, limit: int = 50):
-    # Consulta com JOIN explícito
     results = db.query(models_fin.Mensalidade, models_aluno.Aluno, models_turma.Turma)\
         .join(models_aluno.Aluno, models_fin.Mensalidade.aluno_id == models_aluno.Aluno.id)\
         .join(models_turma.Turma, models_aluno.Aluno.turma_id == models_turma.Turma.id)\
         .filter(
             models_fin.Mensalidade.escola_id == escola_id,
             models_fin.Mensalidade.estado == 'Pago'
-        ).order_by(desc(models_fin.Mensalidade.data_pagamento))\
+        )\
+        .order_by(desc(models_fin.Mensalidade.data_pagamento))\
         .limit(limit).all()
-    
-    # Conversão manual para garantir formato correto
-    lista_retorno = []
+
+    lista = []
     for mensalidade, aluno, turma in results:
-        lista_retorno.append({
+        lista.append({
             "id": mensalidade.id,
             "aluno_nome": aluno.nome,
             "turma": turma.nome,
@@ -65,11 +60,13 @@ def get_fluxo_caixa(db: Session, escola_id: int, limit: int = 50):
             "data_pagamento": mensalidade.data_pagamento,
             "forma_pagamento": mensalidade.forma_pagamento or "Caixa"
         })
-    return lista_retorno
+    return lista
 
 def get_top_devedores(db: Session, escola_id: int):
     return db.query(models_aluno.Aluno)\
-             .join(models_fin.Mensalidade)\
-             .filter(models_aluno.Aluno.escola_id == escola_id)\
-             .filter(models_fin.Mensalidade.estado == "Pendente")\
-             .limit(10).all()
+        .join(models_fin.Mensalidade)\
+        .filter(
+            models_aluno.Aluno.escola_id == escola_id,
+            models_fin.Mensalidade.estado == "Pendente"
+        )\
+        .limit(10).all()

@@ -1,12 +1,15 @@
-# backend/app/cruds/crud_nota.py
+# app/cruds/crud_nota.py
 from sqlalchemy.orm import Session
 from app.models import nota as models
 from app.models import aluno as models_aluno
 from app.schemas import schema_nota
-from app.schemas import schema_boletim
+from typing import Optional
 
-def lancar_nota(db: Session, nota: schema_nota.NotaCreate):
-    # Verifica se já existe nota (mesmo aluno, disciplina, trimestre e descrição)
+def lancar_nota(db: Session, nota: schema_nota.NotaCreate, escola_id: int):
+    # escola_id é obrigatório e será inserido no modelo
+    nota_data = nota.model_dump()
+    nota_data["escola_id"] = escola_id
+
     nota_existente = db.query(models.Nota).filter(
         models.Nota.aluno_id == nota.aluno_id,
         models.Nota.disciplina_id == nota.disciplina_id,
@@ -15,108 +18,91 @@ def lancar_nota(db: Session, nota: schema_nota.NotaCreate):
     ).first()
 
     if nota_existente:
-        # ATUALIZA
-        nota_existente.valor = nota.valor # type: ignore
-        # Só atualiza o arquivo se vier um novo. Se não, mantém o antigo.
+        nota_existente.valor = nota.valor
         if nota.arquivo_url:
-             nota_existente.arquivo_url = nota.arquivo_url # type: ignore
-             
+            nota_existente.arquivo_url = nota.arquivo_url
         db.commit()
         db.refresh(nota_existente)
         return nota_existente
     else:
-        # CRIA
-        # O model_dump converte o schema para dicionário, incluindo o arquivo_url
-        db_nota = models.Nota(**nota.model_dump())
+        db_nota = models.Nota(**nota_data)
         db.add(db_nota)
         db.commit()
         db.refresh(db_nota)
         return db_nota
 
-def get_notas_by_disciplina(db: Session, disciplina_id: int, escola_id: int = None):
+def get_notas_by_disciplina(db: Session, disciplina_id: int, escola_id: Optional[int] = None):
     query = db.query(models.Nota).join(models_aluno.Aluno)
-    
     if escola_id:
-        query = query.filter(models_aluno.Aluno.escola_id == escola_id)        
+        query = query.filter(models_aluno.Aluno.escola_id == escola_id)
     return query.filter(models.Nota.disciplina_id == disciplina_id).all()
 
-def get_boletim_aluno(db: Session, aluno_id: int):
-    # Busca o aluno
-    aluno = db.query(models_aluno.Aluno).filter(
-        models_aluno.Aluno.id == aluno_id
-    ).first()
-    
+def get_boletim_aluno(db: Session, aluno_id: int, escola_id: Optional[int] = None):
+    aluno = db.query(models_aluno.Aluno).filter(models_aluno.Aluno.id == aluno_id)
+    if escola_id:
+        aluno = aluno.filter(models_aluno.Aluno.escola_id == escola_id)
+    aluno = aluno.first()
     if not aluno:
         return None
-    
-    # Verifica se o aluno tem turma
+
     if not aluno.turma:
         return {
             "aluno_nome": aluno.nome,
             "aluno_bi": aluno.bi,
             "turma": "Sem Turma",
+            "escola_id": aluno.escola_id,
             "linhas": []
         }
-    
-    # Busca TODAS as disciplinas da turma do aluno
-    # Não apenas as que têm notas
+
     disciplinas_turma = aluno.turma.disciplinas
-    
+    # Otimização: buscar todas as notas do aluno de uma vez
+    todas_notas = db.query(models.Nota).filter(models.Nota.aluno_id == aluno_id).all()
+    notas_por_disciplina = {}
+    for nota in todas_notas:
+        if nota.disciplina_id not in notas_por_disciplina:
+            notas_por_disciplina[nota.disciplina_id] = []
+        notas_por_disciplina[nota.disciplina_id].append(nota)
+
     linhas_boletim = []
-    
     for disciplina in disciplinas_turma:
-        # Busca todas as notas desta disciplina para este aluno
-        notas_disciplina = db.query(models.Nota).filter(
-            models.Nota.aluno_id == aluno_id,
-            models.Nota.disciplina_id == disciplina.id
-        ).all()
-        
-        # Organiza as notas por trimestre
+        notas_disciplina = notas_por_disciplina.get(disciplina.id, [])
         notas_por_trimestre = {}
         for nota in notas_disciplina:
             if nota.trimestre not in notas_por_trimestre:
                 notas_por_trimestre[nota.trimestre] = []
             notas_por_trimestre[nota.trimestre].append(nota.valor)
-        
-        # Cria a lista de notas no formato esperado
+
         lista_notas_formatadas = []
-        
-        # Definir trimestres padrão
         trimestres = ["1º Trimestre", "2º Trimestre", "3º Trimestre"]
-        
         for trimestre in trimestres:
-            valores_trimestre = notas_por_trimestre.get(trimestre, [])
-            if valores_trimestre:
-                # Se houver múltiplas notas no mesmo trimestre, calcula média
-                media_trimestre = sum(valores_trimestre) / len(valores_trimestre)
+            valores = notas_por_trimestre.get(trimestre, [])
+            if valores:
+                media = sum(valores) / len(valores)
                 lista_notas_formatadas.append({
                     "trimestre": trimestre,
-                    "valor": round(media_trimestre, 2),
+                    "valor": round(media, 2),
                     "descricao": f"Média {trimestre}"
                 })
             else:
-                # Sem notas neste trimestre
                 lista_notas_formatadas.append({
                     "trimestre": trimestre,
                     "valor": None,
                     "descricao": "Sem nota"
                 })
-        
-        # Calcula a média geral das notas (apenas trimestres com notas)
+
         valores_com_notas = [n["valor"] for n in lista_notas_formatadas if n["valor"] is not None]
-        media_provisoria = 0
-        if valores_com_notas:
-            media_provisoria = round(sum(valores_com_notas) / len(valores_com_notas), 2)
-        
+        media_provisoria = round(sum(valores_com_notas) / len(valores_com_notas), 2) if valores_com_notas else 0
+
         linhas_boletim.append({
             "disciplina": disciplina.nome,
             "notas": lista_notas_formatadas,
             "media_provisoria": media_provisoria
         })
-    
+
     return {
         "aluno_nome": aluno.nome,
         "aluno_bi": aluno.bi,
         "turma": aluno.turma.nome,
+        "escola_id": aluno.escola_id,
         "linhas": linhas_boletim
     }

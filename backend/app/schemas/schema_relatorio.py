@@ -1,18 +1,18 @@
-# app/schemas/schema_relatorio.py
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from datetime import date
 from typing import Optional
 
 class ResumoFinanceiro(BaseModel):
+    escola_id: int                      # contexto multi‑tenant
     total_arrecadado_mes: float
     total_atrasado_geral: float
     previsao_receita_mes: float
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class TransacaoFinanceira(BaseModel):
     id: int
+    escola_id: int
     aluno_nome: str
     turma: str
     descricao: str
@@ -20,15 +20,14 @@ class TransacaoFinanceira(BaseModel):
     data_pagamento: Optional[date]
     forma_pagamento: str
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class Devedor(BaseModel):
+    escola_id: int
     aluno_id: int
     aluno_nome: str
     turma: str
     meses_atraso: int
     total_divida: float
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)

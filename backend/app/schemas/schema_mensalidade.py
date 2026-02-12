@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 from datetime import date, datetime
 from typing import Optional
 
@@ -13,26 +13,24 @@ class MensalidadeBase(BaseModel):
 # Para criar uma dívida (Gerado pelo sistema)
 class MensalidadeCreate(MensalidadeBase):
     aluno_id: int
-    escola_id: int # Segurança SaaS
-    criado_por_id: int # ID do funcionário que gerou o carnet
 
 # Para registrar o pagamento (O que muda quando o pai paga)
 class MensalidadePagar(BaseModel):
     data_pagamento: date
     forma_pagamento: str # "TPA", "Numerário", "Transferência"
-    # IMPORTANTE: Tornar este campo opcional na entrada, pois vamos preenchê-lo no backend
-    pago_por_id: Optional[int] = Field(default=None, exclude=True)
 
 class MensalidadeResponse(MensalidadeBase):
     id: int
     aluno_id: int
+    aluno_nome: str                # enriquecido
     escola_id: int
     data_emissao: date
-    data_pagamento: Optional[date]
-    forma_pagamento: Optional[str]
+    data_pagamento: Optional[date] = None
+    forma_pagamento: Optional[str] = None
     criado_por_id: int
+    criado_por_nome: str          # enriquecido
     pago_por_id: Optional[int] = None
+    pago_por_nome: Optional[str] = None  # enriquecido
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)

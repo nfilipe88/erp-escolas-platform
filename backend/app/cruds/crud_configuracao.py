@@ -8,21 +8,18 @@ def get_config_by_escola(db: Session, escola_id: int):
 
 def update_config(db: Session, escola_id: int, dados: schema_configuracao.ConfiguracaoUpdate):
     db_config = get_config_by_escola(db, escola_id)
-    
-    # Se por algum motivo não existir, cria-se agora como medida de segurança
     if not db_config:
         db_config = models.Configuracao(escola_id=escola_id)
         db.add(db_config)
-    
-    # Atualiza os campos enviados pelo Frontend
-    db_config.valor_mensalidade_padrao = dados.valor_mensalidade_padrao # type: ignore
-    db_config.dia_vencimento = dados.dia_vencimento # type: ignore
-    db_config.multa_atraso_percentual = dados.multa_atraso_percentual # type: ignore
-    db_config.desconto_pagamento_anual = dados.desconto_pagamento_anual # type: ignore
-    db_config.mes_inicio_cobranca = dados.mes_inicio_cobranca # type: ignore
-    db_config.mes_fim_cobranca = dados.mes_fim_cobranca # type: ignore
-    db_config.bloquear_boletim_devedor = dados.bloquear_boletim_devedor # type: ignore
-    db_config.nota_minima_aprovacao = dados.nota_minima_aprovacao # type: ignore
+
+    db_config.valor_mensalidade_padrao = dados.valor_mensalidade_padrao
+    db_config.dia_vencimento = dados.dia_vencimento
+    db_config.multa_atraso_percentual = dados.multa_atraso_percentual
+    db_config.desconto_pagamento_anual = dados.desconto_pagamento_anual
+    db_config.mes_inicio_cobranca = dados.mes_inicio_cobranca
+    db_config.mes_fim_cobranca = dados.mes_fim_cobranca
+    db_config.bloquear_boletim_devedor = dados.bloquear_boletim_devedor
+    db_config.nota_minima_aprovacao = dados.nota_minima_aprovacao
 
     db.commit()
     db.refresh(db_config)

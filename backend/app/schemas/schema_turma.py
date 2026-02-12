@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from datetime import datetime
 from typing import Optional
 
@@ -7,14 +7,13 @@ class TurmaBase(BaseModel):
     ano_letivo: str
     turno: Optional[str] = "Manhã"
 
-# Create: O campo escola_id passa a ser OPCIONAL aqui
 class TurmaCreate(TurmaBase):
-    escola_id: Optional[int] = None
+    # escola_id será injetado
+    pass
 
 class TurmaResponse(TurmaBase):
     id: int
     escola_id: int
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)

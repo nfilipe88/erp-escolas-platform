@@ -2,21 +2,20 @@ from pydantic import BaseModel, ConfigDict
 from datetime import date, datetime
 from typing import Optional
 
-class DiarioCreate(BaseModel):
-    horario_id: int
-    resumo_aula: str
+class PontoProfessorCreate(BaseModel):
+    data: date
+    presente: bool
+    observacao: Optional[str] = None
     # professor_id e escola_id serão injetados pelo backend
 
-class DiarioResponse(BaseModel):
+class PontoProfessorResponse(BaseModel):
     id: int
-    horario_id: int
     professor_id: int
     professor_nome: str
     data: date
-    resumo_aula: Optional[str]
-    fechado: bool
+    presente: bool
+    observacao: Optional[str]
     escola_id: int
     created_at: datetime
-    updated_at: Optional[datetime]
 
     model_config = ConfigDict(from_attributes=True)
