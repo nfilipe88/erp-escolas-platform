@@ -14,7 +14,7 @@ class Aluno(Base):
     
     # RELACIONAMENTO (A chave mágica 🗝️)
     # Aqui dizemos: "Este aluno pertence à escola com este ID"
-    escola_id = Column(Integer, ForeignKey("escolas.id"), ondelete="CASCADE", nullable=False, index=True)
+    escola_id = Column(Integer, ForeignKey("escolas.id", ondelete="CASCADE"), nullable=False, index=True)
     turma_id = Column(Integer, ForeignKey("turmas.id"), nullable=True)
     
     # Dados de Controlo

@@ -13,7 +13,7 @@ class PontoProfessor(Base):
     observacao = Column(String, nullable=True)
     
     professor_id = Column(Integer, ForeignKey("usuarios.id"), nullable=False, index=True) # Para garantir que cada ponto pertence a um professor específico
-    escola_id = Column(Integer, ForeignKey("escolas.id"),ondelete="CASCADE", nullable=False, index=True) # Para garantir que cada ponto pertence a uma escola específica (multi-tenancy)
+    escola_id = Column(Integer, ForeignKey("escolas.id", ondelete="CASCADE"), nullable=False, index=True) # Para garantir que cada ponto pertence a uma escola específica (multi-tenancy)
     # Relações
     escola = relationship("Escola", back_populates="ponto_professores")
     professor = relationship("Usuario", back_populates="ponto_professores")

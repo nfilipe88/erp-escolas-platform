@@ -9,7 +9,7 @@ from app.schemas import schema_aluno as schemas_aluno
 from app.schemas import schema_turma as schemas_turma
 from app.cruds import crud_escola, crud_aluno, crud_turma
 from app.models import usuario as models_user
-from app.security_decorators import superadmin_required, require_escola_id
+from app.security_decorators import superadmin_required
 
 router = APIRouter(tags=["Escolas"])
 
@@ -32,10 +32,10 @@ def listar_escolas(
     db: Session = Depends(get_db),
     current_user: models_user.Usuario = Depends(get_current_user)
 ):
-    if current_user.perfil == "superadmin":
+    if current_user.perfil == "superadmin":  # type: ignore[comparison-overlap]
         return crud_escola.get_escolas(db, skip, limit)
     # Não‑superadmin vê apenas a sua escola (como lista de 1 elemento)
-    if current_user.escola_id:
+    if current_user.escola_id:  # type: ignore[truthy-function]
         escola = crud_escola.get_escolas(db, skip=0, limit=1, escola_id=current_user.escola_id)
         return escola if escola else []
     return []
@@ -47,7 +47,7 @@ def ver_detalhes_escola(
     current_user: models_user.Usuario = Depends(get_current_user)
 ):
     # Permissão: superadmin ou admin da escola
-    if current_user.perfil != "superadmin" and current_user.escola_id != escola_id:
+    if current_user.perfil != "superadmin" and current_user.escola_id != escola_id:  # type: ignore[comparison-overlap]
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Acesso negado a esta escola.")
     escola = crud_escola.get_escola_detalhes(db, escola_id=escola_id)
     if not escola:
@@ -60,7 +60,7 @@ def read_alunos_escola(
     db: Session = Depends(get_db),
     current_user: models_user.Usuario = Depends(get_current_user)
 ):
-    if current_user.perfil != "superadmin" and current_user.escola_id != escola_id:
+    if current_user.perfil != "superadmin" and current_user.escola_id != escola_id:  # type: ignore[comparison-overlap]
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Acesso negado.")
     return crud_aluno.get_alunos_by_escola(db=db, escola_id=escola_id)
 
@@ -70,6 +70,6 @@ def read_turmas_escola(
     db: Session = Depends(get_db),
     current_user: models_user.Usuario = Depends(get_current_user)
 ):
-    if current_user.perfil != "superadmin" and current_user.escola_id != escola_id:
+    if current_user.perfil != "superadmin" and current_user.escola_id != escola_id:  # type: ignore[comparison-overlap]
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Acesso negado.")
     return crud_turma.get_turmas_by_escola(db=db, escola_id=escola_id)

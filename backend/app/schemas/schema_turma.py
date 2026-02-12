@@ -8,8 +8,7 @@ class TurmaBase(BaseModel):
     turno: Optional[str] = "Manhã"
 
 class TurmaCreate(TurmaBase):
-    # escola_id será injetado
-    pass
+    escola_id: Optional[int] = None  # ← ADICIONADO (apenas superadmin envia)
 
 class TurmaResponse(TurmaBase):
     id: int

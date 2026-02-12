@@ -12,7 +12,6 @@ from app.security_decorators import (
     get_current_escola_id,
     verify_resource_ownership,
     admin_or_superadmin_required,
-    superadmin_required
 )
 
 router = APIRouter(prefix="/alunos", tags=["Alunos"])
@@ -24,7 +23,7 @@ def criar_aluno(
     current_user: models_user.Usuario = Depends(get_current_user)
 ):
     """Cria um novo aluno. Superadmin deve informar escola_id no body."""
-    if current_user.perfil == "superadmin":
+    if current_user.perfil == "superadmin":  # type: ignore[comparison-overlap]
         if not aluno.escola_id:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -32,7 +31,7 @@ def criar_aluno(
             )
         escola_destino_id = aluno.escola_id
     else:
-        if not current_user.escola_id:
+        if not current_user.escola_id:  # type: ignore[truthy-function]
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Utilizador sem escola associada."
@@ -52,7 +51,7 @@ def read_aluno(
     if not aluno:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Aluno não encontrado")
     # Verificação extra de ownership (caso o CRUD não tenha filtrado)
-    verify_resource_ownership(aluno.escola_id, current_user, "aluno")
+    verify_resource_ownership(aluno.escola_id, current_user, "aluno")  # type: ignore[arg-type]
     return aluno
 
 @router.put("/{aluno_id}", response_model=schemas_aluno.AlunoResponse)
@@ -66,7 +65,7 @@ def update_aluno(
     db_aluno = crud_aluno.update_aluno(db, aluno_id, aluno_update, escola_id=escola_id)
     if not db_aluno:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Aluno não encontrado")
-    verify_resource_ownership(db_aluno.escola_id, current_user, "aluno")
+    verify_resource_ownership(db_aluno.escola_id, current_user, "aluno")  # type: ignore[arg-type]
     return db_aluno
 
 @router.delete("/{aluno_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -80,8 +79,7 @@ def delete_aluno(
     aluno = crud_aluno.get_aluno(db, aluno_id, escola_id=escola_id)
     if not aluno:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Aluno não encontrado")
-    verify_resource_ownership(aluno.escola_id, current_user, "aluno")
-    # Nota: CRUD não tem delete; implementar conforme necessidade
+    verify_resource_ownership(aluno.escola_id, current_user, "aluno")  # type: ignore[arg-type]
     db.delete(aluno)
     db.commit()
     return None
@@ -97,7 +95,7 @@ def read_boletim(
     if not boletim:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Aluno não encontrado")
     # O boletim contém escola_id, podemos verificar
-    verify_resource_ownership(boletim["escola_id"], current_user, "aluno")
+    verify_resource_ownership(boletim["escola_id"], current_user, "aluno")  # type: ignore[arg-type]
     return boletim
 
 @router.get("/", response_model=List[schemas_aluno.AlunoResponse])
@@ -119,5 +117,5 @@ def read_alunos_por_turma(
     turma = crud_turma.get_turma(db, turma_id, escola_id=escola_id)
     if not turma:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Turma não encontrada")
-    verify_resource_ownership(turma.escola_id, current_user, "turma")
+    verify_resource_ownership(turma.escola_id, current_user, "turma")  # type: ignore[arg-type]
     return crud_aluno.get_alunos_por_turma(db, turma_id, escola_id=escola_id)

@@ -17,7 +17,7 @@ class Presenca(Base):
     # Relacionamentos
     aluno_id = Column(Integer, ForeignKey("alunos.id"), nullable=False, index=True)
     turma_id = Column(Integer, ForeignKey("turmas.id"), nullable=False, index=True)
-    escola_id = Column(Integer, ForeignKey("escolas.id"), ondelete="CASCADE", nullable=False, index=True) # Para garantir que cada presença pertence a uma escola específica (multi-tenancy)
+    escola_id = Column(Integer, ForeignKey("escolas.id", ondelete="CASCADE"), nullable=False, index=True) # Para garantir que cada presença pertence a uma escola específica (multi-tenancy)
     
     # Relações
     escola = relationship("Escola", back_populates="presencas")    

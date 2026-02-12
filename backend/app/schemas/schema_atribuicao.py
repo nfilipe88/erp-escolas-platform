@@ -15,6 +15,7 @@ class AtribuicaoResponse(BaseModel):
 
 # Para receber dados do Frontend
 class AtribuicaoCreate(BaseModel):
+    escola_id: Optional[int]  # Apenas superadmin precisa enviar isso
     turma_id: int
     disciplina_id: int
     professor_id: int    

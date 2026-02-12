@@ -24,7 +24,7 @@ def criar_usuario(
     current_user: models_user.Usuario = Depends(get_current_user)
 ):
     # Superadmin: pode criar qualquer perfil, com ou sem escola
-    if current_user.perfil == "superadmin":
+    if current_user.perfil == "superadmin":  # type: ignore[comparison-overlap]
         escola_destino_id = usuario.escola_id  # pode ser None (superadmin)
         if usuario.perfil != "superadmin" and not escola_destino_id:
             raise HTTPException(
@@ -33,13 +33,13 @@ def criar_usuario(
             )
     else:
         # Admin pode criar apenas na sua escola
-        if current_user.perfil != "admin":
+        if current_user.perfil != "admin":  # type: ignore[comparison-overlap]
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Apenas admin ou superadmin podem criar utilizadores."
             )
         escola_destino_id = current_user.escola_id
-        if not escola_destino_id:
+        if not escola_destino_id:  # type: ignore[truthy-function]
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Admin sem escola associada."
@@ -74,8 +74,8 @@ def listar_professores(
 ):
     return db.query(models_user.Usuario).filter(
         models_user.Usuario.escola_id == escola_id,
-        models_user.Usuario.perfil == "professor",
-        models_user.Usuario.ativo == True
+        models_user.Usuario.perfil == "professor",  # type: ignore[comparison-overlap]
+        models_user.Usuario.ativo == True  # type: ignore[comparison-overlap]
     ).all()
 
 @router.get("/meus-dados", response_model=schemas_user.UsuarioResponse)
@@ -92,7 +92,7 @@ def alterar_minha_senha(
 ):
     if not verify_password(dados.senha_atual, str(current_user.senha_hash)):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="A senha atual está incorreta.")
-    current_user.senha_hash = get_password_hash(dados.nova_senha)
+    current_user.senha_hash = get_password_hash(dados.nova_senha)  # type: ignore[assignment]
     db.commit()
     return {"mensagem": "Senha alterada com sucesso"}
 
@@ -113,9 +113,9 @@ def atualizar_usuario(
     target_user.email = dados.email
     target_user.ativo = dados.ativo
     if dados.perfil:
-        target_user.perfil = dados.perfil.value
+        target_user.perfil = dados.perfil.value  # type: ignore[assignment]
     if dados.senha:
-        target_user.senha_hash = get_password_hash(dados.senha)
+        target_user.senha_hash = get_password_hash(dados.senha)  # type: ignore[assignment]
     db.commit()
     db.refresh(target_user)
     return target_user

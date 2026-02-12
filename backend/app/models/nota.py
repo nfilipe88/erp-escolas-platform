@@ -17,7 +17,7 @@ class Nota(Base):
     # Chaves Estrangeiras (A nota pertence a um aluno numa disciplina)
     aluno_id = Column(Integer, ForeignKey("alunos.id"), nullable=False, index=True)
     disciplina_id = Column(Integer, ForeignKey("disciplinas.id"), nullable=False, index=True)
-    escola_id = Column(Integer, ForeignKey("escolas.id"), ondelete="CASCADE", nullable=False, index=True) # Para garantir que cada nota pertence a uma escola específica (multi-tenancy)
+    escola_id = Column(Integer, ForeignKey("escolas.id", ondelete="CASCADE"), nullable=False, index=True) # Para garantir que cada nota pertence a uma escola específica (multi-tenancy)
     
     # Relações
     escola = relationship("Escola", back_populates="notas")

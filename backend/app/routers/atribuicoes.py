@@ -25,7 +25,7 @@ def atribuir_professor(
 ):
     """Apenas admin/secretaria/superadmin podem criar atribuições."""
     escola_destino_id: int
-    if current_user.perfil == "superadmin":
+    if current_user.perfil == "superadmin":  # type: ignore[comparison-overlap]
         if not dados.escola_id:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -33,7 +33,7 @@ def atribuir_professor(
             )
         escola_destino_id = dados.escola_id
     else:
-        if not current_user.escola_id:
+        if not current_user.escola_id:  # type: ignore[truthy-function]
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Utilizador sem escola associada."
@@ -47,6 +47,9 @@ def listar_atribuicoes(
     db: Session = Depends(get_db),
     escola_id: Optional[int] = Depends(get_current_escola_id)
 ):
+    # O CRUD deve aceitar Optional[int] – se não, ajuste abaixo
+    if escola_id is None:
+        return crud_atribuicao.get_atribuicoes_escola(db)  # sem filtro
     return crud_atribuicao.get_atribuicoes_escola(db, escola_id=escola_id)
 
 @router.delete("/{id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -59,7 +62,7 @@ def remover_atribuicao(
     atribuicao = db.query(models_atribuicao.Atribuicao).filter(models_atribuicao.Atribuicao.id == id).first()
     if not atribuicao:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Atribuição não encontrada")
-    verify_resource_ownership(atribuicao.escola_id, current_user, "atribuição")
+    verify_resource_ownership(atribuicao.escola_id, current_user, "atribuição")  # type: ignore[arg-type]
     # Usa o CRUD com filtro de escola
     removida = crud_atribuicao.delete_atribuicao(db, id, escola_id=atribuicao.escola_id)
     if not removida:

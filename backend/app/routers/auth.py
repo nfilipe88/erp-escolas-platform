@@ -35,9 +35,9 @@ def login_access_token(
     return {
         "access_token": access_token,
         "token_type": "bearer",
-        "perfil": usuario.perfil,
-        "nome": usuario.nome,
-        "escola_id": usuario.escola_id,
+        "perfil": usuario.perfil,  # type: ignore
+        "nome": usuario.nome,      # type: ignore
+        "escola_id": usuario.escola_id,  # type: ignore
         "message": "Bem-vindo à API do ERP Escolar"
     }
 
@@ -75,7 +75,7 @@ def reset_senha(
     db: Session = Depends(get_db)
 ):
     try:
-        payload = jwt.decode(dados.token, SECRET_KEY, algorithms=[ALGORITHM])
+        payload = jwt.decode(dados.token, SECRET_KEY, algorithms=[ALGORITHM])  # type: ignore[arg-type]
         if payload.get("type") != "reset":
             raise HTTPException(status_code=400, detail="Token inválido para recuperação de senha")
         email = payload.get("sub")
@@ -86,7 +86,7 @@ def reset_senha(
     if not user:
         raise HTTPException(status_code=404, detail="Utilizador não encontrado")
 
-    user.senha_hash = get_password_hash(dados.nova_senha)
+    user.senha_hash = get_password_hash(dados.nova_senha)  # type: ignore[assignment]
     db.commit()
     return {"mensagem": "Senha recuperada com sucesso! Faça login."}
 
@@ -98,6 +98,6 @@ def alterar_senha(
 ):
     if not verify_password(dados.senha_atual, str(current_user.senha_hash)):
         raise HTTPException(status_code=400, detail="A senha atual está incorreta.")
-    current_user.senha_hash = get_password_hash(dados.nova_senha)
+    current_user.senha_hash = get_password_hash(dados.nova_senha)  # type: ignore[assignment]
     db.commit()
     return {"mensagem": "Senha alterada com sucesso"}

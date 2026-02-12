@@ -8,6 +8,7 @@ from app.schemas import schema_nota as schemas_nota
 from app.cruds import crud_disciplina, crud_nota, crud_turma
 from app.models import disciplina as models_disciplina
 from app.models import turma as models_turma
+from app.models import usuario as models_user  # ← IMPORT ADICIONADO
 from app.security import get_current_user
 from app.security_decorators import (
     get_current_escola_id,
@@ -24,7 +25,7 @@ def criar_disciplina(
     db: Session = Depends(get_db),
     current_user: models_user.Usuario = Depends(admin_or_superadmin_required)
 ):
-    if current_user.perfil == "superadmin":
+    if current_user.perfil == "superadmin":  # type: ignore[comparison-overlap]
         if not disciplina.escola_id:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -32,7 +33,7 @@ def criar_disciplina(
             )
         escola_destino_id = disciplina.escola_id
     else:
-        if not current_user.escola_id:
+        if not current_user.escola_id:  # type: ignore[truthy-function]
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Utilizador sem escola associada."
@@ -58,10 +59,15 @@ def atualizar_disciplina(
     current_user: models_user.Usuario = Depends(admin_or_superadmin_required),
     escola_id: Optional[int] = Depends(get_current_escola_id)
 ):
-    disciplina = crud_disciplina.get_disciplinas(db, escola_id=escola_id, skip=0, limit=1).filter(models_disciplina.Disciplina.id == disciplina_id).first()
+    disciplina = db.query(models_disciplina.Disciplina).filter(
+        models_disciplina.Disciplina.id == disciplina_id
+    )
+    if escola_id:
+        disciplina = disciplina.filter(models_disciplina.Disciplina.escola_id == escola_id)
+    disciplina = disciplina.first()
     if not disciplina:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Disciplina não encontrada")
-    verify_resource_ownership(disciplina.escola_id, current_user, "disciplina")
+    verify_resource_ownership(disciplina.escola_id, current_user, "disciplina")  # type: ignore[arg-type]
     disciplina.nome = dados.nome
     disciplina.codigo = dados.codigo
     disciplina.carga_horaria = dados.carga_horaria
@@ -84,7 +90,7 @@ def eliminar_disciplina(
     disciplina = disciplina.first()
     if not disciplina:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Disciplina não encontrada")
-    verify_resource_ownership(disciplina.escola_id, current_user, "disciplina")
+    verify_resource_ownership(disciplina.escola_id, current_user, "disciplina")  # type: ignore[arg-type]
     db.delete(disciplina)
     db.commit()
     return None
@@ -128,7 +134,7 @@ def associar_disciplina_a_turma(
     turma = crud_turma.get_turma(db, turma_id, escola_id=escola_id)
     if not turma:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Turma não encontrada")
-    verify_resource_ownership(turma.escola_id, current_user, "turma")
+    verify_resource_ownership(turma.escola_id, current_user, "turma")  # type: ignore[arg-type]
 
     disciplina = db.query(models_disciplina.Disciplina).filter(
         models_disciplina.Disciplina.id == disciplina_id,
@@ -154,7 +160,7 @@ def remover_disciplina_de_turma(
     turma = crud_turma.get_turma(db, turma_id, escola_id=escola_id)
     if not turma:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Turma não encontrada")
-    verify_resource_ownership(turma.escola_id, current_user, "turma")
+    verify_resource_ownership(turma.escola_id, current_user, "turma")  # type: ignore[arg-type]
 
     disciplina = db.query(models_disciplina.Disciplina).filter(
         models_disciplina.Disciplina.id == disciplina_id,

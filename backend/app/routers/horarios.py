@@ -31,7 +31,7 @@ def atualizar_slot(
     ).first()
     if not slot:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Horário não encontrado")
-    verify_resource_ownership(slot.escola_id, current_user, "horário")
+    verify_resource_ownership(slot.escola_id, current_user, "horário")  # type: ignore[arg-type]
     slot.disciplina_id = dados.disciplina_id
     slot.professor_id = dados.professor_id
     db.commit()
@@ -57,9 +57,9 @@ def ver_minhas_aulas(
     current_user: models_user.Usuario = Depends(get_current_user),
     escola_id: int = Depends(require_escola_id)
 ):
-    if current_user.perfil != "professor":
+    if current_user.perfil != "professor":  # type: ignore[comparison-overlap]
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Apenas professores podem ver suas aulas.")
-    return crud_atribuicao.get_minhas_atribuicoes(db, professor_id=current_user.id, escola_id=escola_id)
+    return crud_atribuicao.get_minhas_atribuicoes(db, professor_id=current_user.id, escola_id=escola_id)  # type: ignore[arg-type]
 
 @router.get("/meus-horarios-hoje")
 def ver_meus_horarios_hoje(
@@ -67,9 +67,9 @@ def ver_meus_horarios_hoje(
     current_user: models_user.Usuario = Depends(get_current_user),
     escola_id: int = Depends(require_escola_id)
 ):
-    if current_user.perfil != "professor":
+    if current_user.perfil != "professor":  # type: ignore[comparison-overlap]
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Apenas professores podem ver seus horários.")
-    return crud_horario.get_horario_professor_hoje(db, professor_id=current_user.id, escola_id=escola_id)
+    return crud_horario.get_horario_professor_hoje(db, professor_id=current_user.id, escola_id=escola_id)  # type: ignore[arg-type]
 
 @router.get("/turmas/{turma_id}")
 def ver_horario_turma(
@@ -94,5 +94,5 @@ def gerar_horario_automatico(
     turma = crud_turma.get_turma(db, turma_id, escola_id=escola_id)
     if not turma:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Turma não encontrada")
-    verify_resource_ownership(turma.escola_id, current_user, "turma")
+    verify_resource_ownership(turma.escola_id, current_user, "turma")  # type: ignore[arg-type]
     return crud_horario.gerar_grade_horaria(db, turma_id, escola_id)

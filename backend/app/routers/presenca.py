@@ -28,12 +28,12 @@ def realizar_chamada(
     escola_id: int = Depends(require_escola_id)
 ):
     # Permissão: admin, secretaria ou professor da turma (simplificado)
-    if current_user.perfil not in ['admin', 'secretaria', 'superadmin']:
+    if current_user.perfil not in ['admin', 'secretaria', 'superadmin']:  # type: ignore[comparison-overlap]
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Permissão negada para realizar chamada.")
     turma = crud_turma.get_turma(db, dados.turma_id, escola_id=escola_id)
     if not turma:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Turma não encontrada")
-    verify_resource_ownership(turma.escola_id, current_user, "turma")
+    verify_resource_ownership(turma.escola_id, current_user, "turma")  # type: ignore[arg-type]
     return crud_presenca.registrar_chamada(db, dados, escola_id)
 
 @router.get("/chamada/{turma_id}/{data}")
@@ -55,7 +55,7 @@ def finalizar_aula(
     current_user: models_user.Usuario = Depends(get_current_user),
     escola_id: int = Depends(require_escola_id)
 ):
-    if current_user.perfil != "professor":
+    if current_user.perfil != "professor":  # type: ignore[comparison-overlap]
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Apenas professores podem lançar diário.")
     horario = db.query(models_horario.Horario).filter(
         models_horario.Horario.id == dados.horario_id,
@@ -67,7 +67,7 @@ def finalizar_aula(
     novo_diario = models_diario.Diario(
         escola_id=escola_id,
         horario_id=dados.horario_id,
-        professor_id=current_user.id,
+        professor_id=current_user.id,  # type: ignore[arg-type]
         data=datetime.now().date(),
         resumo_aula=dados.resumo_aula,
         fechado=True

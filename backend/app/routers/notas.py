@@ -9,7 +9,8 @@ from app.db.database import get_db
 from app.security import get_current_user
 from app.schemas import schema_nota as schemas_nota
 from app.cruds import crud_nota, crud_aluno, crud_disciplina
-from app.models import usuario as models_user, disciplina as models_disciplina
+from app.models import usuario as models_user
+from app.models import disciplina as models_disciplina
 from app.security_decorators import (
     require_escola_id,
     verify_resource_ownership,
@@ -32,15 +33,15 @@ def lancar_nota(
     current_user: models_user.Usuario = Depends(get_current_user),  # Normalmente professor
     escola_id: int = Depends(require_escola_id)
 ):
-    # Verificar se o professor tem permissão (atribuição)
-    # (pode ser implementado no futuro)
+    # Verificar se o professor tem permissão (atribuição) – a implementar futuramente
     aluno = crud_aluno.get_aluno(db, aluno_id, escola_id=escola_id)
     if not aluno:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Aluno não encontrado")
-    verify_resource_ownership(aluno.escola_id, current_user, "aluno")
+    verify_resource_ownership(aluno.escola_id, current_user, "aluno")  # type: ignore[arg-type]
 
-    disciplina = crud_disciplina.get_disciplinas(db, escola_id=escola_id, skip=0, limit=1).filter(
-        models_disciplina.Disciplina.id == disciplina_id
+    disciplina = db.query(models_disciplina.Disciplina).filter(
+        models_disciplina.Disciplina.id == disciplina_id,
+        models_disciplina.Disciplina.escola_id == escola_id
     ).first()
     if not disciplina:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Disciplina não encontrada")
@@ -71,9 +72,11 @@ def read_notas_disciplina(
     db: Session = Depends(get_db),
     escola_id: Optional[int] = Depends(get_current_escola_id)
 ):
-    disciplina = crud_disciplina.get_disciplinas(db, escola_id=escola_id, skip=0, limit=1).filter(
-        models_disciplina.Disciplina.id == disciplina_id
-    ).first()
+    # Verificar se disciplina existe na escola
+    query = db.query(models_disciplina.Disciplina).filter(models_disciplina.Disciplina.id == disciplina_id)
+    if escola_id:
+        query = query.filter(models_disciplina.Disciplina.escola_id == escola_id)
+    disciplina = query.first()
     if not disciplina:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Disciplina não encontrada")
     return crud_nota.get_notas_by_disciplina(db, disciplina_id, escola_id=escola_id)

@@ -9,6 +9,7 @@ class AlunoBase(BaseModel):
     turma_id: Optional[int] = None
 
 class AlunoCreate(AlunoBase):
+    escola_id: Optional[int]  # Apenas superadmin precisa enviar isso
     ativo: bool = True  # Novo aluno é ativo por padrão
     
 class AlunoUpdate(BaseModel):

@@ -27,7 +27,7 @@ class Mensalidade(Base):
     
     # Auditoria (Quem fez o quê?)
     aluno_id = Column(Integer, ForeignKey("alunos.id", ondelete="CASCADE"), nullable=False, index=True)
-    escola_id = Column(Integer, ForeignKey("escolas.id"), ondelete="CASCADE", nullable=False, index=True) # Para garantir que cada mensalidade pertence a uma escola específica (multi-tenancy)
+    escola_id = Column(Integer, ForeignKey("escolas.id", ondelete="CASCADE"), nullable=False, index=True) # Para garantir que cada mensalidade pertence a uma escola específica (multi-tenancy)
     criado_por_id = Column(Integer, ForeignKey("usuarios.id"), nullable=False)
     pago_por_id = Column(Integer, ForeignKey("usuarios.id"), nullable=True)
     

@@ -18,7 +18,7 @@ class Usuario(Base):
     email = Column(String, unique=True, index=True, nullable=False)
     senha_hash = Column(String, nullable=False)
     
-    escola_id = Column(Integer, ForeignKey("escolas.id"), ondelete="CASCADE", nullable=True, index=True) # Pode ser Null para o Superadmin
+    escola_id = Column(Integer, ForeignKey("escolas.id", ondelete="CASCADE"), nullable=True, index=True) # Pode ser Null para o Superadmin
     
     escola = relationship("Escola", back_populates="usuarios")
     diarios = relationship("Diario", back_populates="professor")

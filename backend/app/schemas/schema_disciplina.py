@@ -1,6 +1,6 @@
 from pydantic import BaseModel, ConfigDict
 from datetime import datetime
-from typing import Optional  
+from typing import Optional
 
 class DisciplinaBase(BaseModel):
     nome: str
@@ -8,12 +8,12 @@ class DisciplinaBase(BaseModel):
     carga_horaria: int
 
 class DisciplinaCreate(DisciplinaBase):
-    pass
+    escola_id: Optional[int] = None  # ← ADICIONADO (apenas superadmin envia)
 
 class DisciplinaResponse(DisciplinaBase):
     id: int
     escola_id: int
-    created_at: datetime              # <--- Data de criação
-    updated_at: Optional[datetime] = None # <--- Data de atualização (pode ser nula)
+    created_at: datetime
+    updated_at: Optional[datetime] = None
 
     model_config = ConfigDict(from_attributes=True)

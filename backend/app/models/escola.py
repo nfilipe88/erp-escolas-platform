@@ -24,6 +24,7 @@ class Escola(Base):
     # 3. Auditoria (Quando foi criada/atualizada)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    
     alunos = relationship("Aluno", back_populates="escola", cascade="all, delete-orphan")
     turmas = relationship("Turma", back_populates="escola", cascade="all, delete-orphan")
     usuarios = relationship("Usuario", back_populates="escola", cascade="all, delete-orphan")

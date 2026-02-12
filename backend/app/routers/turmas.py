@@ -26,7 +26,7 @@ def criar_turma(
     db: Session = Depends(get_db),
     current_user: models_user.Usuario = Depends(admin_or_superadmin_required)
 ):
-    if current_user.perfil == "superadmin":
+    if current_user.perfil == "superadmin":  # type: ignore[comparison-overlap]
         if not turma.escola_id:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -34,7 +34,7 @@ def criar_turma(
             )
         escola_destino_id = turma.escola_id
     else:
-        if not current_user.escola_id:
+        if not current_user.escola_id:  # type: ignore[truthy-function]
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Utilizador sem escola associada."
@@ -95,7 +95,7 @@ def associar_disciplina(
     turma = crud_turma.get_turma(db, turma_id, escola_id=escola_id)
     if not turma:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Turma não encontrada")
-    verify_resource_ownership(turma.escola_id, current_user, "turma")
+    verify_resource_ownership(turma.escola_id, current_user, "turma")  # type: ignore[arg-type]
 
     disciplina = db.query(models_disciplina.Disciplina).filter(
         models_disciplina.Disciplina.id == disciplina_id,
@@ -121,7 +121,7 @@ def remover_disciplina(
     turma = crud_turma.get_turma(db, turma_id, escola_id=escola_id)
     if not turma:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Turma não encontrada")
-    verify_resource_ownership(turma.escola_id, current_user, "turma")
+    verify_resource_ownership(turma.escola_id, current_user, "turma")  # type: ignore[arg-type]
 
     disciplina = db.query(models_disciplina.Disciplina).filter(
         models_disciplina.Disciplina.id == disciplina_id,
@@ -159,7 +159,7 @@ def gerar_horario_automatico(
     turma = crud_turma.get_turma(db, turma_id, escola_id=escola_id)
     if not turma:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Turma não encontrada")
-    verify_resource_ownership(turma.escola_id, current_user, "turma")
+    verify_resource_ownership(turma.escola_id, current_user, "turma")  # type: ignore[arg-type]
     return crud_horario.gerar_grade_horaria(db, turma_id, escola_id)
 
 @router.get("/escolas/{escola_id}", response_model=List[schemas_turma.TurmaResponse])
@@ -168,6 +168,6 @@ def read_turmas_escola(
     db: Session = Depends(get_db),
     current_user: models_user.Usuario = Depends(get_current_user)
 ):
-    if current_user.perfil != "superadmin" and current_user.escola_id != escola_id:
+    if current_user.perfil != "superadmin" and current_user.escola_id != escola_id:  # type: ignore[comparison-overlap]
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Acesso negado.")
     return crud_turma.get_turmas_by_escola(db=db, escola_id=escola_id)

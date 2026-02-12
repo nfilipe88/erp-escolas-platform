@@ -14,7 +14,7 @@ class Diario(Base):
     
     horario_id = Column(Integer, ForeignKey("horarios.id"), nullable=False, index=True)
     professor_id = Column(Integer, ForeignKey("usuarios.id"), nullable=False, index=True)
-    escola_id = Column(Integer, ForeignKey("escolas.id"), ondelete="CASCADE", nullable=False, index=True) 
+    escola_id = Column(Integer, ForeignKey("escolas.id", ondelete="CASCADE"), nullable=False, index=True) 
     
     # Relações
     
