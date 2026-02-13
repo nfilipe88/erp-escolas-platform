@@ -1,8 +1,9 @@
 import os
+from typing import List
 from pathlib import Path
 from dotenv import load_dotenv
 from fastapi_mail import FastMail, MessageSchema, ConnectionConfig, MessageType
-from pydantic import SecretStr, EmailStr
+from pydantic import SecretStr, EmailStr, BaseModel
 
 # Carregar variáveis de ambiente
 env_path = Path(__file__).resolve().parent.parent.parent / ".env"
@@ -12,7 +13,8 @@ load_dotenv(dotenv_path=env_path)
 def get_env(key: str, default: str = "") -> str:
     return os.getenv(key) or default
 
-# Configuração
+# Configurações do Servidor SMTP
+# (Idealmente, coloca estes valores no teu ficheiro .env)
 conf = ConnectionConfig(
     MAIL_USERNAME = get_env("MAIL_USERNAME"),
     MAIL_PASSWORD = get_env("MAIL_PASSWORD"), # A lib converte auto para SecretStr, ou podes usar SecretStr(get_env(..))
@@ -25,6 +27,9 @@ conf = ConnectionConfig(
     USE_CREDENTIALS = True,
     VALIDATE_CERTS = True
 )
+
+class EmailSchema(BaseModel):
+    email: List[EmailStr]
 
 async def send_reset_password_email(email: str, token: str):
     link = f"http://localhost:4200/reset-senha?token={token}"
@@ -57,3 +62,41 @@ async def send_reset_password_email(email: str, token: str):
     
     fm = FastMail(conf)
     await fm.send_message(message)
+    
+async def enviar_email_recibo(destinatario: str, aluno_nome: str, valor: float, mes: str):
+    """
+    Envia um email formatado de recibo de pagamento.
+    """
+    
+    html_content = f"""
+    <div style="font-family: Arial, sans-serif; padding: 20px; border: 1px solid #e0e0e0; border-radius: 10px; max-width: 600px;">
+        <h2 style="color: #4338ca;">Comprovativo de Pagamento 🎓</h2>
+        <p>Prezado(a) Encarregado(a),</p>
+        <p>Confirmamos a receção do pagamento referente ao aluno <strong>{aluno_nome}</strong>.</p>
+        
+        <div style="background-color: #f3f4f6; padding: 15px; border-radius: 5px; margin: 20px 0;">
+            <p><strong>Descrição:</strong> {mes}</p>
+            <p><strong>Valor Pago:</strong> {valor:,.2f} Kz</p>
+            <p><strong>Data:</strong> Hoje</p>
+            <p><strong>Estado:</strong> <span style="color: green; font-weight: bold;">CONFIRMADO</span></p>
+        </div>
+
+        <p style="font-size: 12px; color: #6b7280;">Este é um email automático. Por favor, não responda.</p>
+        <p>Cumprimentos,<br><strong>A Direção da Escola</strong></p>
+    </div>
+    """
+
+    message = MessageSchema(
+        subject=f"Recibo de Pagamento - {aluno_nome}",
+        recipients=[destinatario],
+        body=html_content,
+        subtype=MessageType.html
+    )
+
+    fm = FastMail(conf)
+    
+    try:
+        await fm.send_message(message)
+        print(f"📧 Email enviado com sucesso para {destinatario}")
+    except Exception as e:
+        print(f"❌ Erro ao enviar email: {e}")
