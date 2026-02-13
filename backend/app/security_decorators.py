@@ -1,6 +1,11 @@
 """
-Decorators e Dependências de Segurança para Isolamento Multi‑tenant (SaaS)
-Garante que utilizadores acedam apenas dados da sua própria escola.
+🔐 SECURITY DECORATORS - MULTI-TENANT SAAS
+Funções e dependências para garantir isolamento de dados entre escolas.
+
+REGRAS DE OURO:
+1. NUNCA confiar em escola_id vindo do payload
+2. SEMPRE validar ownership antes de retornar dados
+3. Superadmin = acesso total, outros = apenas própria escola
 """
 from fastapi import Depends, HTTPException, status
 from typing import Optional
@@ -9,25 +14,26 @@ from app.models import usuario as models_user
 from app.security import get_current_user
 
 
-# ----------------------------------------------------------------------
+# ==============================================================================
 # DEPENDÊNCIAS PRINCIPAIS (para usar com Depends())
-# ----------------------------------------------------------------------
+# ==============================================================================
 
 def get_current_escola_id(
     current_user: models_user.Usuario = Depends(get_current_user)
 ) -> Optional[int]:
     """
     Retorna o ID da escola do utilizador autenticado.
-    - Superadmin → retorna `None` (significa "sem filtro", vê tudo).
-    - Outros perfis → retorna o `escola_id` do utilizador.
-    - Utilizador sem escola associada → HTTP 403.
-
-    Uso típico: filtros em listagens (GET /recursos).
+    
+    - Superadmin → None (sem filtro, vê tudo)
+    - Outros perfis → escola_id do utilizador
+    - Sem escola → HTTP 403
+    
+    USO: Filtros em listagens (GET /recursos)
     """
-    if current_user.perfil == "superadmin":
+    if current_user.perfil == "superadmin":  # type: ignore[comparison-overlap]
         return None
-
-    if not current_user.escola_id:
+    
+    if not current_user.escola_id:  # type: ignore[truthy-function]
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Utilizador não está associado a nenhuma escola."
@@ -39,20 +45,20 @@ def require_escola_id(
     current_user: models_user.Usuario = Depends(get_current_user)
 ) -> int:
     """
-    Exige que o utilizador tenha uma escola associada e retorna o ID.
-    - Superadmin **não pode** usar esta dependência (lança 400).
-    - Outros perfis: retorna `escola_id` ou lança 400 se não tiver.
-
-    Uso típico: rotas "minha-escola" (ex: /minha-escola/configuracoes),
-    onde a escola é implícita e o superadmin deve usar rotas explícitas.
+    EXIGE que o utilizador tenha escola associada e retorna o ID.
+    
+    - Superadmin → HTTP 400 (deve usar rotas explícitas)
+    - Outros → escola_id ou HTTP 400
+    
+    USO: Rotas "minha-escola" (ex: /configuracoes)
     """
-    if current_user.perfil == "superadmin":
+    if current_user.perfil == "superadmin":  # type: ignore[comparison-overlap]
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Superadmin deve especificar a escola explicitamente na requisição."
+            detail="Superadmin deve especificar a escola explicitamente."
         )
-
-    if not current_user.escola_id:
+    
+    if not current_user.escola_id:  # type: ignore[truthy-function]
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Utilizador não está associado a nenhuma escola."
@@ -60,18 +66,18 @@ def require_escola_id(
     return current_user.escola_id
 
 
-# ----------------------------------------------------------------------
-# DEPENDÊNCIAS DE PERFIL (alternativa aos decoradores removidos)
-# ----------------------------------------------------------------------
+# ==============================================================================
+# DEPENDÊNCIAS DE PERFIL
+# ==============================================================================
 
 async def superadmin_required(
     current_user: models_user.Usuario = Depends(get_current_user)
 ) -> models_user.Usuario:
-    """Permite acesso apenas a superadmin."""
-    if current_user.perfil != "superadmin":
+    """Permite acesso APENAS a superadmin."""
+    if current_user.perfil != "superadmin":  # type: ignore[comparison-overlap]
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Acesso negado. Apenas superadmin pode executar esta ação."
+            detail="Acesso negado. Apenas superadmin."
         )
     return current_user
 
@@ -79,18 +85,18 @@ async def superadmin_required(
 async def admin_or_superadmin_required(
     current_user: models_user.Usuario = Depends(get_current_user)
 ) -> models_user.Usuario:
-    """Permite acesso a administradores (admin da escola) e superadmin."""
-    if current_user.perfil not in ["admin", "superadmin"]:
+    """Permite acesso a admin (diretor) e superadmin."""
+    if current_user.perfil not in ["admin", "superadmin"]:  # type: ignore[comparison-overlap]
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Acesso negado. Apenas administradores ou superadmin podem executar esta ação."
+            detail="Acesso negado. Apenas administradores."
         )
     return current_user
 
 
-# ----------------------------------------------------------------------
-# FUNÇÕES AUXILIARES (para validação dentro de endpoints/CRUDs)
-# ----------------------------------------------------------------------
+# ==============================================================================
+# FUNÇÕES AUXILIARES DE VALIDAÇÃO
+# ==============================================================================
 
 def verify_school_access(
     escola_id: int,
@@ -98,18 +104,19 @@ def verify_school_access(
 ) -> None:
     """
     Verifica se o utilizador tem acesso à escola especificada.
-    - Superadmin: acesso total.
-    - Outros perfis: apenas se `escola_id == current_user.escola_id`.
-
+    
+    - Superadmin: acesso total
+    - Outros: apenas se escola_id == current_user.escola_id
+    
     Lança HTTPException se não autorizado.
     """
-    if current_user.perfil == "superadmin":
+    if current_user.perfil == "superadmin":  # type: ignore[comparison-overlap]
         return
-
-    if current_user.escola_id != escola_id:
+    
+    if current_user.escola_id != escola_id:  # type: ignore[comparison-overlap]
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail=f"Acesso negado. Você não tem permissão para aceder dados da escola {escola_id}."
+            detail=f"Acesso negado. Não tem permissão para aceder dados da escola {escola_id}."
         )
 
 
@@ -120,28 +127,18 @@ def verify_resource_ownership(
 ) -> None:
     """
     Verifica se um recurso pertence à escola do utilizador.
-    - Superadmin: sempre autorizado.
-    - Outros perfis: falha se `resource_escola_id != current_user.escola_id`.
+    
+    - Superadmin: sempre autorizado
+    - Outros: falha se resource_escola_id != current_user.escola_id
     """
-    if current_user.perfil == "superadmin":
+    if current_user.perfil == "superadmin":  # type: ignore[comparison-overlap]
         return
-
-    if current_user.escola_id != resource_escola_id:
+    
+    if current_user.escola_id != resource_escola_id:  # type: ignore[comparison-overlap]
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail=f"Acesso negado. Este {resource_name} não pertence à sua escola."
         )
-
-
-def require_same_school_or_superadmin(
-    target_escola_id: int,
-    current_user: models_user.Usuario
-) -> None:
-    """
-    Valida que o utilizador está a aceder à sua própria escola ou é superadmin.
-    Equivalente a `verify_school_access`.
-    """
-    verify_school_access(target_escola_id, current_user)
 
 
 def can_modify_user(
@@ -150,33 +147,72 @@ def can_modify_user(
 ) -> None:
     """
     Verifica se o utilizador atual pode modificar outro utilizador.
-
-    Regras:
-    - Superadmin: pode modificar qualquer um.
+    
+    REGRAS:
+    - Superadmin: pode modificar qualquer um
     - Admin da escola: pode modificar utilizadores da mesma escola,
-        exceto outros administradores ou superadmins.
-    - Outros perfis: proibido.
+      EXCETO outros admins ou superadmins
+    - Outros perfis: proibido
     """
     # Superadmin pode tudo
-    if current_user.perfil == "superadmin":
+    if current_user.perfil == "superadmin":  # type: ignore[comparison-overlap]
         return
-
+    
     # Admin da escola
-    if current_user.perfil == "admin":
-        if target_user.escola_id != current_user.escola_id:
+    if current_user.perfil == "admin":  # type: ignore[comparison-overlap]
+        if target_user.escola_id != current_user.escola_id:  # type: ignore[comparison-overlap]
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Só pode modificar utilizadores da sua escola."
             )
-        if target_user.perfil in ["admin", "superadmin"]:
+        if target_user.perfil in ["admin", "superadmin"]:  # type: ignore[comparison-overlap]
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Não pode modificar administradores ou superadmins."
             )
         return
-
+    
     # Qualquer outro perfil
     raise HTTPException(
         status_code=status.HTTP_403_FORBIDDEN,
         detail="Não tem permissão para modificar utilizadores."
     )
+
+
+# ==============================================================================
+# UTILITÁRIO: DETERMINAR ESCOLA DESTINO EM CRIAÇÕES
+# ==============================================================================
+
+def get_target_escola_id(
+    current_user: models_user.Usuario,
+    payload_escola_id: Optional[int] = None,
+    resource_type: str = "recurso"
+) -> int:
+    """
+    Determina qual escola_id usar na criação de recursos.
+    
+    LÓGICA:
+    - Superadmin: DEVE fornecer escola_id no payload (obrigatório)
+    - Outros perfis: USA automaticamente current_user.escola_id
+    
+    Returns:
+        int: ID da escola destino
+    
+    Raises:
+        HTTPException: Se superadmin não forneceu escola_id OU
+                       se utilizador não tem escola associada
+    """
+    if current_user.perfil == "superadmin":  # type: ignore[comparison-overlap]
+        if not payload_escola_id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Superadmin deve informar 'escola_id' ao criar {resource_type}."
+            )
+        return payload_escola_id
+    else:
+        if not current_user.escola_id:  # type: ignore[truthy-function]
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Utilizador não está associado a nenhuma escola."
+            )
+        return current_user.escola_id
