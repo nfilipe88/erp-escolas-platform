@@ -1,12 +1,10 @@
 import { HttpClient } from '@angular/common/http';
-import { inject, Injectable, signal } from '@angular/core'; // Usaremos signals para reatividade
+import { inject, Injectable, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { Observable, tap } from 'rxjs';
 import { environment } from '../../environments/environment.development';
 
-@Injectable({
-  providedIn: 'root'
-})
+@Injectable({ providedIn: 'root' })
 export class AuthService {
   private http = inject(HttpClient);
   private router = inject(Router);
@@ -25,11 +23,11 @@ export class AuthService {
 
     return this.http.post<any>(`${this.apiUrl}/auth/login`, formData).pipe(
       tap(response => {
-        console.log('Resposta do login:', response); // DEBUG
         localStorage.setItem('access_token', response.access_token);
         localStorage.setItem('user_nome', response.nome);
         localStorage.setItem('user_perfil', response.perfil);
-        localStorage.setItem('user_escola_id', response.escola_id);
+        // ✅ Guarda 'null' como string e trata na leitura
+        localStorage.setItem('user_escola_id', response.escola_id ?? 'null');
 
         this.currentUser.set({
           nome: response.nome,
@@ -43,13 +41,16 @@ export class AuthService {
   getUsuarioLogado() {
     const nome = localStorage.getItem('user_nome');
     const perfil = localStorage.getItem('user_perfil');
-    const escola_id = localStorage.getItem('user_escola_id');
+    const escolaId = localStorage.getItem('user_escola_id');
 
     if (nome && perfil) {
       return {
         nome,
         perfil,
-        escola_id: escola_id ? parseInt(escola_id) : null
+        // ✅ Trata 'null' / 'undefined' / vazio
+        escola_id: escolaId && escolaId !== 'null' && escolaId !== 'undefined'
+          ? parseInt(escolaId, 10)
+          : null
       };
     }
     return null;
@@ -66,9 +67,9 @@ export class AuthService {
 
   verificarLogin() {
     const token = localStorage.getItem('access_token');
-    const nome = localStorage.getItem('user_nome');
-    if (token && nome) {
-      this.currentUser.set({ nome: nome });
+    const user = this.getUsuarioLogado();
+    if (token && user) {
+      this.currentUser.set(user);
     }
   }
 
@@ -83,12 +84,10 @@ export class AuthService {
     });
   }
 
-  // Pedir o email
   esqueciSenha(email: string): Observable<any> {
     return this.http.post(`${this.apiUrl}/auth/esqueci-senha`, { email });
   }
 
-  // Enviar a nova senha com o token
   resetSenha(token: string, novaSenha: string): Observable<any> {
     return this.http.post(`${this.apiUrl}/auth/reset-senha`, {
       token: token,

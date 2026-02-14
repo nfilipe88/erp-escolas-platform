@@ -11,7 +11,7 @@ export interface Escola {
   endereco?: string;
   telefone?: string; // Adicionado
   email?: string;    // Adicionado
-  is_ative:boolean;
+  is_active:boolean;
 }
 
 // --- NOVA INTERFACE ---

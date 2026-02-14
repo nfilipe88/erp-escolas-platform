@@ -8,43 +8,41 @@ export interface Atribuicao {
   turma_id: number;
   disciplina_id: number;
   professor_id: number;
-
-  // Campos "bonitos" que vêm do Backend
   turma_nome: string;
   disciplina_nome: string;
   professor_nome: string;
 }
 
+// ✅ Permite null (para o formulário)
 export interface AtribuicaoCreate {
-  turma_id: number;
-  disciplina_id: number;
-  professor_id: number;
+  escola_id?: number;
+  turma_id: number | null;
+  disciplina_id: number | null;
+  professor_id: number | null;
 }
 
-@Injectable({
-  providedIn: 'root'
-})
+@Injectable({ providedIn: 'root' })
 export class AtribuicaoService {
   private http = inject(HttpClient);
   private apiUrl = environment.apiUrl;
 
-  // 1. Listar todas as atribuições da escola
   getAtribuicoes(): Observable<Atribuicao[]> {
     return this.http.get<Atribuicao[]>(`${this.apiUrl}/atribuicoes/`);
   }
 
-  // 2. Criar nova atribuição (Ligar Professor a Turma/Disciplina)
   criar(dados: AtribuicaoCreate): Observable<Atribuicao> {
     return this.http.post<Atribuicao>(`${this.apiUrl}/atribuicoes/`, dados);
   }
 
-  // 3. Remover atribuição
   remover(id: number): Observable<any> {
     return this.http.delete(`${this.apiUrl}/atribuicoes/${id}`);
   }
 
-  // 4. Buscar apenas lista de professores (Helper)
   getProfessores(): Observable<any[]> {
     return this.http.get<any[]>(`${this.apiUrl}/usuarios/professores`);
+  }
+
+  getMinhasAulas(): Observable<any[]> {
+    return this.http.get<any[]>(`${this.apiUrl}/horarios/minhas-aulas`);
   }
 }

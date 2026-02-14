@@ -8,52 +8,38 @@ export interface PresencaItem {
   presente: boolean;
   justificado: boolean;
   observacao?: string;
-  // Campos auxiliares para a tela (nomes)
   aluno_nome?: string;
 }
 
 export interface ChamadaDiaria {
   turma_id: number;
-  data: string; // Formato YYYY-MM-DD
+  data: string;
   lista_alunos: PresencaItem[];
 }
 
-@Injectable({
-  providedIn: 'root'
-})
+@Injectable({ providedIn: 'root' })
 export class PresencaService {
   private http = inject(HttpClient);
   private apiUrl = environment.apiUrl;
 
-  // 1. Salvar a chamada
-    registar(payload: any): Observable<any> {
-      return this.http.post(`${this.apiUrl}/presencas/`, payload);
-    }
-
-  // 2. Ler a chamada de um dia (para ver se já foi feita)
-  lerChamada(turmaId: number, data: string): Observable<PresencaItem[]> {
-    return this.http.get<PresencaItem[]>(`${this.apiUrl}/presencas/turma/${turmaId}?data=${data}`);
+  // ✅ CORRIGIDO: endpoint correto é /presencas/chamada
+  registarChamada(chamada: ChamadaDiaria): Observable<any> {
+    return this.http.post(`${this.apiUrl}/presencas/chamada`, chamada);
   }
 
-  // consultar(turmaId: number, data: string): Observable<any[]> {
-  //   return this.http.get<any[]>(`${this.apiUrl}/presencas/${turmaId}/${data}`);
-  // }
-
-  consultar(turmaId: number, data: string): Observable<any[]> {
-    const url = `${this.apiUrl}/presencas/${turmaId}/${data}`;
-    console.log('Consultando presenças:', url); // Debug
-    return this.http.get<any[]>(url);
+  // ✅ CORRIGIDO: GET /presencas/chamada/{turma_id}/{data}
+  consultarChamada(turmaId: number, data: string): Observable<any[]> {
+    return this.http.get<any[]>(`${this.apiUrl}/presencas/chamada/${turmaId}/${data}`);
   }
 
-  // --- MÉTODOS PARA PROFESSORES (Refatorização) ---
+  // ❌ REMOVIDO: método lerChamada (redundante)
 
-  // 1. Buscar lista de presença do dia
+  // --- Ponto dos Professores (com prefixo /presencas) ---
   getPontoProfessores(data: string): Observable<any[]> {
-    return this.http.get<any[]>(`${this.apiUrl}/ponto-professores/${data}`);
+    return this.http.get<any[]>(`${this.apiUrl}/presencas/ponto-professores/${data}`);
   }
 
-  // 2. Salvar lista de presença
-  salvarPontoProfessores(payload: { data: string, lista: any[] }): Observable<any> {
-    return this.http.post(`${this.apiUrl}/ponto-professores/`, payload);
+  salvarPontoProfessores(payload: { data: string; lista: any[] }): Observable<any> {
+    return this.http.post(`${this.apiUrl}/presencas/ponto-professores/`, payload);
   }
 }

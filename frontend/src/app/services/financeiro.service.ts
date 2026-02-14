@@ -5,58 +5,56 @@ import { environment } from '../../environments/environment.development';
 
 export interface Mensalidade {
   id: number;
-  descricao: string; // Ex: "Mensalidade - Setembro 2024"
+  descricao: string;
   mes: string;
   ano: number;
   valor_base: number;
-  data_vencimento: string; // Nova data limite
-  estado: string; // 'Pendente', 'Pago', 'Atrasado', 'Cancelado'
+  data_vencimento: string;
+  estado: string;
   data_pagamento?: string;
   forma_pagamento?: string;
   aluno_id: number;
-  pago_por_id?: number; // Auditoria: quem recebeu o dinheiro
+  pago_por_id?: number;
 }
 
-@Injectable({
-  providedIn: 'root',
-})
+@Injectable({ providedIn: 'root' })
 export class FinanceiroService {
   private http = inject(HttpClient);
   private apiUrl = environment.apiUrl;
 
-  // 1. Busca o extrato do aluno
+  // ✅ CORRIGIDO
   getMensalidades(alunoId: number): Observable<Mensalidade[]> {
-    return this.http.get<Mensalidade[]>(`${this.apiUrl}/alunos/${alunoId}/financeiro`);
+    return this.http.get<Mensalidade[]>(`${this.apiUrl}/financeiro/aluno/${alunoId}`);
   }
 
-  // 2. Gera o carnet anual (Agora é Inteligente e usa os dados do Backend)
+  // ✅ CORRIGIDO
   gerarCarnet(alunoId: number, ano: number): Observable<Mensalidade[]> {
     return this.http.post<Mensalidade[]>(
-      `${this.apiUrl}/alunos/${alunoId}/financeiro/gerar?ano=${ano}`,
+      `${this.apiUrl}/financeiro/gerar-carnet/${alunoId}?ano=${ano}`,
       {}
     );
   }
 
-  // 3. Pagar uma mensalidade
+  // ✅ CORRETO
   pagar(mensalidadeId: number, dados: any): Observable<any> {
     return this.http.put(`${this.apiUrl}/financeiro/${mensalidadeId}/pagar`, dados);
   }
 
-  // 4. Buscar Recibo Único
+  // ✅ CORRETO
   getMensalidadeById(id: number): Observable<Mensalidade> {
     return this.http.get<Mensalidade>(`${this.apiUrl}/financeiro/${id}`);
   }
 
-  // MÉTODOS DE RELATÓRIO FINANCEIRO
+  // ✅ CORRIGIDO (relatórios)
   getResumoFinanceiro(): Observable<any> {
-    return this.http.get(`${this.apiUrl}/financeiro/resumo`);
+    return this.http.get(`${this.apiUrl}/financeiro/relatorios/resumo`);
   }
 
   getFluxoCaixa(): Observable<any[]> {
-    return this.http.get<any[]>(`${this.apiUrl}/financeiro/fluxo`);
+    return this.http.get<any[]>(`${this.apiUrl}/financeiro/relatorios/fluxo`);
   }
 
   getDevedores(): Observable<any[]> {
-    return this.http.get<any[]>(`${this.apiUrl}/financeiro/devedores`);
+    return this.http.get<any[]>(`${this.apiUrl}/financeiro/relatorios/devedores`);
   }
 }

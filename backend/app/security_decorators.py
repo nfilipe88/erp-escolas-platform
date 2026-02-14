@@ -216,3 +216,24 @@ def get_target_escola_id(
                 detail="Utilizador não está associado a nenhuma escola."
             )
         return current_user.escola_id
+    
+def check_permission(required_permissions: list):
+    """
+    Decorator para verificar se o utilizador atual tem permissões necessárias.
+    """
+    def decorator(func):
+        def wrapper(*args, **kwargs):
+            current_user = kwargs.get("current_user")
+            if not current_user:
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Utilizador não autenticado."
+                )
+            if current_user.perfil not in required_permissions:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail=f"Permissão necessária: {required_permissions}"
+                )
+            return func(*args, **kwargs)
+        return wrapper
+    return decorator

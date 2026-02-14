@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List
 
@@ -41,24 +41,6 @@ def ver_financeiro_aluno(
     if not aluno:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Aluno não encontrado")
     return crud_mensalidade.get_mensalidades_aluno(db, aluno_id, escola_id=escola_id)
-
-@router.put("/{mensalidade_id}/pagar", response_model=schemas_fin.MensalidadeResponse)
-def pagar_mensalidade(
-    mensalidade_id: int,
-    dados_pagamento: schemas_fin.MensalidadePagar,
-    db: Session = Depends(get_db),
-    current_user: models_user.Usuario = Depends(get_current_user),
-    escola_id: int = Depends(require_escola_id)
-):
-    mensalidade = crud_mensalidade.get_mensalidade(db, mensalidade_id, escola_id=escola_id)
-    if not mensalidade:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Mensalidade não encontrada")
-    verify_resource_ownership(mensalidade.escola_id, current_user, "mensalidade")  # type: ignore[arg-type]
-    return crud_mensalidade.pagar_mensalidade(
-        db, mensalidade_id, dados_pagamento,
-        pago_por_id=current_user.id,  # type: ignore[arg-type]
-        escola_id=escola_id
-    )
 
 @router.get("/{mensalidade_id}", response_model=schemas_fin.MensalidadeResponse)
 def get_recibo(

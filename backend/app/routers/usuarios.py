@@ -14,6 +14,8 @@ from app.security_decorators import (
     admin_or_superadmin_required,
     can_modify_user
 )
+from app.schemas import schema_notificacao
+from app.cruds import crud_notificacao
 
 router = APIRouter(tags=["Usuários"])
 
@@ -133,3 +135,10 @@ def deletar_usuario(
     db.delete(user)
     db.commit()
     return None
+
+@router.get("/me/notificacoes", response_model=list[schema_notificacao.NotificacaoResponse])
+def minhas_notificacoes(
+    db: Session = Depends(get_db),
+    current_user: models_user.Usuario = Depends(get_current_user)
+):
+    return crud_notificacao.listar_minhas_notificacoes(db, current_user.id)

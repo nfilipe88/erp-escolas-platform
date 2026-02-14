@@ -1,8 +1,8 @@
 import { Component, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { HorarioService } from '../../services/horario.service';
-import { FormsModule } from '@angular/forms';
 
 @Component({
   selector: 'app-professor-aulas',
@@ -11,63 +11,62 @@ import { FormsModule } from '@angular/forms';
   templateUrl: './professor-aulas.html'
 })
 export class ProfessorAulas implements OnInit {
-  horarioService = inject(HorarioService);
-  router = inject(Router);
+  private horarioService = inject(HorarioService);
+  private router = inject(Router);
 
   aulasHoje: any[] = [];
-  loading = true; // Para mostrar feedback visual
+  loading = true;
+  dataHoje = new Date(); // ← necessário no template
 
-  // Controlo de Modal Fechar Aula
+  // Controlo do modal de fecho
   aulaParaFechar: any = null;
-  resumoAula: string = '';
+  resumoAula = '';
 
   ngOnInit() {
-    this.carregarMinhasAulas();
+    this.carregarAulas();
   }
 
-  // IMPLEMENTAÇÃO REAL (Backend-First)
-  carregarMinhasAulas() {
+  carregarAulas() {
     this.loading = true;
-
-    // Chama a rota dedicada que criámos no Backend
     this.horarioService.getMeuHorarioHoje().subscribe({
       next: (dados) => {
         this.aulasHoje = dados;
         this.loading = false;
-
-        if (dados.length === 0) {
-          console.log('Sem aulas para hoje.');
-        }
       },
       error: (err) => {
-        console.error('Erro ao carregar horário', err);
+        console.error('Erro ao carregar aulas:', err);
         this.loading = false;
-        alert('Não foi possível carregar as suas aulas.');
+        alert('Não foi possível carregar as suas aulas. Tente novamente.');
       }
     });
   }
 
-  // Validação Real de Tempo (Chama o Backend)
-  tentarFazerChamada(aula: any) {
+  fazerChamada(aula: any) {
+    // Antes de navegar, valida se o professor pode fazer chamada agora
     this.horarioService.validarTempo(aula.id).subscribe({
       next: (res) => {
         if (res.pode) {
-          // Navega para a chamada real passando o ID da turma
+          // Redireciona para a página de chamada da turma
           this.router.navigate(['/chamada', aula.turma_id]);
         } else {
-          alert(`🚫 Acesso Negado: ${res.msg}`);
+          alert(`⏰ Acesso negado: ${res.msg}`);
         }
       },
-      error: () => alert('Erro técnico ao validar horário.')
+      error: () => alert('Erro ao validar horário.')
     });
   }
 
-  abrirFecharAula(aula: any) {
+  abrirModalFechar(aula: any) {
     this.aulaParaFechar = aula;
     this.resumoAula = '';
   }
 
-  confirmarFecho() {
+  cancelarFecho() {
+    this.aulaParaFechar = null;
+    this.resumoAula = '';
+  }
+
+  confirmarFechoAula() {
     if (!this.resumoAula.trim()) {
       alert('Por favor, escreva um resumo da aula.');
       return;
@@ -78,12 +77,15 @@ export class ProfessorAulas implements OnInit {
       resumo_aula: this.resumoAula
     }).subscribe({
       next: () => {
-        alert('Aula terminada e diário enviado com sucesso! 📜');
-        this.aulaParaFechar = null;
-        // Recarregar para atualizar estado ou remover da lista
-        // (Dependendo da tua lógica, podes querer esconder a aula fechada)
+        alert('✅ Diário fechado com sucesso!');
+        this.cancelarFecho();
+        // Opcional: recarregar a lista para remover a aula fechada (se o backend retornar só não fechadas)
+        this.carregarAulas();
       },
-      error: () => alert('Erro ao enviar diário.')
+      error: (err) => {
+        console.error('Erro ao fechar diário:', err);
+        alert('Erro ao fechar diário. Tente novamente.');
+      }
     });
   }
 }

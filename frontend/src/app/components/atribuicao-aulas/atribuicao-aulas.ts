@@ -16,19 +16,16 @@ export class AtribuicaoAulas implements OnInit {
   private turmaService = inject(TurmaService);
   private disciplinaService = inject(DisciplinaService);
 
-  // Listas para os Selects
   turmas: any[] = [];
   disciplinas: any[] = [];
   professores: any[] = [];
 
-  // Lista da Tabela
   atribuicoes: Atribuicao[] = [];
 
-  // Formulário
   novo: AtribuicaoCreate = {
-    turma_id: 0,
-    disciplina_id: 0,
-    professor_id: 0
+    turma_id: null,
+    disciplina_id: null,
+    professor_id: null
   };
 
   ngOnInit() {
@@ -47,13 +44,11 @@ export class AtribuicaoAulas implements OnInit {
   }
 
   salvar() {
-    // Validação simples
-    if (this.novo.turma_id == 0 || this.novo.disciplina_id == 0 || this.novo.professor_id == 0) {
+    if (!this.novo.turma_id || !this.novo.disciplina_id || !this.novo.professor_id) {
       alert('Selecione Turma, Disciplina e Professor!');
       return;
     }
 
-    // Converter para número (o HTML às vezes manda string)
     const payload = {
       turma_id: Number(this.novo.turma_id),
       disciplina_id: Number(this.novo.disciplina_id),
@@ -61,21 +56,18 @@ export class AtribuicaoAulas implements OnInit {
     };
 
     this.atribuicaoService.criar(payload).subscribe({
-      next: (res) => {
-        // Adiciona à lista localmente para não ter de recarregar tudo
-        // (Ou podes chamar carregarAtribuicoes() de novo)
+      next: () => {
         this.carregarAtribuicoes();
-
         alert('Professor atribuído com sucesso!');
-        // Reset simples dos campos
-        this.novo.disciplina_id = 0;
+        // ✅ Limpar todos os campos
+        this.novo = { turma_id: null, disciplina_id: null, professor_id: null };
       },
       error: (err) => alert('Erro ao atribuir. Verifique se já existe professor para esta disciplina nesta turma.')
     });
   }
 
   remover(id: number) {
-    if(confirm('Tem a certeza que quer remover este professor desta disciplina?')) {
+    if (confirm('Tem a certeza que quer remover este professor desta disciplina?')) {
       this.atribuicaoService.remover(id).subscribe(() => {
         this.atribuicoes = this.atribuicoes.filter(a => a.id !== id);
       });

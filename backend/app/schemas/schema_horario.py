@@ -4,12 +4,11 @@ from typing import Optional
 
 class HorarioCreate(BaseModel):
     turma_id: int
-    disciplina_id: int
-    professor_id: int
+    disciplina_id: Optional[int] = None
+    professor_id: Optional[int] = None
     dia_semana: int
     hora_inicio: time
     hora_fim: time
-    # escola_id será injetado
 
 class HorarioResponse(HorarioCreate):
     id: int

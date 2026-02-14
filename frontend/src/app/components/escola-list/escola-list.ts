@@ -16,7 +16,7 @@ export class EscolaList implements OnInit {
 
   ngOnInit() {
     this.escolaService.getEscolas().subscribe(dados => {
-      this.escolas = dados,
+      this.escolas = dados;
       this.cdr.detectChanges();
     });
   }

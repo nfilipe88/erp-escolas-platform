@@ -6,13 +6,12 @@
   </div>
 
   <div class="bg-gray-50 p-6 rounded-lg border border-gray-200 mb-8 grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
-
     <div>
       <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Turma</label>
       <select [(ngModel)]="novo.turma_id" class="w-full p-2 border rounded font-bold text-gray-700">
-        <option [value]="0">-- Selecione --</option>
+        <option [ngValue]="null">-- Selecione --</option>
         @for (t of turmas; track t.id) {
-          <option [value]="t.id">{{ t.nome }} ({{ t.ano_letivo }})</option>
+          <option [ngValue]="t.id">{{ t.nome }} ({{ t.ano_letivo }})</option>
         }
       </select>
     </div>
@@ -20,9 +19,9 @@
     <div>
       <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Disciplina</label>
       <select [(ngModel)]="novo.disciplina_id" class="w-full p-2 border rounded font-bold text-gray-700">
-        <option [value]="0">-- Selecione --</option>
+        <option [ngValue]="null">-- Selecione --</option>
         @for (d of disciplinas; track d.id) {
-          <option [value]="d.id">{{ d.nome }}</option>
+          <option [ngValue]="d.id">{{ d.nome }}</option>
         }
       </select>
     </div>
@@ -30,9 +29,9 @@
     <div>
       <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Professor Titular</label>
       <select [(ngModel)]="novo.professor_id" class="w-full p-2 border rounded font-bold text-gray-700">
-        <option [value]="0">-- Selecione --</option>
+        <option [ngValue]="null">-- Selecione --</option>
         @for (p of professores; track p.id) {
-          <option [value]="p.id">{{ p.nome }}</option>
+          <option [ngValue]="p.id">{{ p.nome }}</option>
         }
       </select>
     </div>

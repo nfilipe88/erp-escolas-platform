@@ -16,8 +16,6 @@ class Diario(Base):
     professor_id = Column(Integer, ForeignKey("usuarios.id"), nullable=False, index=True)
     escola_id = Column(Integer, ForeignKey("escolas.id", ondelete="CASCADE"), nullable=False, index=True) 
     
-    # Relações
-    
     # Relacionamentos
     escola = relationship("Escola", back_populates="diarios")
     horario = relationship("Horario", back_populates="diarios")

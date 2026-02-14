@@ -5,7 +5,7 @@ import { environment } from '../../environments/environment.development';
 
 export interface HorarioSlot {
   id: number;
-  dia_semana: number; // 0=Segunda ... 4=Sexta
+  dia_semana: number;
   hora_inicio: string;
   hora_fim: string;
   disciplina_id?: number;
@@ -14,40 +14,40 @@ export interface HorarioSlot {
   professor_nome?: string;
 }
 
-@Injectable({
-  providedIn: 'root'
-})
+@Injectable({ providedIn: 'root' })
 export class HorarioService {
   private http = inject(HttpClient);
   private apiUrl = environment.apiUrl;
 
-  // 6. Rota Rápida: Aulas de Hoje do Professor Logado
+  // ✅ CORRIGIDO (prefixo /horarios)
   getMeuHorarioHoje(): Observable<any[]> {
-    return this.http.get<any[]>(`${this.apiUrl}/meus-horarios-hoje`);
+    return this.http.get<any[]>(`${this.apiUrl}/horarios/meus-horarios-hoje`);
   }
 
-  // 1. Obter Horário da Turma
+  // ✅ CORRETO
   getHorarioTurma(turmaId: number): Observable<HorarioSlot[]> {
     return this.http.get<HorarioSlot[]>(`${this.apiUrl}/turmas/${turmaId}/horario`);
   }
 
-  // 2. Gerar Grade Automática (Vazia)
+  // ✅ CORRETO
   gerarAutomatico(turmaId: number): Observable<any> {
     return this.http.post(`${this.apiUrl}/turmas/${turmaId}/horario/gerar`, {});
   }
 
-  // 3. Atualizar um Slot (Definir Prof/Disciplina)
+  // ✅ CORRETO
   atualizarSlot(id: number, dados: any): Observable<any> {
     return this.http.put(`${this.apiUrl}/horarios/${id}`, dados);
   }
 
-  // 4. Validar se Professor pode dar aula AGORA
-  validarTempo(horarioId: number): Observable<{pode: boolean, msg: string}> {
-    return this.http.get<{pode: boolean, msg: string}>(`${this.apiUrl}/horarios/${horarioId}/validar-tempo`);
+  // ✅ CORRETO
+  validarTempo(horarioId: number): Observable<{ pode: boolean; msg: string }> {
+    return this.http.get<{ pode: boolean; msg: string }>(
+      `${this.apiUrl}/horarios/${horarioId}/validar-tempo`
+    );
   }
 
-  // 5. Fechar o Diário (Finalizar Aula)
-  fecharDiario(dados: {horario_id: number, resumo_aula: string}): Observable<any> {
-    return this.http.post(`${this.apiUrl}/diarios/fechar`, dados);
+  // ✅ CORRIGIDO (endpoint real no backend)
+  fecharDiario(dados: { horario_id: number; resumo_aula: string }): Observable<any> {
+    return this.http.post(`${this.apiUrl}/presencas/diario`, dados);
   }
 }

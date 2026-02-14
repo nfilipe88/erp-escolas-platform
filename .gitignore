@@ -1,6 +1,7 @@
 # ============================================
 # PYTHON / BACKEND
 # ============================================
+/backend/__pycache__
 __pycache__/
 *.py[cod]
 *$py.class
@@ -24,14 +25,14 @@ wheels/
 
 # Virtual Environment
 venv/
-ENV/
 env/
 .venv
 
 # ============================================
 # ARQUIVOS SENSÍVEIS (NUNCA COMMITAR!)
 # ============================================
-.env
+/backend/.env
+/backend/venv
 .env.local
 .env.*.local
 *.log

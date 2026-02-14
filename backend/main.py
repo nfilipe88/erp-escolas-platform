@@ -8,10 +8,14 @@ from fastapi import FastAPI, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi import FastAPI, Request
 
-from app.routers import auth, alunos, usuarios, escolas, turmas, disciplinas, notas, dashboard, horarios, presenca, financeiro, atribuicoes
+from app.routers import (auth, alunos, usuarios, escolas, turmas, disciplinas, 
+                         notas, dashboard, horarios, presenca, financeiro, 
+                         atribuicoes, mensalidade)
+from app.db.database import Base
+from app.db import database
 # Criar tabelas (apenas para desenvolvimento)
 # Note: Use Alembic migrations instead of create_all with async engines
-# models.Base.metadata.create_all(bind=database.engine)
+Base.metadata.create_all(bind=database.engine)
 
 # Cria a pasta 'uploads' se ela não existir
 UPLOAD_DIR = "uploads"
@@ -59,17 +63,18 @@ app.add_middleware(
 
 # 1. Rota para CRIAR O PRIMEIRO UTILIZADOR (Registo)
 app.include_router(auth.router)
-app.include_router(dashboard.router)
-app.include_router(escolas.router)
-app.include_router(usuarios.router)
 app.include_router(alunos.router)
-app.include_router(turmas.router)
-app.include_router(disciplinas.router)
-app.include_router(horarios.router)
-app.include_router(presenca.router)
-app.include_router(notas.router)
-app.include_router(financeiro.router)
 app.include_router(atribuicoes.router)
+app.include_router(dashboard.router)
+app.include_router(disciplinas.router)
+app.include_router(escolas.router)
+app.include_router(financeiro.router)
+app.include_router(horarios.router)
+app.include_router(mensalidade.router)
+app.include_router(notas.router)
+app.include_router(presenca.router)
+app.include_router(turmas.router)
+app.include_router(usuarios.router)
 
 
 @app.get("/")

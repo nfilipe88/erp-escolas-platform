@@ -8,6 +8,7 @@ export interface Disciplina {
   nome: string;
   codigo: string;
   carga_horaria: number;
+  escola_id?: number;   // ← ADICIONADO (opcional, só para superadmin)
 }
 
 @Injectable({ providedIn: 'root' })

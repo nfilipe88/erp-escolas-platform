@@ -15,9 +15,7 @@ export class AlunoBoletim implements OnInit {
   private alunoService = inject(AlunoService);
   private pdfService = inject(PdfService);
 
-  // CORREÇÃO: Inicializa como null, pois é um único objeto, não uma lista array
   boletim = signal<Boletim | null>(null);
-
   dataHoje = new Date();
   trimestres = ['1º Trimestre', '2º Trimestre', '3º Trimestre'];
 
@@ -25,38 +23,30 @@ export class AlunoBoletim implements OnInit {
     const id = this.route.snapshot.paramMap.get('id');
     if (id) {
       this.alunoService.getBoletim(Number(id)).subscribe(dados => {
-        // CORREÇÃO: Agora o tipo bate certo (Boletim)
         this.boletim.set(dados);
       });
     }
   }
 
-  // Retorna string formatada para o HTML
   getNota(notas: any[], trimestre: string): string {
     const nota = notas.find(n => n.trimestre === trimestre);
     return nota && nota.valor !== null ? nota.valor.toFixed(1) : '-';
   }
 
-  // Retorna número puro para lógica de cores
   getValorNota(notas: any[], trimestre: string): number | null {
     const nota = notas.find(n => n.trimestre === trimestre);
     return nota ? nota.valor : null;
   }
 
   calcularMediaGeral(): number {
-    const dados = this.boletim(); // CORREÇÃO: Acede ao valor do signal
+    const dados = this.boletim();
     if (!dados || !dados.linhas.length) return 0;
-
-    const linhasValidas = dados.linhas.filter(l => l.media_provisoria > 0);
-
-    if (linhasValidas.length === 0) return 0;
-
-    const soma = linhasValidas.reduce((acc, curr) => acc + curr.media_provisoria, 0);
-    return soma / linhasValidas.length;
+    const soma = dados.linhas.reduce((acc, linha) => acc + (linha.media_provisoria || 0), 0);
+    return dados.linhas.length ? soma / dados.linhas.length : 0;
   }
 
   imprimir() {
-    const dados = this.boletim(); // CORREÇÃO: Acede ao valor do signal
+    const dados = this.boletim();
     if (dados) {
       const nomeArquivo = `Boletim_${dados.aluno_nome}`;
       this.pdfService.gerarPDF('conteudo-boletim', nomeArquivo);

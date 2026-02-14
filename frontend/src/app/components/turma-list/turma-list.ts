@@ -19,8 +19,8 @@ export class TurmaList implements OnInit {
   }
 
   carregarTurmas() {
-    // Busca turmas da Escola ID 1
-    this.turmaService.getTurmas(1).subscribe(dados => {
+    // ✅ Chama sem parâmetro – o backend filtra automaticamente
+    this.turmaService.getTurmas().subscribe(dados => {
       this.turmas = dados;
       this.cdr.detectChanges();
     });

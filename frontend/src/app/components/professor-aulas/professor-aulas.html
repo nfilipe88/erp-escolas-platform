@@ -1,1 +1,84 @@
-<p>professor-aulas works!</p>
+<div class="max-w-4xl mx-auto mt-10 p-6 bg-white shadow-xl rounded-xl border-t-8 border-indigo-900">
+
+  <div class="flex justify-between items-center mb-6">
+    <h1 class="text-2xl font-black text-gray-800">📅 Minhas Aulas de Hoje</h1>
+    <span class="bg-indigo-100 text-indigo-800 px-4 py-2 rounded-full text-sm font-bold">
+      {{ dataHoje | date:'EEEE, dd/MM/yyyy' }}
+    </span>
+  </div>
+
+  <!-- Estado de carregamento -->
+  <div *ngIf="loading" class="text-center py-10">
+    <div class="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-indigo-600"></div>
+    <p class="text-gray-500 mt-2">A carregar o seu horário...</p>
+  </div>
+
+  <!-- Lista de aulas -->
+  <div *ngIf="!loading && aulasHoje.length === 0" class="text-center py-16 bg-gray-50 rounded-lg border border-dashed border-gray-300">
+    <span class="text-6xl">🎉</span>
+    <p class="text-xl text-gray-500 font-bold mt-4">Não tem aulas hoje!</p>
+    <p class="text-gray-400">Aproveite para preparar materiais ou descansar.</p>
+  </div>
+
+  <div *ngIf="!loading && aulasHoje.length > 0" class="space-y-4">
+    <div *ngFor="let aula of aulasHoje"
+         class="border rounded-lg p-5 bg-white shadow-sm hover:shadow-md transition flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+
+      <!-- Informações da aula -->
+      <div class="flex items-center gap-4 flex-1">
+        <div class="w-12 h-12 rounded-full bg-indigo-100 text-indigo-800 flex items-center justify-center font-bold text-xl">
+          {{ aula.disciplina_nome?.charAt(0) || '?' }}
+        </div>
+        <div>
+          <h3 class="text-lg font-bold text-gray-800">{{ aula.disciplina_nome }}</h3>
+          <p class="text-sm text-gray-600">
+            Turma: <span class="font-medium">{{ aula.turma_nome }}</span> •
+            {{ aula.hora_inicio | slice:0:5 }} - {{ aula.hora_fim | slice:0:5 }}
+          </p>
+        </div>
+      </div>
+
+      <!-- Ações -->
+      <div class="flex gap-2">
+        <button (click)="abrirModalFechar(aula)"
+                class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-bold transition flex items-center gap-1">
+          📝 Fechar Aula
+        </button>
+        <button (click)="fazerChamada(aula)"
+                class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-bold transition flex items-center gap-1">
+          📋 Chamada
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal para fechar aula -->
+  <div *ngIf="aulaParaFechar" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
+       (click)="aulaParaFechar = null">
+    <div class="bg-white rounded-lg p-6 w-full max-w-md shadow-2xl" (click)="$event.stopPropagation()">
+      <h3 class="text-xl font-bold text-gray-800 mb-4">Finalizar Aula</h3>
+      <p class="text-sm text-gray-600 mb-4">
+        Disciplina: <span class="font-bold">{{ aulaParaFechar.disciplina_nome }}</span><br>
+        Turma: {{ aulaParaFechar.turma_nome }}
+      </p>
+
+      <label class="block text-sm font-medium text-gray-700 mb-1">Resumo da Aula</label>
+      <textarea [(ngModel)]="resumoAula" rows="4"
+                class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
+                placeholder="Descreva o que foi lecionado..."></textarea>
+
+      <div class="flex justify-end gap-3 mt-6">
+        <button (click)="aulaParaFechar = null"
+                class="px-4 py-2 text-gray-600 hover:text-gray-800 font-medium">
+          Cancelar
+        </button>
+        <button (click)="confirmarFechoAula()"
+                [disabled]="!resumoAula.trim()"
+                class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-lg font-bold disabled:opacity-50 disabled:cursor-not-allowed">
+          Enviar Diário
+        </button>
+      </div>
+    </div>
+  </div>
+
+</div>

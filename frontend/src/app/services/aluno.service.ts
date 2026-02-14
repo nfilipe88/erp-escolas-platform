@@ -1,6 +1,6 @@
 import { HttpClient } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
-import { Observable, of, tap } from 'rxjs';
+import { Observable } from 'rxjs';
 import { environment } from '../../environments/environment.development';
 
 export interface Aluno {
@@ -8,9 +8,9 @@ export interface Aluno {
   nome: string;
   bi?: string;
   data_nascimento?: string;
-  escola_id: number;
-  turma_id?: number;   // <--- (com ponto de interrogação pois pode ser nulo)
-  ativo?: boolean;     // <--- Adicionei isto para mostrar na tabela
+  escola_id?: number;   // ← AGORA OPCIONAL (só superadmin envia)
+  turma_id?: number;
+  ativo?: boolean;
 }
 
 export interface Boletim {
@@ -24,20 +24,16 @@ export interface Boletim {
     media_provisoria: number;
     notas: {
       trimestre: string;
-      valor: number | null;  // Permite null
-      descricao: string
+      valor: number | null;
+      descricao: string;
     }[];
   }[];
 }
 
-@Injectable({
-  providedIn: 'root',
-})
+@Injectable({ providedIn: 'root' })
 export class AlunoService {
   private http = inject(HttpClient);
   private apiUrl = environment.apiUrl;
-
-  constructor() { }
 
   matricularAluno(aluno: Aluno): Observable<Aluno> {
     return this.http.post<Aluno>(`${this.apiUrl}/alunos/`, aluno);
