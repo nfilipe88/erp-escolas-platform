@@ -1,5 +1,5 @@
 from datetime import timedelta
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Request
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from jose import jwt, JWTError
@@ -18,6 +18,8 @@ from app.security import (
 )
 from app.core.email import send_reset_password_email
 from app.models import usuario as models_user
+from app.core.security import PasswordValidator, check_rate_limit, create_tokens
+from app.core.logger import log_execution_time, log_security_event, app_logger
 
 router = APIRouter(tags=["Autenticação"])
 
@@ -40,16 +42,103 @@ def login_access_token(
         "escola_id": usuario.escola_id,  # type: ignore
         "message": "Bem-vindo à API do ERP Escolar"
     }
+    
+@router.post("/auth/login")
+async def login(
+    form_data: OAuth2PasswordRequestForm = Depends(),
+    request: Request,
+    db: Session = Depends(get_db)
+):
+    try:
+        # Rate limiting
+        client_ip = request.client.host
+        check_rate_limit(client_ip)
 
-@router.post("/auth/registar", response_model=schemas_user.UsuarioResponse, status_code=status.HTTP_201_CREATED)
+        # Buscar usuário
+        usuario = crud_usuario.get_usuario_by_email(db, email=form_data.username)
+
+        if not usuario or not verify_password(form_data.password, usuario.senha_hash):
+            # Não revelar se é email ou senha incorreta
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Credenciais inválidas"
+            )
+
+        # Verificar se conta está ativa
+        if not usuario.ativo:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Conta desativada"
+            )
+            
+            # Criar tokens
+        tokens = create_tokens({"sub": usuario.email, "escola_id": usuario.escola_id})
+
+        # Registrar login (auditoria)
+        log_security_event("LOGIN_SUCCESS", {
+            "email": form_data.username,
+            "ip": request.client.host
+        })
+
+        return {
+            **tokens,
+            "perfil": usuario.perfil,
+            "nome": usuario.nome,
+            "escola_id": usuario.escola_id
+        }
+        
+    except HTTPException:
+        log_security_event("LOGIN_FAILED", {
+            "email": form_data.username,
+            "ip": request.client.host,
+            "reason": "invalid_credentials"
+        })
+        raise        
+
+@router.post("/auth/refresh")
+def refresh_access_token(
+    refresh_token: str,
+    db: Session = Depends(get_db)
+):
+    """Renovar access token usando refresh token"""
+    try:
+        payload = jwt.decode(
+            refresh_token,
+            settings.JWT_REFRESH_SECRET_KEY,
+            algorithms=[settings.JWT_ALGORITHM]
+        )
+        
+        if payload.get("type") != "refresh":
+            raise HTTPException(status_code=401, detail="Token inválido")
+        
+        email = payload.get("sub")
+        usuario = crud_usuario.get_usuario_by_email(db, email)
+        
+        if not usuario or not usuario.ativo:
+            raise HTTPException(status_code=401, detail="Usuário inválido")
+        
+        # Criar novo access token
+        new_tokens = create_tokens({"sub": email, "escola_id": usuario.escola_id})
+        return new_tokens
+        
+    except JWTError:
+        raise HTTPException(status_code=401, detail="Token expirado ou inválido")
+
+@router.post("/auth/registar")
 def registar_usuario(
     usuario: schemas_user.UsuarioCreate,
     db: Session = Depends(get_db)
 ):
-    db_user = crud_usuario.get_usuario_by_email(db, email=usuario.email)
-    if db_user:
+    # Validar força da senha
+    is_valid, message = PasswordValidator.validate(usuario.senha)
+    if not is_valid:
+        raise HTTPException(status_code=400, detail=message)
+    
+    # Verificar email duplicado
+    if crud_usuario.get_usuario_by_email(db, email=usuario.email):
         raise HTTPException(status_code=400, detail="Email já registado")
-    # Registo inicial: sem escola (superadmin)
+    
+    # Criar usuário
     return crud_usuario.create_usuario(db=db, usuario=usuario, escola_id=None)
 
 @router.post("/auth/esqueci-senha")

@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 from typing import List, Optional
 
@@ -7,38 +7,45 @@ from app.security import get_current_user
 from app.schemas import schema_aluno as schemas_aluno
 from app.schemas import schema_boletim as schemas_boletim
 from app.cruds import crud_aluno, crud_nota, crud_turma
-from app.models import usuario as models_user
+from app.models import usuario as models_user, aluno as models_aluno
 from app.security_decorators import (
     get_current_escola_id,
     verify_resource_ownership,
     admin_or_superadmin_required,
 )
+from app.services.aluno_service import AlunoService
+from app.core.exceptions import BusinessLogicError
+from app.core import cache
+from app.schemas.pagination import PaginatedResponse
 
 router = APIRouter(prefix="/alunos", tags=["Alunos"])
 
-@router.post("/", response_model=schemas_aluno.AlunoResponse, status_code=status.HTTP_201_CREATED)
+
+@router.post("/", response_model=schemas_aluno.AlunoResponse)
 def criar_aluno(
     aluno: schemas_aluno.AlunoCreate,
     db: Session = Depends(get_db),
     current_user: models_user.Usuario = Depends(get_current_user)
 ):
-    """Cria um novo aluno. Superadmin deve informar escola_id no body."""
-    if current_user.perfil == "superadmin":  # type: ignore[comparison-overlap]
-        if not aluno.escola_id:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Superadmin deve informar o campo 'escola_id' no corpo da requisição."
-            )
-        escola_destino_id = aluno.escola_id
-    else:
-        if not current_user.escola_id:  # type: ignore[truthy-function]
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Utilizador sem escola associada."
-            )
-        escola_destino_id = current_user.escola_id
-
-    return crud_aluno.create_aluno(db=db, aluno=aluno, escola_id=escola_destino_id)
+    try:
+        # Determinar escola
+        if current_user.perfil == "superadmin":
+            if not aluno.escola_id:
+                raise HTTPException(400, "Superadmin deve informar escola_id")
+            escola_id = aluno.escola_id
+        else:
+            if not current_user.escola_id:
+                raise HTTPException(400, "Usuário sem escola associada")
+            escola_id = current_user.escola_id
+        
+        # Usar serviço
+        service = AlunoService(db)
+        # Invalidar cache do dashboard
+        # cache.delete_pattern(f"dashboard:*escola_id={aluno.escola_id}*")
+        return service.matricular_aluno(aluno, escola_id, current_user.id)
+        
+    except BusinessLogicError as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 @router.get("/{aluno_id}", response_model=schemas_aluno.AlunoResponse)
 def read_aluno(
@@ -98,14 +105,49 @@ def read_boletim(
     verify_resource_ownership(boletim["escola_id"], current_user, "aluno")  # type: ignore[arg-type]
     return boletim
 
-@router.get("/", response_model=List[schemas_aluno.AlunoResponse])
+@router.get("/", response_model=PaginatedResponse[schemas_aluno.AlunoResponse])
 def read_alunos(
-    skip: int = 0,
-    limit: int = 100,
+    page: int = Query(1, ge=1),
+    per_page: int = Query(20, ge=1, le=100),
+    search: Optional[str] = None,
+    turma_id: Optional[int] = None,
+    ativo: Optional[bool] = None,
     db: Session = Depends(get_db),
     escola_id: Optional[int] = Depends(get_current_escola_id)
 ):
-    return crud_aluno.get_alunos(db, skip, limit, escola_id=escola_id)
+    """Listar alunos com paginação e filtros"""
+    
+    # Query base
+    query = db.query(models_aluno.Aluno)
+    
+    if escola_id:
+        query = query.filter(models_aluno.Aluno.escola_id == escola_id)
+    
+    # Filtros
+    if search:
+        query = query.filter(
+            models_aluno.Aluno.nome.ilike(f"%{search}%")
+        )
+    
+    if turma_id:
+        query = query.filter(models_aluno.Aluno.turma_id == turma_id)
+    
+    if ativo is not None:
+        query = query.filter(models_aluno.Aluno.ativo == ativo)
+    
+    # Total de registros
+    total = query.count()
+    
+    # Aplicar paginação
+    skip = (page - 1) * per_page
+    items = query.offset(skip).limit(per_page).all()
+    
+    return PaginatedResponse.create(
+        items=items,
+        total=total,
+        page=page,
+        per_page=per_page
+    )
 
 @router.get("/turma/{turma_id}", response_model=List[schemas_aluno.AlunoResponse])
 def read_alunos_por_turma(

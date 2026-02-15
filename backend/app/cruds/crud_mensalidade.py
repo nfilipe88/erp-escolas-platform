@@ -1,4 +1,5 @@
 # app/cruds/crud_mensalidade.py
+from sqlalchemy import extract
 from sqlalchemy.orm import Session
 from app.models import mensalidade as models
 from app.models import aluno as models_aluno
@@ -8,6 +9,8 @@ from datetime import date
 from fastapi import HTTPException
 from app.cruds import crud_configuracao
 from typing import Optional
+
+from app.schemas import schema_mensalidade as schemas
 
 MESES_NOME = {
     1: "Janeiro", 2: "Fevereiro", 3: "Março", 4: "Abril", 5: "Maio", 6: "Junho",
@@ -110,3 +113,62 @@ def pagar_mensalidade(db: Session, mensalidade_id: int,
         db.refresh(db_mensalidade)
 
     return db_mensalidade
+
+# --- FUNÇÃO EM FALTA 1: CRIAR MENSALIDADE ---
+def create_mensalidade(db: Session, mensalidade: schemas.MensalidadeCreate, escola_id: int):
+    # Verifica duplicados (mesmo aluno, mesmo mês/ano)
+    ano_atual = date.today().year
+    mes_atual = date.today().month # Simplificação, idealmente vem do payload ou data_vencimento
+    
+    # Se a mensalidade tiver data de vencimento, usamos para extrair mês/ano
+    if mensalidade.data_vencimento:
+        mes_atual = mensalidade.data_vencimento.month
+        ano_atual = mensalidade.data_vencimento.year
+
+    existente = db.query(models.Mensalidade).filter(
+        models.Mensalidade.aluno_id == mensalidade.aluno_id,
+        extract('month', models.Mensalidade.data_vencimento) == mes_atual,
+        extract('year', models.Mensalidade.data_vencimento) == ano_atual
+    ).first()
+
+    if existente:
+        return None # Ou levantar exceção
+
+    # Criação do objeto
+    db_mensalidade = models.Mensalidade(
+        escola_id=escola_id,
+        aluno_id=mensalidade.aluno_id,
+        valor_base=mensalidade.valor_base,
+        data_vencimento=mensalidade.data_vencimento,
+        descricao=mensalidade.descricao or f"Mensalidade {mes_atual}/{ano_atual}",
+        estado="Pendente"
+    )
+    db.add(db_mensalidade)
+    db.commit()
+    db.refresh(db_mensalidade)
+    return db_mensalidade
+
+# --- FUNÇÃO EM FALTA 2: REGISTAR PAGAMENTO ---
+def registar_pagamento(db: Session, mensalidade_id: int, forma_pagamento: str):
+    mensalidade = db.query(models.Mensalidade).filter(models.Mensalidade.id == mensalidade_id).first()
+    
+    if not mensalidade:
+        return None
+    
+    if mensalidade.estado == "Pago":
+        return mensalidade # Já está pago, retorna sem erro
+
+    # Atualiza campos
+    mensalidade.estado = "Pago" # type: ignore (Pylance reclama de atribuição a Column)
+    mensalidade.data_pagamento = date.today() # type: ignore
+    mensalidade.forma_pagamento = forma_pagamento # type: ignore
+    
+    db.commit()
+    db.refresh(mensalidade)
+    return mensalidade
+
+# Função auxiliar para evitar erros de tipagem no extract
+def get_config_by_escola(db: Session, escola_id: int):
+    # Implementar lógica real se tiveres tabela de Configuração Financeira
+    # Por agora retorna um dicionário padrão
+    return {"multa_percentual": 10, "dia_vencimento": 5}

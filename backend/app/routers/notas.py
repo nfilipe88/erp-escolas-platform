@@ -16,54 +16,43 @@ from app.security_decorators import (
     verify_resource_ownership,
     get_current_escola_id
 )
+from app.core.file_handler import SecureFileHandler
 
 router = APIRouter(prefix="/notas", tags=["Notas"])
 
 UPLOAD_DIR = "uploads"
 
-@router.post("/", response_model=schemas_nota.NotaResponse, status_code=status.HTTP_201_CREATED)
-def lancar_nota(
+@router.post("/", response_model=schemas_nota.NotaResponse)
+async def lancar_nota(
     aluno_id: int = Form(...),
     disciplina_id: int = Form(...),
     valor: float = Form(...),
     trimestre: str = Form(...),
     descricao: str = Form("Prova"),
-    arquivo: UploadFile = File(None),
+    arquivo: Optional[UploadFile] = File(None),
     db: Session = Depends(get_db),
-    current_user: models_user.Usuario = Depends(get_current_user),  # Normalmente professor
+    current_user: models_user.Usuario = Depends(get_current_user),
     escola_id: int = Depends(require_escola_id)
 ):
-    # Verificar se o professor tem permissão (atribuição) – a implementar futuramente
-    aluno = crud_aluno.get_aluno(db, aluno_id, escola_id=escola_id)
-    if not aluno:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Aluno não encontrado")
-    verify_resource_ownership(aluno.escola_id, current_user, "aluno")  # type: ignore[arg-type]
-
-    disciplina = db.query(models_disciplina.Disciplina).filter(
-        models_disciplina.Disciplina.id == disciplina_id,
-        models_disciplina.Disciplina.escola_id == escola_id
-    ).first()
-    if not disciplina:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Disciplina não encontrada")
-
-    caminho_arquivo = None
+    # Validações...
+    
+    # Upload seguro
+    arquivo_info = None
     if arquivo:
-        os.makedirs(UPLOAD_DIR, exist_ok=True)
-        nome_arquivo = f"{uuid4()}_{arquivo.filename}"
-        caminho_completo = os.path.join(UPLOAD_DIR, nome_arquivo)
-        with open(caminho_completo, "wb") as buffer:
-            shutil.copyfileobj(arquivo.file, buffer)
-        caminho_arquivo = f"arquivos/{nome_arquivo}"
-
+        arquivo_info = await SecureFileHandler.validate_and_save(
+            arquivo,
+            subfolder=f"provas/{escola_id}"
+        )
+    
     nota_data = schemas_nota.NotaCreate(
         aluno_id=aluno_id,
         disciplina_id=disciplina_id,
         valor=valor,
         trimestre=trimestre,
         descricao=descricao,
-        arquivo_url=caminho_arquivo
+        arquivo_url=arquivo_info["url"] if arquivo_info else None
     )
-
+    
     return crud_nota.lancar_nota(db=db, nota=nota_data, escola_id=escola_id)
 
 @router.get("/disciplinas/{disciplina_id}", response_model=List[schemas_nota.NotaResponse])

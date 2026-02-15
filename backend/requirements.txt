@@ -68,6 +68,7 @@ pylint==4.0.4
 pytest==9.0.2
 python-dotenv==1.2.1
 python-jose==3.5.0
+python-json-logger==4.0.0
 python-multipart==0.0.22
 pytokens==0.4.1
 PyYAML==6.0.3
@@ -91,3 +92,5 @@ uvicorn==0.40.0
 virtualenv==20.36.1
 watchfiles==1.1.1
 websockets==16.0
+redis==5.0.1
+hiredis==2.3.2

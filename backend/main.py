@@ -13,6 +13,8 @@ from app.routers import (auth, alunos, usuarios, escolas, turmas, disciplinas,
                          atribuicoes, mensalidade)
 from app.db.database import Base
 from app.db import database
+from app.middleware.audit_middleware import AuditMiddleware
+
 # Criar tabelas (apenas para desenvolvimento)
 # Note: Use Alembic migrations instead of create_all with async engines
 Base.metadata.create_all(bind=database.engine)
@@ -52,6 +54,8 @@ origins = [
     "http://localhost:4200",
     "http://127.0.0.1:4200",
 ]
+
+# app.add_middleware(AuditMiddleware)
 
 app.add_middleware(
     CORSMiddleware,

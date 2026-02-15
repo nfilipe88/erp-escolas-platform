@@ -4,15 +4,12 @@ from typing import List
 
 from app.db.database import get_db
 from app.models import usuario as models_user
-from app.security import get_current_user
-# Importar o nosso Decorador de Segurança
-from app.security_decorators import check_permission 
-
-# Schemas e CRUDs
 from app.schemas import schema_mensalidade
 from app.schemas import schema_notificacao
 from app.cruds import crud_mensalidade
 from app.cruds import crud_notificacao
+from app.security import get_current_user
+from app.security_decorators import check_permission 
 
 # Email
 from app.core.email import enviar_email_recibo
