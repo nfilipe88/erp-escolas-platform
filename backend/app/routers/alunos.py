@@ -17,11 +17,13 @@ from app.services.aluno_service import AlunoService
 from app.core.exceptions import BusinessLogicError
 from app.core import cache
 from app.schemas.pagination import PaginatedResponse
+from app.core.permissions import require_permission, ResourceEnum, ActionEnum
 
 router = APIRouter(prefix="/alunos", tags=["Alunos"])
 
 
 @router.post("/", response_model=schemas_aluno.AlunoResponse)
+@require_permission(ResourceEnum.ALUNOS, ActionEnum.CREATE)
 def criar_aluno(
     aluno: schemas_aluno.AlunoCreate,
     db: Session = Depends(get_db),
@@ -48,6 +50,7 @@ def criar_aluno(
         raise HTTPException(status_code=400, detail=str(e))
 
 @router.get("/{aluno_id}", response_model=schemas_aluno.AlunoResponse)
+@require_permission(ResourceEnum.ALUNOS, ActionEnum.READ)
 def read_aluno(
     aluno_id: int,
     db: Session = Depends(get_db),
@@ -62,6 +65,7 @@ def read_aluno(
     return aluno
 
 @router.put("/{aluno_id}", response_model=schemas_aluno.AlunoResponse)
+@require_permission(ResourceEnum.ALUNOS, ActionEnum.UPDATE)
 def update_aluno(
     aluno_id: int,
     aluno_update: schemas_aluno.AlunoUpdate,
@@ -76,6 +80,7 @@ def update_aluno(
     return db_aluno
 
 @router.delete("/{aluno_id}", status_code=status.HTTP_204_NO_CONTENT)
+@require_permission(ResourceEnum.ALUNOS, ActionEnum.DELETE)
 def delete_aluno(
     aluno_id: int,
     db: Session = Depends(get_db),

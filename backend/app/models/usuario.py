@@ -19,15 +19,16 @@ class Usuario(Base):
     senha_hash = Column(String, nullable=False)
     
     escola_id = Column(Integer, ForeignKey("escolas.id", ondelete="CASCADE"), nullable=True, index=True) # Pode ser Null para o Superadmin
+    role_id = Column(Integer, ForeignKey('roles.id'), nullable=False, index=True)
     
     escola = relationship("Escola", back_populates="usuarios")
     diarios = relationship("Diario", back_populates="professor")
     horarios = relationship("Horario", back_populates="professor")
     atribuicoes = relationship("Atribuicao", back_populates="professor")
     ponto_professores = relationship("PontoProfessor", back_populates="professor")
-    
     # Perfil: 'admin' (Diretor), 'professor', 'secretaria', 'superadmin'
-    perfil = Column(Enum(PerfilUsuario), default=PerfilUsuario.PROFESSOR)
+    role = relationship("Role", back_populates="usuarios")
+    
     ativo = Column(Boolean, default=True)
     # Auditoria
     created_at = Column(DateTime(timezone=True), server_default=func.now())

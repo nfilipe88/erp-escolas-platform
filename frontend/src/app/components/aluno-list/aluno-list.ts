@@ -1,14 +1,19 @@
-import { ChangeDetectorRef, Component, inject, OnInit, signal } from '@angular/core';
+import { ChangeDetectionStrategy, ChangeDetectorRef, Component, inject, OnInit, signal } from '@angular/core';
 import { AlunoService, Aluno } from '../../services/aluno.service';
 import { AuthService } from '../../services/auth.service';
 import { CommonModule, DatePipe } from '@angular/common';
 import { ActivatedRoute, RouterLink } from '@angular/router';
+import { Store } from '@ngrx/store';
+import * as AlunosActions from '../../store/alunos/alunos.actions';
+import * as fromAlunos from '../../store/alunos/alunos.selectors';
+import { Observable } from 'rxjs';
 
 @Component({
   selector: 'app-aluno-list',
   imports: [CommonModule, DatePipe, RouterLink],
   templateUrl: './aluno-list.html',
   styleUrl: './aluno-list.css',
+  changeDetection: ChangeDetectionStrategy.OnPush  // Importante para performance
 })
 export class AlunoList implements OnInit {
   private alunoService = inject(AlunoService);
@@ -16,45 +21,36 @@ export class AlunoList implements OnInit {
   private route = inject(ActivatedRoute);
 
   alunos = signal<Aluno[]>([]);
+  alunos$: Observable<Aluno[]>;
+  loading$: Observable<boolean>;
+  error$: Observable<string | null>;
+  pagination$: Observable<any>;
   escolaId: number | null = null;
 
+  constructor(private store: Store) {
+    this.alunos$ = this.store.select(fromAlunos.selectAllAlunos);
+    this.loading$ = this.store.select(fromAlunos.selectAlunosLoading);
+    this.error$ = this.store.select(fromAlunos.selectAlunosError);
+    this.pagination$ = this.store.select(fromAlunos.selectAlunosPagination);
+  }
+
   ngOnInit() {
-    const user = this.authService.getUsuarioLogado();
-    if (user && user.escola_id) {
-      this.escolaId = user.escola_id;
-    } else {
-      console.error('Utilizador sem escola associada');
-      return;
-    }
-
-    this.route.queryParams.subscribe(params => {
-      const turmaId = params['turma_id'];
-      if (turmaId) {
-        this.carregarAlunosDaTurma(Number(turmaId));
-      } else {
-        this.carregarTodosOsAlunos();
-      }
-    });
+    // Carregar alunos
+    this.store.dispatch(AlunosActions.loadAlunos({ page: 1 }));
   }
 
-  carregarTodosOsAlunos() {
-    if (!this.escolaId) return;
-    this.alunoService.getAlunos(this.escolaId).subscribe(dados => {
-      this.alunos.set(dados);
-    });
+  onPageChange(page: number) {
+    this.store.dispatch(AlunosActions.loadAlunos({ page }));
   }
 
-  carregarAlunosDaTurma(turmaId: number) {
-    this.alunoService.getAlunosPorTurma(turmaId).subscribe(dados => {
-      this.alunos.set(dados);
-    });
+  onSearch(search: string) {
+    this.store.dispatch(AlunosActions.setAlunosFilters({ filters: { search } }));
+    this.store.dispatch(AlunosActions.loadAlunos({ page: 1 }));
   }
 
-  deletar(id: number) {
-    if (confirm("Tens a certeza que queres apagar este aluno?")) {
-      this.alunoService.removerAluno(id).subscribe(() => {
-        this.ngOnInit(); // recarrega
-      });
+  onDeleteAluno(id: number) {
+    if (confirm('Tem certeza que deseja deletar este aluno?')) {
+      this.store.dispatch(AlunosActions.deleteAluno({ id }));
     }
   }
 }
