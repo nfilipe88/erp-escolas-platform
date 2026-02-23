@@ -1,4 +1,4 @@
-# backend/app/core/cache.py - NOVO ARQUIVO
+# backend/app/core/cache.py
 import asyncio
 from redis import Redis
 from typing import Optional, Any

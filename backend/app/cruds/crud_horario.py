@@ -1,13 +1,14 @@
 # app/cruds/crud_horario.py
 from sqlalchemy.orm import Session
-from app.schemas import schema_horario
 from datetime import datetime, timedelta, time
-from typing import Optional
+from typing import List, Optional
 
 from app.models import horario as models_horario
 from app.models import diario as models_diario
 from app.models import turma as models_turma
 from app.models import disciplina as models_disciplina
+from app.models.horario import Horario
+from app.schemas import schema_horario
 
 def get_horario_professor_hoje(db: Session, professor_id: int, escola_id: Optional[int] = None):
     dia_hoje = datetime.now().weekday()
@@ -20,6 +21,16 @@ def get_horario_professor_hoje(db: Session, professor_id: int, escola_id: Option
     if escola_id:
         query = query.filter(models_turma.Turma.escola_id == escola_id)
     return query.order_by(models_horario.Horario.hora_inicio).all()
+
+def get_horario_turma(db: Session, turma_id: int) -> List[Horario]:
+    """
+    Retorna todos os horários de uma turma, ordenados por dia e hora.
+    """
+    return db.query(Horario).filter(
+        Horario.turma_id == turma_id
+    ).order_by(
+        Horario.dia_semana, Horario.hora_inicio
+    ).all()
 
 def get_todos_horarios(db: Session, escola_id: Optional[int] = None):
     query = db.query(models_horario.Horario).join(models_turma.Turma)

@@ -1,76 +1,38 @@
-import { ChangeDetectorRef, Component, inject, OnInit } from '@angular/core';
-import { DashboardService, DashboardStats } from '../../services/dashboard.service';
-import { AtribuicaoService } from '../../services/atribuicao.service'; // ← import
-import { Router, RouterLink } from '@angular/router';
+import { Component, inject, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { AuthService } from '../../services/auth.service';
+import { DashboardService, DashboardData } from '../../services/dashboard.service';
+import { NgxChartsModule } from '@swimlane/ngx-charts';
+import { finalize } from 'rxjs/operators';
 
 @Component({
   selector: 'app-dashboard',
-  imports: [CommonModule, RouterLink],
+  standalone: true,
+  imports: [CommonModule, NgxChartsModule],
   templateUrl: './dashboard.html',
-  styleUrl: './dashboard.css',
+  styleUrls: ['./dashboard.css']
 })
 export class Dashboard implements OnInit {
   private dashboardService = inject(DashboardService);
-  private atribuicaoService = inject(AtribuicaoService); // ← inject
-  private authService = inject(AuthService);
-  private router = inject(Router);
-  private cdr = inject(ChangeDetectorRef);
 
-  perfil: string = '';
-  nomeUsuario: string = '';
-  escolaId: number | null = null;
+  data = signal<DashboardData | null>(null);
+  carregando = true;
+  erro: string | null = null;
 
-  stats: DashboardStats | null = null;
-  dataHoje = new Date();
-
-  minhasAulas: any[] = [];
-  carregando: boolean = true;
+  // Configurações Gráficas
+  view: [number, number] = [700, 300];
+  colorScheme: any = { domain: ['#5AA454', '#A10A28', '#C7B42C', '#AAAAAA'] };
 
   ngOnInit() {
-    const user = this.authService.getUsuarioLogado();
-    if (!user) {
-      this.router.navigate(['/login']);
-      return;
-    }
-
-    this.perfil = user.perfil || '';
-    this.nomeUsuario = user.nome || 'Utilizador';
-    this.escolaId = user.escola_id;
-
-    if (this.perfil === 'admin' || this.perfil === 'secretaria' || this.perfil === 'superadmin') {
-      this.carregarDashboardAdmin();
-    } else if (this.perfil === 'professor') {
-      this.carregarDashboardProfessor();
-    }
+    this.carregarDados();
   }
 
-  carregarDashboardAdmin() {
-    this.dashboardService.getStats().subscribe({
-      next: (data) => {
-        this.stats = data;
-        this.carregando = false;
-        this.cdr.detectChanges();
-      },
-      error: () => {
-        this.carregando = false;
-        this.cdr.detectChanges();
-      }
-    });
-  }
-
-  carregarDashboardProfessor() {
-    this.atribuicaoService.getMinhasAulas().subscribe({  // ← usa o serviço
-      next: (data) => {
-        this.minhasAulas = data;
-        this.carregando = false;
-        this.cdr.detectChanges();
-      },
-      error: () => {
-        this.carregando = false;
-        this.cdr.detectChanges();
-      }
-    });
+  carregarDados() {
+    this.carregando = true;
+    this.dashboardService.getResumo()
+      .pipe(finalize(() => this.carregando = false))
+      .subscribe({
+        next: (res) => this.data.set(res),
+        error: (err) => this.erro = 'Não foi possível carregar o dashboard.'
+      });
   }
 }

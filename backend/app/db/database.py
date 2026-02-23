@@ -1,25 +1,21 @@
 # app/db/database.py
-import os
 from sqlalchemy import create_engine
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
-from dotenv import load_dotenv
+from sqlalchemy.orm import sessionmaker, declarative_base
+from app.core.config import settings
 
-# Carrega as variáveis do ficheiro .env
-load_dotenv()
-
-# Lê a URL da variável de ambiente. Se não existir, lança erro.
-DATABASE_URL = os.getenv("DATABASE_URL")
-print(f"Database URL: {DATABASE_URL}")  # Para debug, remova ou comente esta linha em produção
-if not DATABASE_URL:
-    raise ValueError("A variável DATABASE_URL não está definida no ficheiro .env")
-
-engine = create_engine(DATABASE_URL)
+# Criação da engine com configurações de pool para melhor performance
+engine = create_engine(
+    settings.DATABASE_URL,
+    pool_pre_ping=True, # Verifica se a conexão está viva antes de usar
+    pool_size=10,       # Mantém 10 conexões abertas
+    max_overflow=20     # Permite criar mais 20 se necessário
+)
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 Base = declarative_base()
 
+# Dependência para injetar o DB nas rotas
 def get_db():
     db = SessionLocal()
     try:

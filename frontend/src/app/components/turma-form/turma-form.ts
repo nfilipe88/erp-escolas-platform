@@ -34,7 +34,7 @@ export class TurmaForm implements OnInit {
   ngOnInit() {
     // 1. Verificar Perfil
     const usuario = this.authService.getUsuarioLogado();
-    this.isSuperAdmin = usuario?.perfil === 'superadmin';
+    this.isSuperAdmin = usuario?.roles.some(r => r.name === 'superadmin') ?? false;
 
     // 2. Se for Superadmin, buscar lista de escolas para o Select
     if (this.isSuperAdmin) {

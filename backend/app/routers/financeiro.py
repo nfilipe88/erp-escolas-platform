@@ -10,7 +10,61 @@ from app.cruds import crud_mensalidade, crud_financeiro_relatorio, crud_aluno
 from app.models import usuario as models_user
 from app.security_decorators import require_escola_id, verify_resource_ownership, admin_or_superadmin_required
 
-router = APIRouter(prefix="/financeiro", tags=["Financeiro"])
+# app/routers/financeiro.py
+from typing import List
+from fastapi import APIRouter, Depends, status
+from sqlalchemy.orm import Session
+
+from app.db.database import get_db
+from app.schemas import schema_mensalidade
+from app.services.financeiro_service import FinanceiroService
+from app.security import get_current_user
+from app.models.usuario import Usuario
+
+router = APIRouter()
+
+def get_financeiro_service(db: Session = Depends(get_db)) -> FinanceiroService:
+    return FinanceiroService(db)
+
+@router.post("/gerar-carnet", response_model=List[schema_mensalidade.MensalidadeResponse])
+def gerar_carnet(
+    dados: schema_mensalidade.GerarCarnetRequest,
+    service: FinanceiroService = Depends(get_financeiro_service),
+    current_user: Usuario = Depends(get_current_user)
+):
+    """Gera todas as mensalidades do ano para um aluno"""
+    return service.gerar_carnet_anual(dados, current_user)
+
+@router.post("/{mensalidade_id}/pagar", response_model=schema_mensalidade.MensalidadeResponse)
+def registrar_pagamento(
+    mensalidade_id: int,
+    pagamento: schema_mensalidade.RealizarPagamento,
+    service: FinanceiroService = Depends(get_financeiro_service),
+    current_user: Usuario = Depends(get_current_user)
+):
+    """Registra o pagamento de uma mensalidade"""
+    return service.registrar_pagamento(mensalidade_id, pagamento, current_user)
+
+@router.get("/aluno/{aluno_id}", response_model=List[schema_mensalidade.MensalidadeResponse])
+def listar_financeiro_aluno(
+    aluno_id: int,
+    service: FinanceiroService = Depends(get_financeiro_service),
+    current_user: Usuario = Depends(get_current_user)
+):
+    """Extrato financeiro do aluno"""
+    return service.listar_por_aluno(aluno_id, current_user)
+
+@router.delete("/{mensalidade_id}/cancelar")
+def cancelar_mensalidade(
+    mensalidade_id: int,
+    motivo: str,
+    service: FinanceiroService = Depends(get_financeiro_service),
+    current_user: Usuario = Depends(get_current_user)
+):
+    """Cancela uma cobrança indevida"""
+    service.cancelar_mensalidade(mensalidade_id, motivo, current_user)
+    return {"message": "Mensalidade cancelada com sucesso"}
+
 
 @router.post("/gerar-carnet/{aluno_id}")
 def gerar_mensalidades(

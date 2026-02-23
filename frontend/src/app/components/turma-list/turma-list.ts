@@ -18,6 +18,10 @@ export class TurmaList implements OnInit {
     this.carregarTurmas();
   }
 
+  trackById(index: number, item: Turma): number {
+    return item.id!;
+  }
+
   carregarTurmas() {
     // ✅ Chama sem parâmetro – o backend filtra automaticamente
     this.turmaService.getTurmas().subscribe(dados => {

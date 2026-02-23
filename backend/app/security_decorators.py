@@ -1,18 +1,21 @@
 """
 🔐 SECURITY DECORATORS - MULTI-TENANT SAAS
 Funções e dependências para garantir isolamento de dados entre escolas.
-
-REGRAS DE OURO:
-1. NUNCA confiar em escola_id vindo do payload
-2. SEMPRE validar ownership antes de retornar dados
-3. Superadmin = acesso total, outros = apenas própria escola
 """
 from fastapi import Depends, HTTPException, status
-from typing import Optional
+from typing import Optional, List
 
 from app.models import usuario as models_user
 from app.security import get_current_user
 
+# Funções auxiliares
+def has_role(user: models_user.Usuario, role_name: str) -> bool:
+    """Verifica se o utilizador tem uma role específica."""
+    return any(role.name == role_name for role in user.roles)
+
+def has_any_role(user: models_user.Usuario, role_names: List[str]) -> bool:
+    """Verifica se o utilizador tem pelo menos uma das roles."""
+    return any(role.name in role_names for role in user.roles)
 
 # ==============================================================================
 # DEPENDÊNCIAS PRINCIPAIS (para usar com Depends())
@@ -27,19 +30,16 @@ def get_current_escola_id(
     - Superadmin → None (sem filtro, vê tudo)
     - Outros perfis → escola_id do utilizador
     - Sem escola → HTTP 403
-    
-    USO: Filtros em listagens (GET /recursos)
     """
-    if current_user.perfil == "superadmin":  # type: ignore[comparison-overlap]
+    if has_role(current_user, "superadmin"):
         return None
     
-    if not current_user.escola_id:  # type: ignore[truthy-function]
+    if not current_user.escola_id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Utilizador não está associado a nenhuma escola."
         )
     return current_user.escola_id
-
 
 def require_escola_id(
     current_user: models_user.Usuario = Depends(get_current_user)
@@ -49,22 +49,19 @@ def require_escola_id(
     
     - Superadmin → HTTP 400 (deve usar rotas explícitas)
     - Outros → escola_id ou HTTP 400
-    
-    USO: Rotas "minha-escola" (ex: /configuracoes)
     """
-    if current_user.perfil == "superadmin":  # type: ignore[comparison-overlap]
+    if has_role(current_user, "superadmin"):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Superadmin deve especificar a escola explicitamente."
         )
     
-    if not current_user.escola_id:  # type: ignore[truthy-function]
+    if not current_user.escola_id:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Utilizador não está associado a nenhuma escola."
         )
     return current_user.escola_id
-
 
 # ==============================================================================
 # DEPENDÊNCIAS DE PERFIL
@@ -74,25 +71,23 @@ async def superadmin_required(
     current_user: models_user.Usuario = Depends(get_current_user)
 ) -> models_user.Usuario:
     """Permite acesso APENAS a superadmin."""
-    if current_user.perfil != "superadmin":  # type: ignore[comparison-overlap]
+    if not has_role(current_user, "superadmin"):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Acesso negado. Apenas superadmin."
         )
     return current_user
 
-
 async def admin_or_superadmin_required(
     current_user: models_user.Usuario = Depends(get_current_user)
 ) -> models_user.Usuario:
     """Permite acesso a admin (diretor) e superadmin."""
-    if current_user.perfil not in ["admin", "superadmin"]:  # type: ignore[comparison-overlap]
+    if not has_any_role(current_user, ["admin", "superadmin"]):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Acesso negado. Apenas administradores."
         )
     return current_user
-
 
 # ==============================================================================
 # FUNÇÕES AUXILIARES DE VALIDAÇÃO
@@ -107,18 +102,15 @@ def verify_school_access(
     
     - Superadmin: acesso total
     - Outros: apenas se escola_id == current_user.escola_id
-    
-    Lança HTTPException se não autorizado.
     """
-    if current_user.perfil == "superadmin":  # type: ignore[comparison-overlap]
+    if has_role(current_user, "superadmin"):
         return
     
-    if current_user.escola_id != escola_id:  # type: ignore[comparison-overlap]
+    if current_user.escola_id != escola_id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail=f"Acesso negado. Não tem permissão para aceder dados da escola {escola_id}."
         )
-
 
 def verify_resource_ownership(
     resource_escola_id: int,
@@ -131,15 +123,14 @@ def verify_resource_ownership(
     - Superadmin: sempre autorizado
     - Outros: falha se resource_escola_id != current_user.escola_id
     """
-    if current_user.perfil == "superadmin":  # type: ignore[comparison-overlap]
+    if has_role(current_user, "superadmin"):
         return
     
-    if current_user.escola_id != resource_escola_id:  # type: ignore[comparison-overlap]
+    if current_user.escola_id != resource_escola_id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail=f"Acesso negado. Este {resource_name} não pertence à sua escola."
         )
-
 
 def can_modify_user(
     target_user: models_user.Usuario,
@@ -155,17 +146,17 @@ def can_modify_user(
     - Outros perfis: proibido
     """
     # Superadmin pode tudo
-    if current_user.perfil == "superadmin":  # type: ignore[comparison-overlap]
+    if has_role(current_user, "superadmin"):
         return
     
     # Admin da escola
-    if current_user.perfil == "admin":  # type: ignore[comparison-overlap]
-        if target_user.escola_id != current_user.escola_id:  # type: ignore[comparison-overlap]
+    if has_role(current_user, "admin"):
+        if target_user.escola_id != current_user.escola_id:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Só pode modificar utilizadores da sua escola."
             )
-        if target_user.perfil in ["admin", "superadmin"]:  # type: ignore[comparison-overlap]
+        if has_any_role(target_user, ["admin", "superadmin"]):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Não pode modificar administradores ou superadmins."
@@ -177,7 +168,6 @@ def can_modify_user(
         status_code=status.HTTP_403_FORBIDDEN,
         detail="Não tem permissão para modificar utilizadores."
     )
-
 
 # ==============================================================================
 # UTILITÁRIO: DETERMINAR ESCOLA DESTINO EM CRIAÇÕES
@@ -202,7 +192,7 @@ def get_target_escola_id(
         HTTPException: Se superadmin não forneceu escola_id OU
                        se utilizador não tem escola associada
     """
-    if current_user.perfil == "superadmin":  # type: ignore[comparison-overlap]
+    if has_role(current_user, "superadmin"):
         if not payload_escola_id:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -210,16 +200,20 @@ def get_target_escola_id(
             )
         return payload_escola_id
     else:
-        if not current_user.escola_id:  # type: ignore[truthy-function]
+        if not current_user.escola_id:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Utilizador não está associado a nenhuma escola."
             )
         return current_user.escola_id
-    
-def check_permission(required_permissions: list):
+
+# ==============================================================================
+# PERMISSÕES BASEADAS EM PERMISSÕES GRANULARES
+# ==============================================================================
+
+def check_permission(required_permissions: List[str]):
     """
-    Decorator para verificar se o utilizador atual tem permissões necessárias.
+    Decorator para verificar se o utilizador atual tem as permissões necessárias.
     """
     def decorator(func):
         def wrapper(*args, **kwargs):
@@ -229,11 +223,49 @@ def check_permission(required_permissions: list):
                     status_code=status.HTTP_401_UNAUTHORIZED,
                     detail="Utilizador não autenticado."
                 )
-            if current_user.perfil not in required_permissions:
+            # Superadmin passa sempre
+            if has_role(current_user, "superadmin"):
+                return func(*args, **kwargs)
+            
+            # Verificar permissões nas roles
+            user_permissions = set()
+            for role in current_user.roles:
+                for perm in role.permissions:
+                    perm_name = getattr(perm, 'name', getattr(perm, 'nome', '')).lower()
+                    user_permissions.add(perm_name)
+            
+            # Verificar se tem todas as permissões exigidas (ou pelo menos uma, dependendo da lógica)
+            if not any(p in user_permissions for p in required_permissions):
                 raise HTTPException(
                     status_code=status.HTTP_403_FORBIDDEN,
-                    detail=f"Permissão necessária: {required_permissions}"
+                    detail="Não tem permissões suficientes para realizar esta ação."
                 )
             return func(*args, **kwargs)
         return wrapper
     return decorator
+
+def require_permissions(required_permissions: List[str]):
+    """
+    Dependência para verificar permissões.
+    Uso: def endpoint(..., permissao=Depends(require_permissions(["criar_usuario"]))):
+    """
+    def permission_checker(current_user: models_user.Usuario = Depends(get_current_user)):
+        # Superadmin passa sempre
+        if has_role(current_user, "superadmin"):
+            return current_user
+        
+        # Obter todas as permissões do utilizador
+        user_permissions = set()
+        for role in current_user.roles:
+            for perm in role.permissions:
+                perm_name = getattr(perm, 'name', getattr(perm, 'nome', '')).lower()
+                user_permissions.add(perm_name)
+        
+        # Verificar se tem pelo menos uma das permissões necessárias
+        if not any(p in user_permissions for p in required_permissions):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Não tem permissões suficientes para realizar esta ação."
+            )
+        return current_user
+    return permission_checker

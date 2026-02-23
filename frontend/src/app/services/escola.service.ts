@@ -75,4 +75,8 @@ export class EscolaService {
   updateConfiguracao(dados: ConfiguracaoEscola): Observable<ConfiguracaoEscola> {
     return this.http.put<ConfiguracaoEscola>(`${this.apiUrl}/minha-escola/configuracoes`, dados);
   }
+
+  toggleEscolaStatus(id: number): Observable<Escola> {
+  return this.http.patch<Escola>(`${this.apiUrl}/escolas/${id}/toggle-status`, {});
+}
 }

@@ -59,3 +59,15 @@ Angular CLI does not come with an end-to-end testing framework by default. You c
 For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
 
 A hierarquia que estamos a construir será: Escola ➡ tem Turmas (ex: "7ª A", "10ª B") ➡ têm Alunos.
+
+Como estou a usar uma versão muito recente do Angular, tens de usar a flag --legacy-peer-deps para que o NPM ignore a validação estrita de versões e instale a biblioteca de gráficos.
+npm install @swimlane/ngx-charts --legacy-peer-deps --save
+
+REMOVER pacotes
+Remove-Item -Recurse -Force node_modules, package-lock.json
+
+4. Reinstale as dependências
+Execute:
+
+bash
+npm install

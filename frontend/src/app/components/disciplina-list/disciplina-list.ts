@@ -2,6 +2,8 @@ import { ChangeDetectorRef, Component, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { DisciplinaService, Disciplina } from '../../services/disciplina.service';
+import { AuthService } from '../../services/auth.service';
+import { Escola, EscolaService } from '../../services/escola.service';
 
 @Component({
   selector: 'app-disciplina-list',
@@ -11,17 +13,26 @@ import { DisciplinaService, Disciplina } from '../../services/disciplina.service
 })
 export class DisciplinaList implements OnInit {
   private service = inject(DisciplinaService);
-  private cdr= inject(ChangeDetectorRef);
+  private cdr = inject(ChangeDetectorRef);
+  authService = inject(AuthService);
+  escolaService = inject(EscolaService);
+  isSuperAdmin = false;
+  escolas: Escola[] = [];
 
   disciplinas: Disciplina[] = [];
   // nova: Disciplina = { nome: '', codigo: '', carga_horaria: 80 };
 
   // Objeto do formulário
-  formDisciplina: Disciplina = { nome: '', codigo: '', carga_horaria: 80 };
+  formDisciplina: Disciplina = { nome: '', codigo: '', carga_horaria: 80, escola_id: undefined };
   // Controlo se estamos a Criar ou Editar
   editandoId: number | null = null;
 
   ngOnInit() {
+    const user = this.authService.currentUser();
+    this.isSuperAdmin = user?.perfil === 'superadmin';
+    if (this.isSuperAdmin) {
+      this.escolaService.getEscolas().subscribe(data => this.escolas = data);
+    }
     this.carregar();
   }
 
@@ -33,6 +44,10 @@ export class DisciplinaList implements OnInit {
   }
 
   salvar() {
+    if (this.isSuperAdmin && !this.formDisciplina.escola_id) {
+      alert('Selecione uma escola para a disciplina.');
+      return;
+    }
     if (this.editandoId) {
       // MODO EDIÇÃO
       this.service.atualizar(this.editandoId, this.formDisciplina).subscribe(() => {
@@ -62,7 +77,7 @@ export class DisciplinaList implements OnInit {
   eliminar(d: Disciplina) {
     // ALERTA DE SEGURANÇA MÁXIMA
     const mensagem = `⚠️ ATENÇÃO: Tem a certeza que deseja eliminar a disciplina "${d.nome}"?\n\n` +
-                     `Isto irá removê-la de TODAS AS TURMAS onde está associada e poderá afetar as pautas e históricos dos alunos.`;
+      `Isto irá removê-la de TODAS AS TURMAS onde está associada e poderá afetar as pautas e históricos dos alunos.`;
 
     if (confirm(mensagem)) {
       this.service.eliminar(d.id!).subscribe(() => {

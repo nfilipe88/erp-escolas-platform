@@ -16,6 +16,19 @@ def create_turma(db: Session, turma: schema_turma.TurmaCreate, escola_id: int):
     db.refresh(db_turma)
     return db_turma
 
+def update_turma(db: Session, turma_id: int, turma: schema_turma.TurmaUpdate, escola_id: Optional[int] = None):
+    db_turma = get_turma(db, turma_id, escola_id)
+    if not db_turma:
+        return None
+    db_turma.nome = turma.nome
+    if turma.ano_letivo is not None:
+        db_turma.ano_letivo = turma.ano_letivo
+    if turma.turno is not None:
+        db_turma.turno = turma.turno
+    db.commit()
+    db.refresh(db_turma)
+    return db_turma
+
 def get_turmas(db: Session, skip: int = 0, limit: int = 100, escola_id: Optional[int] = None):
     query = db.query(models.Turma)
     if escola_id:

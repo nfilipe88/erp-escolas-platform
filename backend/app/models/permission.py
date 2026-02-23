@@ -2,7 +2,7 @@
 from sqlalchemy import Column, Integer, String, Boolean, Table, ForeignKey
 from sqlalchemy.orm import relationship
 from app.db.database import Base
-from app.models import role_permissions
+from app.models.role_permissions import role_permissions
 
 # Tabela associativa para roles e permissions (many-to-many)
 

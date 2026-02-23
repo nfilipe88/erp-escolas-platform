@@ -15,7 +15,50 @@ from app.security_decorators import (
     verify_resource_ownership
 )
 
-router = APIRouter(prefix="/horarios", tags=["Horários"])
+from app.services.horario_service import HorarioService
+
+router = APIRouter()
+
+def get_horario_service(db: Session = Depends(get_db)) -> HorarioService:
+    return HorarioService(db)
+
+@router.post("/", response_model=schema_horario.HorarioResponse, status_code=status.HTTP_201_CREATED)
+def adicionar_aula(
+    horario: schema_horario.HorarioCreate,
+    service: HorarioService = Depends(get_horario_service),
+    current_user: models_user.Usuario = Depends(get_current_user)
+):
+    """Adiciona uma aula à grade da turma"""
+    return service.criar_horario(horario, current_user)
+
+@router.get("/turma/{turma_id}", response_model=List[schema_horario.HorarioResponse])
+def ver_horario_turma(
+    turma_id: int,
+    service: HorarioService = Depends(get_horario_service),
+    current_user: models_user.Usuario = Depends(get_current_user)
+):
+    """Visualizar o horário completo de uma turma"""
+    return service.listar_por_turma(turma_id, current_user)
+
+@router.get("/professor/{professor_id}", response_model=List[schema_horario.HorarioResponse])
+def ver_horario_professor(
+    professor_id: int,
+    service: HorarioService = Depends(get_horario_service),
+    current_user: models_user.Usuario = Depends(get_current_user)
+):
+    """Visualizar a agenda do professor"""
+    return service.listar_por_professor(professor_id, current_user)
+
+@router.delete("/{horario_id}", status_code=status.HTTP_204_NO_CONTENT)
+def remover_aula(
+    horario_id: int,
+    service: HorarioService = Depends(get_horario_service),
+    current_user: models_user.Usuario = Depends(get_current_user)
+):
+    """Remove uma aula da grade"""
+    service.deletar_horario(horario_id, current_user)
+    return None
+
 
 @router.put("/{id}")
 def atualizar_slot(
@@ -70,19 +113,6 @@ def ver_meus_horarios_hoje(
     if current_user.perfil != "professor":  # type: ignore[comparison-overlap]
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Apenas professores podem ver seus horários.")
     return crud_horario.get_horario_professor_hoje(db, professor_id=current_user.id, escola_id=escola_id)  # type: ignore[arg-type]
-
-@router.get("/turmas/{turma_id}")
-def ver_horario_turma(
-    turma_id: int,
-    db: Session = Depends(get_db),
-    escola_id: Optional[int] = Depends(get_current_escola_id)
-):
-    turma = crud_turma.get_turma(db, turma_id, escola_id=escola_id)
-    if not turma:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Turma não encontrada")
-    return db.query(models_horario.Horario).filter(
-        models_horario.Horario.turma_id == turma_id
-    ).order_by(models_horario.Horario.dia_semana, models_horario.Horario.hora_inicio).all()
 
 @router.post("/turmas/{turma_id}/gerar")
 def gerar_horario_automatico(

@@ -1,8 +1,16 @@
-from sqlalchemy import Column, Integer, String, Float, ForeignKey, Date, DateTime
+from sqlalchemy import Column, Enum, Integer, String, Float, ForeignKey, Date, DateTime
 from sqlalchemy.orm import relationship
 from datetime import date, datetime
 from sqlalchemy.sql import func
 from app.db.database import Base
+
+import enum
+
+class StatusMensalidade(str, enum.Enum):
+    PENDENTE = "pendente"
+    PAGO = "pago"
+    ATRASADO = "atrasado"
+    CANCELADO = "cancelado"
 
 class Mensalidade(Base):
     __tablename__ = "mensalidades"
@@ -21,7 +29,7 @@ class Mensalidade(Base):
     data_vencimento = Column(Date, nullable=False, index=True)
     
     # Estado do Pagamento
-    estado = Column(String, default="Pendente", index=True) # "Pendente", "Pago", "Atrasado"
+    estado = Column(Enum(StatusMensalidade), default=StatusMensalidade.PENDENTE)
     data_pagamento = Column(Date, nullable=True)
     forma_pagamento = Column(String, nullable=True) # "Multicaixa", "Numerário"
     
@@ -33,7 +41,7 @@ class Mensalidade(Base):
     
     # Relacionamento com Aluno
     escola = relationship("Escola", back_populates="mensalidades")
-    aluno = relationship("Aluno", back_populates="mensalidades", cascade="all, delete-orphan")
+    aluno = relationship("Aluno", back_populates="mensalidades")
     pago_por = relationship("Usuario", foreign_keys=[pago_por_id])
     criado_por = relationship("Usuario", foreign_keys=[criado_por_id])
 

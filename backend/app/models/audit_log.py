@@ -21,7 +21,7 @@ class AuditLog(Base):
     
     # Detalhes
     changes = Column(JSON, nullable=True)  # Diff do antes/depois
-    metadata = Column(JSON, nullable=True)  # Info adicional (IP, user agent, etc.)
+    log_metadata = Column(JSON, nullable=True)  # Info adicional (IP, user agent, etc.)
     
     # Quando
     timestamp = Column(DateTime(timezone=True), server_default=func.now(), index=True)

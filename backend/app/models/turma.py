@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, UniqueConstraint
+from sqlalchemy import Boolean, Column, Integer, String, ForeignKey, DateTime, UniqueConstraint
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from app.db.database import Base
@@ -11,6 +11,7 @@ class Turma(Base):
     nome = Column(String, nullable=False, index=True)
     ano_letivo = Column(String, nullable=False, index=True)
     turno = Column(String, nullable=True)
+    ativo = Column(Boolean, default=True)
 
     escola_id = Column(Integer, ForeignKey("escolas.id", ondelete="CASCADE"), nullable=False, index=True)
 

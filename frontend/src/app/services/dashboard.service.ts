@@ -3,23 +3,25 @@ import { inject, Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { environment } from '../../environments/environment.development';
 
-export interface DashboardStats {
-  total_escolas: number;
-  total_turmas: number;
-  total_alunos: number;
-  alunos_ativos: number;
-  total_disciplinas: number;
-  receita_estimada: number;
+export interface DashboardCard {
+  titulo: string;
+  valor: string | number;
+  cor: string;
+  icon: string;
 }
 
-@Injectable({
-  providedIn: 'root'
-})
+export interface DashboardData {
+  perfil: string;
+  cards: DashboardCard[];
+  graficos: any; // Tipagem flexível para gráficos variados
+}
+
+@Injectable({ providedIn: 'root' })
 export class DashboardService {
   private http = inject(HttpClient);
   private apiUrl = environment.apiUrl;
 
-  getStats(): Observable<DashboardStats> {
-    return this.http.get<DashboardStats>(`${this.apiUrl}/dashboard/stats`);
+  getResumo(): Observable<DashboardData> {
+    return this.http.get<DashboardData>(`${this.apiUrl}/dashboard/resumo`);
   }
 }

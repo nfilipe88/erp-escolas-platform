@@ -22,7 +22,7 @@ class Nota(Base):
     # Relações
     escola = relationship("Escola", back_populates="notas")
     disciplina = relationship("Disciplina", back_populates="notas")
-    aluno = relationship("Aluno", back_populates="notas", cascade="all, delete-orphan")
+    aluno = relationship("Aluno", back_populates="notas")
 
     # Auditoria
     created_at = Column(DateTime(timezone=True), server_default=func.now())

@@ -9,6 +9,11 @@ class TurmaBase(BaseModel):
 
 class TurmaCreate(TurmaBase):
     escola_id: Optional[int] = None  # ← ADICIONADO (apenas superadmin envia)
+    
+class TurmaUpdate(BaseModel):
+    nome: str
+    ano_letivo: Optional[str] = None
+    turno: Optional[str] = None
 
 class TurmaResponse(TurmaBase):
     id: int

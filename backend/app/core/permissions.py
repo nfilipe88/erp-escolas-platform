@@ -1,14 +1,14 @@
-# backend/app/core/permissions.py - NOVO ARQUIVO
+# backend/app/core/permissions.py
 import asyncio
 from enum import Enum
 from typing import List, Optional
 from fastapi import Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from app.models.usuario import Usuario
-from app.models.permission import Permission, 
-from app.models import Roles
-from app.db.database import get_db
-from app.core.auth import get_current_user
+from app.models.permission import Permission
+from app.models import Role
+
+from app.security import get_current_user
 
 class ResourceEnum(str, Enum):
     """Recursos do sistema"""
@@ -189,80 +189,53 @@ class PermissionService:
             responsavel.permissions.extend(responsavel_permissions)
         
         self.db.commit()
-    
-    def user_has_permission(
-        self,
-        user: Usuario,
-        resource: str,
-        action: str,
-        target_escola_id: Optional[int] = None
-    ) -> bool:
-        """Verificar se usuário tem permissão"""
-        
-        # Superadmin sempre tem acesso
-        if user.role.name == "superadmin":
-            return True
-        
-        # Verificar isolamento de escola
-        if target_escola_id and user.escola_id != target_escola_id:
-            return False
-        
-        # Buscar permissão
-        permission_name = f"{resource}:{action}"
-        
-        for permission in user.role.permissions:
-            if permission.name == permission_name:
-                return True
-        
-        return False
 
-def require_permission(resource: str, action: str):
-    """Decorator para verificar permissão"""
-    def decorator(func):
-        async def async_wrapper(*args, **kwargs):
-            # Extrair current_user e db dos kwargs
-            current_user = kwargs.get('current_user')
-            db = kwargs.get('db')
+
+def check_has_permission(user: Usuario, required_permission: str) -> bool:
+    """
+    Verifica se o utilizador tem a permissão específica em QUALQUER uma das suas roles.
+    """
+    # 1. Superadmin tem acesso a tudo (bypass)
+    # Verifica se alguma das roles tem o nome 'superadmin'
+    for role in user.roles:
+        if role.nome == "superadmin":
+            return True
+
+    # 2. Verificar permissões normais
+    # Itera sobre todas as roles do utilizador
+    for role in user.roles:
+        # Itera sobre todas as permissões dessa role
+        for perm in role.permissions:
+            # Verifica correspondência exata ou escopo (ex: "aluno:*" cobre "aluno:create")
+            if perm.nome == required_permission:
+                return True
             
-            if not current_user or not db:
-                raise HTTPException(
-                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                    detail="Erro interno: user/db não fornecidos"
-                )
-            
-            permission_service = PermissionService(db)
-            
-            # Verificar permissão
-            if not permission_service.user_has_permission(current_user, resource, action):
-                raise HTTPException(
-                    status_code=status.HTTP_403_FORBIDDEN,
-                    detail=f"Sem permissão para {action} em {resource}"
-                )
-            
-            return await func(*args, **kwargs)
-        
-        def sync_wrapper(*args, **kwargs):
-            current_user = kwargs.get('current_user')
-            db = kwargs.get('db')
-            
-            if not current_user or not db:
-                raise HTTPException(
-                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                    detail="Erro interno: user/db não fornecidos"
-                )
-            
-            permission_service = PermissionService(db)
-            
-            if not permission_service.user_has_permission(current_user, resource, action):
-                raise HTTPException(
-                    status_code=status.HTTP_403_FORBIDDEN,
-                    detail=f"Sem permissão para {action} em {resource}"
-                )
-            
-            return func(*args, **kwargs)
-        
-        if asyncio.iscoroutinefunction(func):
-            return async_wrapper
-        return sync_wrapper
-    
-    return decorator
+            # (Opcional) Lógica de Wildcard simples
+            if perm.nome.endswith(":*"):
+                scope = perm.nome.split(":")[0] # ex: "aluno"
+                req_scope = required_permission.split(":")[0]
+                if scope == req_scope:
+                    return True
+
+    return False
+
+def require_permission(permission_name: str):
+    """
+    Dependency para usar nas rotas.
+    Exemplo: @router.get("/", dependencies=[Depends(require_permission("aluno:read"))])
+    """
+    def dependency(current_user: Usuario = Depends(get_current_user)):
+        # Verifica se o utilizador está ativo
+        if not current_user.ativo:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Utilizador inativo."
+            )
+
+        if not check_has_permission(current_user, permission_name):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"Não tem permissão necessária: {permission_name}"
+            )
+        return current_user
+    return dependency

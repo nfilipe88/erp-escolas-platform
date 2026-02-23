@@ -1,12 +1,30 @@
-// frontend/src/app/store/alunos/alunos.reducer.ts
-// import { createReducer, on } from '@ngrx/store';
-import { initialAlunosState } from './alunos.state';
+// --- ADICIONAR ESTES IMPORTS NO TOPO ---
+import { createReducer, on } from '@ngrx/store';
 import * as AlunosActions from './alunos.actions';
+import { Aluno } from '../../services/aluno.service';
+
+// Definir interface do State se não existir (ou importar de alunos.state.ts se tiveres)
+export interface AlunosState {
+  alunos: Aluno[];
+  selectedAluno: Aluno | null;
+  loading: boolean;
+  error: string | null;
+  filters: any;
+  pagination: any;
+}
+
+export const initialState: AlunosState = {
+  alunos: [],
+  selectedAluno: null,
+  loading: false,
+  error: null,
+  filters: {},
+  pagination: {}
+};
 
 export const alunosReducer = createReducer(
-  initialAlunosState,
+  initialState,
 
-  // Load Alunos
   on(AlunosActions.loadAlunos, (state) => ({
     ...state,
     loading: true,
@@ -17,17 +35,15 @@ export const alunosReducer = createReducer(
     ...state,
     alunos,
     pagination,
-    loading: false,
-    error: null
+    loading: false
   })),
 
   on(AlunosActions.loadAlunosFailure, (state, { error }) => ({
     ...state,
-    loading: false,
-    error
+    error,
+    loading: false
   })),
 
-  // Create Aluno
   on(AlunosActions.createAluno, (state) => ({
     ...state,
     loading: true
@@ -35,18 +51,16 @@ export const alunosReducer = createReducer(
 
   on(AlunosActions.createAlunoSuccess, (state, { aluno }) => ({
     ...state,
-    alunos: [aluno, ...state.alunos],
-    loading: false,
-    error: null
+    alunos: [...state.alunos, aluno],
+    loading: false
   })),
 
   on(AlunosActions.createAlunoFailure, (state, { error }) => ({
     ...state,
-    loading: false,
-    error
+    error,
+    loading: false
   })),
 
-  // Update Aluno
   on(AlunosActions.updateAluno, (state) => ({
     ...state,
     loading: true
@@ -55,18 +69,15 @@ export const alunosReducer = createReducer(
   on(AlunosActions.updateAlunoSuccess, (state, { aluno }) => ({
     ...state,
     alunos: state.alunos.map(a => a.id === aluno.id ? aluno : a),
-    selectedAluno: state.selectedAluno?.id === aluno.id ? aluno : state.selectedAluno,
-    loading: false,
-    error: null
+    loading: false
   })),
 
   on(AlunosActions.updateAlunoFailure, (state, { error }) => ({
     ...state,
-    loading: false,
-    error
+    error,
+    loading: false
   })),
 
-  // Delete Aluno
   on(AlunosActions.deleteAluno, (state) => ({
     ...state,
     loading: true
@@ -75,26 +86,22 @@ export const alunosReducer = createReducer(
   on(AlunosActions.deleteAlunoSuccess, (state, { id }) => ({
     ...state,
     alunos: state.alunos.filter(a => a.id !== id),
-    selectedAluno: state.selectedAluno?.id === id ? null : state.selectedAluno,
-    loading: false,
-    error: null
+    loading: false
   })),
 
   on(AlunosActions.deleteAlunoFailure, (state, { error }) => ({
     ...state,
-    loading: false,
-    error
+    error,
+    loading: false
   })),
 
-  // Select Aluno
   on(AlunosActions.selectAluno, (state, { aluno }) => ({
     ...state,
     selectedAluno: aluno
   })),
 
-  // Set Filters
   on(AlunosActions.setAlunosFilters, (state, { filters }) => ({
     ...state,
-    filters: { ...state.filters, ...filters }
+    filters
   }))
 );

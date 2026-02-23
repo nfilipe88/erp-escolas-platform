@@ -16,10 +16,6 @@ import { Observable } from 'rxjs';
   changeDetection: ChangeDetectionStrategy.OnPush  // Importante para performance
 })
 export class AlunoList implements OnInit {
-  private alunoService = inject(AlunoService);
-  private authService = inject(AuthService);
-  private route = inject(ActivatedRoute);
-
   alunos = signal<Aluno[]>([]);
   alunos$: Observable<Aluno[]>;
   loading$: Observable<boolean>;

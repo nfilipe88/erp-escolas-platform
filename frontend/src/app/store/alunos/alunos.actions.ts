@@ -1,8 +1,6 @@
-// frontend/src/app/store/alunos/alunos.actions.ts
-// import { createAction, props } from '@ngrx/store';
+import { createAction, props } from '@ngrx/store';
 import { Aluno } from '../../services/aluno.service';
 
-// Load Alunos
 export const loadAlunos = createAction(
   '[Alunos] Load Alunos',
   props<{ page?: number; filters?: any }>()
@@ -18,10 +16,10 @@ export const loadAlunosFailure = createAction(
   props<{ error: string }>()
 );
 
-// Create Aluno
+// CORREÇÃO: 'aluno' deve ser do tipo 'Aluno' (completo), não 'Partial<Aluno>'
 export const createAluno = createAction(
   '[Alunos] Create Aluno',
-  props<{ aluno: Partial<Aluno> }>()
+  props<{ aluno: Aluno }>()
 );
 
 export const createAlunoSuccess = createAction(
@@ -34,7 +32,7 @@ export const createAlunoFailure = createAction(
   props<{ error: string }>()
 );
 
-// Update Aluno
+// Update continua Partial, pois podemos atualizar só um campo
 export const updateAluno = createAction(
   '[Alunos] Update Aluno',
   props<{ id: number; aluno: Partial<Aluno> }>()
@@ -50,7 +48,6 @@ export const updateAlunoFailure = createAction(
   props<{ error: string }>()
 );
 
-// Delete Aluno
 export const deleteAluno = createAction(
   '[Alunos] Delete Aluno',
   props<{ id: number }>()
@@ -66,14 +63,12 @@ export const deleteAlunoFailure = createAction(
   props<{ error: string }>()
 );
 
-// Select Aluno
 export const selectAluno = createAction(
   '[Alunos] Select Aluno',
   props<{ aluno: Aluno | null }>()
 );
 
-// Set Filters
 export const setAlunosFilters = createAction(
-  '[Alunos] Set Filters',
+  '[Alunos] Set Alunos Filters',
   props<{ filters: any }>()
 );

@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from typing import List, Optional
 
 from app.db.database import get_db
-from app.schemas import schema_disciplina as schemas_disciplina
+from app.schemas import schema_disciplina
 from app.schemas import schema_nota as schemas_nota
 from app.cruds import crud_disciplina, crud_nota, crud_turma
 from app.models import disciplina as models_disciplina
@@ -17,83 +17,70 @@ from app.security_decorators import (
     verify_resource_ownership
 )
 
-router = APIRouter(prefix="/disciplinas", tags=["Disciplinas"])
+from app.services.disciplina_service import DisciplinaService
 
-@router.post("/", response_model=schemas_disciplina.DisciplinaResponse, status_code=status.HTTP_201_CREATED)
-def criar_disciplina(
-    disciplina: schemas_disciplina.DisciplinaCreate,
-    db: Session = Depends(get_db),
-    current_user: models_user.Usuario = Depends(admin_or_superadmin_required)
+router = APIRouter()
+
+# Injeção de Dependência
+def get_disciplina_service(db: Session = Depends(get_db)) -> DisciplinaService:
+    return DisciplinaService(db)
+
+@router.post("/", response_model=schema_disciplina.DisciplinaResponse, status_code=status.HTTP_201_CREATED)
+def create_disciplina(
+    disciplina: schema_disciplina.DisciplinaCreate,
+    service: DisciplinaService = Depends(get_disciplina_service),
+    current_user: models_user.Usuario = Depends(get_current_user)
 ):
-    if current_user.perfil == "superadmin":  # type: ignore[comparison-overlap]
-        if not disciplina.escola_id:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Superadmin deve informar 'escola_id' no corpo da requisição."
-            )
-        escola_destino_id = disciplina.escola_id
-    else:
-        if not current_user.escola_id:  # type: ignore[truthy-function]
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Utilizador sem escola associada."
-            )
-        escola_destino_id = current_user.escola_id
+    return service.criar(disciplina, current_user)
 
-    return crud_disciplina.create_disciplina(db, disciplina, escola_destino_id)
-
-@router.get("/", response_model=List[schemas_disciplina.DisciplinaResponse])
-def listar_disciplinas(
+@router.get("/", response_model=List[schema_disciplina.DisciplinaResponse])
+def read_disciplinas(
     skip: int = 0,
     limit: int = 100,
-    db: Session = Depends(get_db),
-    escola_id: Optional[int] = Depends(get_current_escola_id)
+    service: DisciplinaService = Depends(get_disciplina_service),
+    current_user: models_user.Usuario = Depends(get_current_user)
 ):
-    return crud_disciplina.get_disciplinas(db, skip, limit, escola_id)
+    return service.listar(current_user, skip, limit)
 
-@router.put("/{disciplina_id}", response_model=schemas_disciplina.DisciplinaResponse)
-def atualizar_disciplina(
+@router.get("/{disciplina_id}", response_model=schema_disciplina.DisciplinaResponse)
+def read_disciplina(
     disciplina_id: int,
-    dados: schemas_disciplina.DisciplinaCreate,
-    db: Session = Depends(get_db),
-    current_user: models_user.Usuario = Depends(admin_or_superadmin_required),
-    escola_id: Optional[int] = Depends(get_current_escola_id)
+    service: DisciplinaService = Depends(get_disciplina_service),
+    current_user: models_user.Usuario = Depends(get_current_user)
 ):
-    disciplina = db.query(models_disciplina.Disciplina).filter(
-        models_disciplina.Disciplina.id == disciplina_id
-    )
-    if escola_id:
-        disciplina = disciplina.filter(models_disciplina.Disciplina.escola_id == escola_id)
-    disciplina = disciplina.first()
-    if not disciplina:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Disciplina não encontrada")
-    verify_resource_ownership(disciplina.escola_id, current_user, "disciplina")  # type: ignore[arg-type]
-    disciplina.nome = dados.nome
-    disciplina.codigo = dados.codigo
-    disciplina.carga_horaria = dados.carga_horaria
-    db.commit()
-    db.refresh(disciplina)
-    return disciplina
+    return service.get_by_id(disciplina_id, current_user)
+
+@router.put("/{disciplina_id}", response_model=schema_disciplina.DisciplinaResponse)
+def update_disciplina(
+    disciplina_id: int,
+    disciplina_update: schema_disciplina.DisciplinaUpdate,
+    service: DisciplinaService = Depends(get_disciplina_service),
+    current_user: models_user.Usuario = Depends(get_current_user)
+):
+    return service.atualizar(disciplina_id, disciplina_update, current_user)
 
 @router.delete("/{disciplina_id}", status_code=status.HTTP_204_NO_CONTENT)
-def eliminar_disciplina(
+def delete_disciplina(
     disciplina_id: int,
-    db: Session = Depends(get_db),
-    current_user: models_user.Usuario = Depends(admin_or_superadmin_required),
-    escola_id: Optional[int] = Depends(get_current_escola_id)
+    service: DisciplinaService = Depends(get_disciplina_service),
+    current_user: models_user.Usuario = Depends(get_current_user)
 ):
-    disciplina = db.query(models_disciplina.Disciplina).filter(
-        models_disciplina.Disciplina.id == disciplina_id
-    )
-    if escola_id:
-        disciplina = disciplina.filter(models_disciplina.Disciplina.escola_id == escola_id)
-    disciplina = disciplina.first()
-    if not disciplina:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Disciplina não encontrada")
-    verify_resource_ownership(disciplina.escola_id, current_user, "disciplina")  # type: ignore[arg-type]
-    db.delete(disciplina)
-    db.commit()
+    service.deletar(disciplina_id, current_user)
     return None
+
+# --- Rota Especial (Listar por Escola) ---
+# Equivalente à lógica que pediu para refatorar
+@router.get("/escola/{escola_id}", response_model=List[schema_disciplina.DisciplinaResponse])
+def read_disciplinas_por_escola(
+    escola_id: int,
+    service: DisciplinaService = Depends(get_disciplina_service),
+    current_user: models_user.Usuario = Depends(get_current_user)
+):
+    """
+    Lista todas as disciplinas de uma escola específica.
+    A lógica de permissão (apenas superadmin ou o próprio admin da escola) está no Service.
+    """
+    return service.listar_por_escola(escola_id, current_user)
 
 @router.get("/{disciplina_id}/notas", response_model=List[schemas_nota.NotaResponse])
 def read_notas_disciplina(
@@ -112,7 +99,7 @@ def read_notas_disciplina(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Disciplina não encontrada")
     return crud_nota.get_notas_by_disciplina(db, disciplina_id, escola_id=escola_id)
 
-@router.get("/turmas/{turma_id}", response_model=List[schemas_disciplina.DisciplinaResponse])
+@router.get("/turmas/{turma_id}", response_model=List[schema_disciplina.DisciplinaResponse])
 def read_disciplinas_por_turma(
     turma_id: int,
     db: Session = Depends(get_db),

@@ -9,7 +9,6 @@ from app.schemas import schema_notificacao
 from app.cruds import crud_mensalidade
 from app.cruds import crud_notificacao
 from app.security import get_current_user
-from app.security_decorators import check_permission 
 
 # Email
 from app.core.email import enviar_email_recibo
@@ -17,7 +16,7 @@ from app.core.email import enviar_email_recibo
 router = APIRouter(prefix="/mensalidades", tags=["Mensalidades"])
 
 @router.post("/", response_model=schema_mensalidade.MensalidadeResponse)
-@check_permission(["admin", "secretaria"]) # Só Admin e Secretaria criam cobranças
+# @check_permission(["admin", "secretaria"]) # Só Admin e Secretaria criam cobranças
 def criar_mensalidade(
     mensalidade: schema_mensalidade.MensalidadeCreate, 
     db: Session = Depends(get_db),
@@ -26,7 +25,7 @@ def criar_mensalidade(
     return crud_mensalidade.create_mensalidade(db, mensalidade, current_user.escola_id)
 
 @router.get("/aluno/{aluno_id}", response_model=List[schema_mensalidade.MensalidadeResponse])
-@check_permission(["admin", "secretaria", "superadmin", "aluno"]) # Aluno também pode ver as suas
+# @check_permission(["admin", "secretaria", "superadmin", "aluno"]) # Aluno também pode ver as suas
 def listar_por_aluno(
     aluno_id: int, 
     db: Session = Depends(get_db),
@@ -36,7 +35,7 @@ def listar_por_aluno(
 
 # --- A ROTA MÁGICA: PAGAR COM EMAIL E NOTIFICAÇÃO ---
 @router.put("/{id}/pagar")
-@check_permission(["admin", "secretaria", "superadmin"]) # Apenas staff confirma pagamento
+# @check_permission(["admin", "secretaria", "superadmin"]) # Apenas staff confirma pagamento
 def pagar_mensalidade(
     id: int, 
     forma_pagamento: str,

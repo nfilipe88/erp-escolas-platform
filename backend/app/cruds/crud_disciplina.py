@@ -17,6 +17,17 @@ def create_disciplina(db: Session, disciplina: schema_disciplina.DisciplinaCreat
     db.refresh(db_obj)
     return db_obj
 
+def update_disciplina(db: Session, db_obj: models.Disciplina, disciplina_update: schema_disciplina.DisciplinaUpdate):
+    db_obj.nome = disciplina_update.nome
+    db_obj.codigo = disciplina_update.codigo
+    db_obj.carga_horaria = disciplina_update.carga_horaria
+    db.commit()
+    db.refresh(db_obj)
+    return db_obj
+
+def get_disciplina(db: Session, disciplina_id: int):
+    return db.query(models.Disciplina).filter(models.Disciplina.id == disciplina_id).first()
+
 def get_disciplinas(db: Session, skip: int = 0, limit: int = 100, escola_id: Optional[int] = None):
     query = db.query(models.Disciplina)
     if escola_id:

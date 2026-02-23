@@ -6,10 +6,11 @@
 
     <div *ngIf="isSuperAdmin" class="bg-yellow-50 p-4 rounded border border-yellow-200 mb-4">
       <label class="block text-sm font-bold text-yellow-800 mb-1">🏫 Escola de Destino (Modo Superadmin)</label>
-      <select [(ngModel)]="usuario.escola_id" class="w-full p-3 border-2 border-yellow-300 rounded bg-white text-gray-800 font-bold">
+      <select [(ngModel)]="usuario.escola_id"
+        class="w-full p-3 border-2 border-yellow-300 rounded bg-white text-gray-800 font-bold">
         <option [ngValue]="null">-- Selecione a Escola --</option>
         @for (escola of escolas; track escola.id) {
-          <option [value]="escola.id">{{ escola.nome }}</option>
+        <option [value]="escola.id">{{ escola.nome }}</option>
         }
       </select>
       <p class="text-xs text-yellow-600 mt-1">Obrigatório para criar Diretores, Professores ou Secretária.</p>
@@ -31,13 +32,15 @@
     </div>
 
     <div>
-      <label class="block text-sm font-bold text-gray-700 mb-1">Perfil de Acesso</label>
-      <select [(ngModel)]="usuario.perfil" class="w-full p-3 border rounded bg-white text-gray-800 font-bold">
-        <option value="professor">👨‍🏫 Professor (Lança Notas)</option>
-        <option value="secretaria">💻 Secretaria (Matrículas/Finanças)</option>
-        <option value="admin">👔 Diretor / Admin (Gestão Escolar)</option>
-        <option *ngIf="isSuperAdmin" value="superadmin">🛠️ Super Administrador</option>
-      </select>
+      <label class="block text-sm font-bold text-gray-700 mb-1">Perfis de Acesso (pode selecionar vários)</label>
+      <div class="space-y-2 border rounded p-3">
+        @for (role of rolesDisponiveis; track role.id) {
+        <label class="flex items-center gap-2">
+          <input type="checkbox" [value]="role.id" (change)="toggleRole(role.id, $event)">
+          {{ role.name }}
+        </label>
+        }
+      </div>
     </div>
 
     <button (click)="salvar()"

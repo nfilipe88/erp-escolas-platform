@@ -46,7 +46,7 @@ export class AlunoForm implements OnInit {
   ngOnInit() {
     // 1. Obter usuário logado
     const user = this.authService.getUsuarioLogado();
-    this.isSuperAdmin = user?.perfil === 'superadmin';
+    this.isSuperAdmin = user?.roles.some(r => r.name === 'superadmin') ?? false;
 
     // CORREÇÃO: Tratar explicitamente o tipo
     if (user && user.escola_id !== undefined) {

@@ -4,38 +4,35 @@ from typing import List, Optional
 
 from app.db.database import get_db
 from app.security import get_current_user, get_password_hash, verify_password
+from app.cruds import crud_usuario, crud_escola, crud_notificacao
+from app.schemas import schema_notificacao
 from app.schemas import schema_usuario as schemas_user
-from app.cruds import crud_usuario, crud_escola
 from app.models import usuario as models_user
+from app.models.role import Role
 from app.security_decorators import (
-    get_current_escola_id,
-    require_escola_id,
-    superadmin_required,
-    admin_or_superadmin_required,
+    get_current_escola_id, require_escola_id, superadmin_required, admin_or_superadmin_required,
     can_modify_user
 )
-from app.schemas import schema_notificacao
-from app.cruds import crud_notificacao
 
 router = APIRouter(tags=["Usuários"])
 
-@router.post("/usuarios", response_model=schemas_user.UsuarioResponse, status_code=status.HTTP_201_CREATED)
+@router.post("/", response_model=schemas_user.UsuarioResponse, status_code=status.HTTP_201_CREATED)
 def criar_usuario(
     usuario: schemas_user.UsuarioCreate,
     db: Session = Depends(get_db),
     current_user: models_user.Usuario = Depends(get_current_user)
 ):
-    # Superadmin: pode criar qualquer perfil, com ou sem escola
-    if current_user.perfil == "superadmin":  # type: ignore[comparison-overlap]
+    # Superadmin: pode criar qualquer roles, com ou sem escola
+    if current_user.roles == "superadmin":  # type: ignore[comparison-overlap]
         escola_destino_id = usuario.escola_id  # pode ser None (superadmin)
-        if usuario.perfil != "superadmin" and not escola_destino_id:
+        if usuario.roles != "superadmin" and not escola_destino_id:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Superadmin deve informar escola_id para perfis não‑superadmin."
             )
     else:
         # Admin pode criar apenas na sua escola
-        if current_user.perfil != "admin":  # type: ignore[comparison-overlap]
+        if current_user.roles != "admin":  # type: ignore[comparison-overlap]
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Apenas admin ou superadmin podem criar utilizadores."
@@ -46,7 +43,7 @@ def criar_usuario(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Admin sem escola associada."
             )
-        if usuario.perfil in ["superadmin", "admin"]:
+        if usuario.roles in ["superadmin", "admin"]:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Admin não pode criar outro admin ou superadmin."
@@ -60,7 +57,7 @@ def criar_usuario(
 
     return crud_usuario.create_usuario(db=db, usuario=usuario, escola_id=escola_destino_id)
 
-@router.get("/usuarios", response_model=List[schemas_user.UsuarioResponse])
+@router.get("/", response_model=List[schemas_user.UsuarioResponse])
 def listar_usuarios(
     skip: int = 0,
     limit: int = 100,
@@ -69,14 +66,14 @@ def listar_usuarios(
 ):
     return crud_usuario.get_usuarios(db, skip, limit, escola_id=escola_id)
 
-@router.get("/usuarios/professores", response_model=List[schemas_user.UsuarioResponse])
+@router.get("/professores", response_model=List[schemas_user.UsuarioResponse])
 def listar_professores(
     db: Session = Depends(get_db),
     escola_id: int = Depends(require_escola_id)
 ):
     return db.query(models_user.Usuario).filter(
         models_user.Usuario.escola_id == escola_id,
-        models_user.Usuario.perfil == "professor",  # type: ignore[comparison-overlap]
+        models_user.Usuario.roles == "professor",  # type: ignore[comparison-overlap]
         models_user.Usuario.ativo == True  # type: ignore[comparison-overlap]
     ).all()
 
@@ -99,7 +96,7 @@ def alterar_minha_senha(
     return {"mensagem": "Senha alterada com sucesso"}
 
 # Endpoints para administração de usuários (admin/superadmin)
-@router.put("/usuarios/{usuario_id}")
+@router.put("/{usuario_id}")
 def atualizar_usuario(
     usuario_id: int,
     dados: schemas_user.UsuarioCreate,  # Idealmente UsuarioUpdate, mas simplificado
@@ -114,15 +111,15 @@ def atualizar_usuario(
     target_user.nome = dados.nome
     target_user.email = dados.email
     target_user.ativo = dados.ativo
-    if dados.perfil:
-        target_user.perfil = dados.perfil.value  # type: ignore[assignment]
+    if dados.roles:
+        target_user.roles = dados.roles.value  # type: ignore[assignment]
     if dados.senha:
         target_user.senha_hash = get_password_hash(dados.senha)  # type: ignore[assignment]
     db.commit()
     db.refresh(target_user)
     return target_user
 
-@router.delete("/usuarios/{usuario_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/{usuario_id}", status_code=status.HTTP_204_NO_CONTENT)
 def deletar_usuario(
     usuario_id: int,
     db: Session = Depends(get_db),
@@ -142,3 +139,14 @@ def minhas_notificacoes(
     current_user: models_user.Usuario = Depends(get_current_user)
 ):
     return crud_notificacao.listar_minhas_notificacoes(db, current_user.id)
+
+@router.get("/professores", response_model=List[schemas_user.UsuarioResponse])
+def listar_professores(
+    db: Session = Depends(get_db),
+    escola_id: int = Depends(require_escola_id)
+):
+    return db.query(models_user.Usuario).join(models_user.Usuario.roles).filter(
+        models_user.Usuario.escola_id == escola_id,
+        Role.name == "professor",
+        models_user.Usuario.ativo == True
+    ).all()

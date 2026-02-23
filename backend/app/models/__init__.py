@@ -1,5 +1,6 @@
 from .aluno import Aluno
 from .atribuicao import Atribuicao
+from .audit_log import AuditLog
 from .configuracao import Configuracao
 from .diario import Diario
 from .disciplina import Disciplina
@@ -12,3 +13,5 @@ from .ponto_professor import PontoProfessor
 from .presenca import Presenca
 from .turma import Turma
 from .usuario import Usuario
+from .role import Role
+from .permission import Permission

@@ -11,7 +11,8 @@ services:
   
   celery_worker:
     build: ./backend
-    command: celery -A app.tasks.backup_tasks worker --loglevel=info
+    # CORREÇÃO 2: Alterado de app.tasks para app.services
+    command: celery -A app.services.backup_tasks worker --loglevel=info
     volumes:
       - ./backend:/app
       - ./backups:/backups
@@ -24,7 +25,8 @@ services:
   
   celery_beat:
     build: ./backend
-    command: celery -A app.tasks.backup_tasks beat --loglevel=info
+    # CORREÇÃO 2: Alterado de app.tasks para app.services
+    command: celery -A app.services.backup_tasks beat --loglevel=info
     volumes:
       - ./backend:/app
     depends_on:

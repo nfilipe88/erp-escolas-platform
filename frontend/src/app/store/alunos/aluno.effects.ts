@@ -4,9 +4,9 @@ import { Actions, createEffect, ofType } from '@ngrx/effects';
 import { Store } from '@ngrx/store';
 import { of } from 'rxjs';
 import { map, catchError, switchMap, withLatestFrom } from 'rxjs/operators';
-import { AlunosService } from '../../services/alunos.service';
 import * as AlunosActions from './alunos.actions';
 import * as fromAlunos from './alunos.selectors';
+import { AlunoService } from '../../services/aluno.service';
 
 @Injectable()
 export class AlunosEffects {
@@ -82,6 +82,6 @@ export class AlunosEffects {
   constructor(
     private actions$: Actions,
     private store: Store,
-    private alunosService: AlunosService
+    private alunosService: AlunoService
   ) {}
 }

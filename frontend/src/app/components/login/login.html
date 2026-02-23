@@ -13,19 +13,19 @@
       </p>
     </div>
 
-    <form class="mt-8 space-y-6" (submit)="entrar()">
+    <form  [formGroup]="loginForm" class="mt-8 space-y-6" (submit)="entrar()">
       <div class="rounded-md shadow-sm -space-y-px">
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-1" for="email-address">Email</label>
-          <input id="email-address" name="email" type="email" [(ngModel)]="email" required
+          <input id="email-address" name="email" type="email" formControlName="email" required
             class="w-full p-3 border border-gray-300 rounded focus:ring-blue-500"
             placeholder="Endereço de Email">
         </div>
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1" for="password">Senha</label>
-          <input id="password" name="password" type="password" [(ngModel)]="senha" required
+          <label class="block text-sm font-medium text-gray-700 mb-1" for="password">Palavra Passe</label>
+          <input id="password" name="password" type="password" formControlName="password" required
             class="w-full p-3 border border-gray-300 rounded focus:ring-blue-500"
-            placeholder="Sua Senha">
+            placeholder="Sua Palavra-Passe">
         </div>
       </div>
 

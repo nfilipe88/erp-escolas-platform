@@ -1,106 +1,71 @@
-<div class="p-6 max-w-7xl mx-auto">
-  <!-- Loading State -->
-  <div *ngIf="carregando" class="text-center py-20">
-    <div class="inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mb-4"></div>
-    <p class="text-gray-500">A carregar dados do sistema...</p>
+<div class="p-6 fade-in">
+  <div class="flex justify-between items-center mb-6">
+    <h2 class="text-2xl font-bold text-gray-800">
+      Dashboard <span *ngIf="data()" class="text-sm font-normal text-gray-500 capitalize">({{ data()?.perfil }})</span>
+    </h2>
+    <button (click)="carregarDados()" class="text-blue-600 hover:text-blue-800 text-sm">
+      <span class="material-icons-outlined align-middle">refresh</span> Atualizar
+    </button>
   </div>
 
-  <!-- Conteúdo quando carregado -->
-  <div *ngIf="!carregando">
-    <div class="mb-8 flex justify-between items-end">
-      <div>
-        <h1 class="text-3xl font-black text-gray-800">Olá, {{ nomeUsuario }} 👋</h1>
-        <p class="text-gray-500">Bem-vindo ao Painel de Controlo do ERP Escolar.</p>
-      </div>
-      <span class="px-3 py-1 bg-gray-200 rounded-full text-xs font-bold uppercase tracking-wide text-gray-600">
-        {{ perfil }}
-      </span>
-    </div>
+  <div *ngIf="carregando" class="flex justify-center h-64 items-center">
+    <div class="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600"></div>
+  </div>
 
-    <!-- Admin Dashboard -->
-    <div *ngIf="perfil === 'admin' || perfil === 'superadmin' || perfil === 'secretaria'">
-      <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8" *ngIf="stats">
-        <div class="bg-white p-6 rounded-xl shadow border-l-4 border-blue-500">
-          <div class="text-gray-500 text-sm font-bold uppercase">Total Alunos</div>
-          <div class="text-4xl font-black text-gray-800">{{ stats.total_alunos }}</div>
-          <div class="text-sm text-green-600 mt-1">{{ stats.alunos_ativos }} ativos</div>
-        </div>
-        <div class="bg-white p-6 rounded-xl shadow border-l-4 border-green-500">
-          <div class="text-gray-500 text-sm font-bold uppercase">Receita Mensal</div>
-          <div class="text-4xl font-black text-gray-800">
-            {{ stats.receita_estimada | currency:'AKZ ':'symbol':'1.0-0' }}
+  <div *ngIf="erro" class="bg-red-100 text-red-700 p-4 rounded mb-4">
+    {{ erro }}
+  </div>
+
+  <div *ngIf="data() && !carregando">
+
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <div *ngFor="let card of data()?.cards"
+           class="bg-white rounded-lg shadow-sm p-6 border-l-4 transition-transform hover:scale-105"
+           [ngClass]="{
+             'border-blue-500': card.cor === 'blue',
+             'border-green-500': card.cor === 'green',
+             'border-purple-500': card.cor === 'purple',
+             'border-indigo-500': card.cor === 'indigo',
+             'border-teal-500': card.cor === 'teal',
+             'border-orange-500': card.cor === 'orange',
+             'border-red-500': card.cor === 'red'
+           }">
+        <div class="flex justify-between items-start">
+          <div>
+            <p class="text-xs font-medium text-gray-500 uppercase tracking-wider">{{ card.titulo }}</p>
+            <p class="mt-2 text-2xl font-semibold text-gray-900">{{ card.valor }}</p>
+          </div>
+          <div class="p-2 rounded-full bg-gray-50 text-gray-400">
+            <span class="material-icons-outlined">{{ card.icon }}</span>
           </div>
         </div>
-
-        <div class="bg-white p-6 rounded-xl shadow border-l-4 border-yellow-500">
-          <div class="text-gray-500 text-sm font-bold uppercase">Turmas</div>
-          <div class="text-4xl font-black text-gray-800">{{ stats.total_turmas }}</div>
-        </div>
-
-        <div class="bg-white p-6 rounded-xl shadow border-l-4 border-purple-500">
-          <div class="text-gray-500 text-sm font-bold uppercase">Disciplinas</div>
-          <div class="text-4xl font-black text-gray-800">{{ stats.total_disciplinas }}</div>
-        </div>
-
-        <div *ngIf="perfil === 'superadmin'" class="bg-white p-6 rounded-xl shadow border-l-4 border-green-500">
-          <div class="text-gray-500 text-sm font-bold uppercase">Escolas</div>
-          <div class="text-4xl font-black text-gray-800">{{ stats.total_escolas }}</div>
-        </div>
-      </div>
-
-      <div class="bg-blue-50 p-6 rounded-xl border border-blue-100 flex justify-between items-center">
-        <div>
-          <h3 class="font-bold text-blue-900 text-lg">Atribuição de Aulas</h3>
-          <p class="text-blue-700 text-sm">Defina quais professores dão aulas em que turmas.</p>
-        </div>
-        <a routerLink="/distribuicao-docente"
-          class="bg-blue-900 text-white px-6 py-2 rounded-lg font-bold hover:bg-blue-800 transition">
-          Gerir Professores →
-        </a>
       </div>
     </div>
 
-    <!-- Professor Dashboard -->
-    <div *ngIf="perfil === 'professor'">
-      <h2 class="text-xl font-bold text-gray-800 mb-4 border-b pb-2">📚 As Minhas Cadernetas</h2>
+    <div class="bg-white p-6 rounded-lg shadow-sm" *ngIf="data()?.graficos?.principal?.length">
+      <h3 class="text-lg font-semibold mb-4 text-gray-700">Estatísticas</h3>
 
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-        @for (aula of minhasAulas; track aula.id) {
-        <div
-          class="bg-white rounded-xl shadow-lg hover:shadow-2xl transition transform hover:-translate-y-1 cursor-pointer overflow-hidden border border-gray-100">
-          <div class="h-2 bg-indigo-600"></div>
-          <div class="p-6">
-            <div class="flex justify-between items-start mb-4">
-              <h3 class="text-2xl font-black text-gray-800">{{ aula.disciplina_nome }}</h3>
-              <span class="bg-indigo-100 text-indigo-700 text-xs font-bold px-2 py-1 rounded">
-                {{ aula.ano_letivo }}
-              </span>
-            </div>
+      <div *ngIf="data()?.graficos?.tipo === 'pie'" class="h-75">
+        <ngx-charts-pie-chart
+          [results]="data()?.graficos?.principal"
+          [scheme]="colorScheme"
+          [doughnut]="true"
+          [legend]="true"
+          [labels]="true">
+        </ngx-charts-pie-chart>
+      </div>
 
-            <p class="text-gray-500 font-medium mb-6">
-              Turma: <span class="text-gray-900 font-bold">{{ aula.turma_nome }}</span>
-            </p>
-
-            <div class="flex gap-2">
-              <button [routerLink]="['/pauta', aula.turma_id, aula.disciplina_id]"
-                class="flex-1 bg-indigo-50 text-indigo-700 font-bold py-3 rounded-lg hover:bg-indigo-600 hover:text-white transition">
-                📝 Notas
-              </button>
-
-              <button [routerLink]="['/chamada', aula.turma_id]"
-                class="flex-1 bg-yellow-50 text-yellow-700 font-bold py-3 rounded-lg hover:bg-yellow-600 hover:text-white transition">
-                📅 Chamada
-              </button>
-            </div>
-          </div>
-        </div>
-        } @empty {
-        <div class="col-span-3 text-center py-20 bg-gray-50 rounded-xl border-dashed border-2 border-gray-300">
-          <p class="text-xl text-gray-400 font-bold">Ainda não tem turmas atribuídas.</p>
-          <p class="text-gray-400 text-sm">Fale com o Diretor Pedagógico.</p>
-        </div>
-        }
+      <div *ngIf="data()?.graficos?.tipo === 'bar'" class="h-75">
+        <ngx-charts-bar-vertical
+          [results]="data()?.graficos?.principal"
+          [scheme]="colorScheme"
+          [xAxis]="true"
+          [yAxis]="true"
+          [showXAxisLabel]="true"
+          [showYAxisLabel]="true">
+        </ngx-charts-bar-vertical>
       </div>
     </div>
+
   </div>
 </div>

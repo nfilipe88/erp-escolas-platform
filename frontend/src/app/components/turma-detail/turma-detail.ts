@@ -58,12 +58,6 @@ export class TurmaDetail implements OnInit {
       this.cdr.detectChanges();
     });
 
-    // 2. Busca a lista de chamadas (Alunos desta turma)
-    this.alunoService.getAlunosPorTurma(id).subscribe(dados => {
-      this.alunos = dados;
-      this.cdr.detectChanges();
-    });
-
     // 3. Busca a lista de disciplinas da turma
     this.turmaService.getDisciplinasByTurma(id).subscribe(dados => {
       this.disciplinasDaTurma = dados;

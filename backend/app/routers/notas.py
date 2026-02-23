@@ -1,61 +1,87 @@
-import shutil
-import os
-from uuid import uuid4
-from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Form
+# app/routers/notas.py
+from typing import List, Any, Optional
+from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
-from typing import List, Optional
 
 from app.db.database import get_db
+from app.schemas import schema_nota
+from app.services.nota_service import NotaService
 from app.security import get_current_user
-from app.schemas import schema_nota as schemas_nota
-from app.cruds import crud_nota, crud_aluno, crud_disciplina
-from app.models import usuario as models_user
+from app.models.usuario import Usuario
 from app.models import disciplina as models_disciplina
-from app.security_decorators import (
-    require_escola_id,
-    verify_resource_ownership,
-    get_current_escola_id
-)
-from app.core.file_handler import SecureFileHandler
+from app.cruds import crud_nota
+from app.security_decorators import get_current_escola_id
 
-router = APIRouter(prefix="/notas", tags=["Notas"])
+router = APIRouter()
 
-UPLOAD_DIR = "uploads"
+def get_nota_service(db: Session = Depends(get_db)) -> NotaService:
+    return NotaService(db)
 
-@router.post("/", response_model=schemas_nota.NotaResponse)
-async def lancar_nota(
-    aluno_id: int = Form(...),
-    disciplina_id: int = Form(...),
-    valor: float = Form(...),
-    trimestre: str = Form(...),
-    descricao: str = Form("Prova"),
-    arquivo: Optional[UploadFile] = File(None),
-    db: Session = Depends(get_db),
-    current_user: models_user.Usuario = Depends(get_current_user),
-    escola_id: int = Depends(require_escola_id)
+@router.post("/", response_model=schema_nota.NotaResponse, status_code=status.HTTP_201_CREATED)
+def lancar_nota(
+    nota: schema_nota.NotaCreate,
+    service: NotaService = Depends(get_nota_service),
+    current_user: Usuario = Depends(get_current_user)
 ):
-    # Validações...
-    
-    # Upload seguro
-    arquivo_info = None
-    if arquivo:
-        arquivo_info = await SecureFileHandler.validate_and_save(
-            arquivo,
-            subfolder=f"provas/{escola_id}"
-        )
-    
-    nota_data = schemas_nota.NotaCreate(
-        aluno_id=aluno_id,
-        disciplina_id=disciplina_id,
-        valor=valor,
-        trimestre=trimestre,
-        descricao=descricao,
-        arquivo_url=arquivo_info["url"] if arquivo_info else None
-    )
-    
-    return crud_nota.lancar_nota(db=db, nota=nota_data, escola_id=escola_id)
+    """Lançar uma nova nota"""
+    return service.lancar_nota(nota, current_user)
 
-@router.get("/disciplinas/{disciplina_id}", response_model=List[schemas_nota.NotaResponse])
+@router.put("/{nota_id}", response_model=schema_nota.NotaResponse)
+def atualizar_nota(
+    nota_id: int,
+    nota_update: schema_nota.NotaUpdate,
+    service: NotaService = Depends(get_nota_service),
+    current_user: Usuario = Depends(get_current_user)
+):
+    """Corrigir uma nota lançada"""
+    return service.atualizar_nota(nota_id, nota_update, current_user)
+
+@router.delete("/{nota_id}", status_code=status.HTTP_204_NO_CONTENT)
+def excluir_nota(
+    nota_id: int,
+    service: NotaService = Depends(get_nota_service),
+    current_user: Usuario = Depends(get_current_user)
+):
+    """Remover uma nota"""
+    service.excluir_nota(nota_id, current_user)
+    return None
+
+@router.get("/aluno/{aluno_id}", response_model=List[schema_nota.NotaResponse])
+def listar_notas_aluno(
+    aluno_id: int,
+    service: NotaService = Depends(get_nota_service),
+    current_user: Usuario = Depends(get_current_user)
+):
+    """Extrato de todas as notas do aluno"""
+    return service.listar_notas_aluno(aluno_id, current_user)
+
+@router.get("/pauta", response_model=List[schema_nota.NotaResponse])
+def ver_pauta(
+    turma_id: int,
+    disciplina_id: int,
+    trimestre: str,
+    service: NotaService = Depends(get_nota_service),
+    current_user: Usuario = Depends(get_current_user)
+):
+    """
+    Ver notas da turma inteira (Pauta).
+    Ex: /notas/pauta?turma_id=1&disciplina_id=5&trimestre=1º Trimestre
+    """
+    return service.listar_pauta_turma(turma_id, disciplina_id, trimestre, current_user)
+
+@router.get("/aluno/{aluno_id}/boletim")
+def ver_boletim_calculado(
+    aluno_id: int,
+    service: NotaService = Depends(get_nota_service),
+    current_user: Usuario = Depends(get_current_user)
+):
+    """
+    Gera o boletim com médias calculadas na hora.
+    Retorna JSON com estrutura de disciplinas e médias.
+    """
+    return service.calcular_medias_aluno(aluno_id, current_user)
+
+@router.get("/disciplinas/{disciplina_id}", response_model=List[schema_nota.NotaResponse])
 def read_notas_disciplina(
     disciplina_id: int,
     db: Session = Depends(get_db),

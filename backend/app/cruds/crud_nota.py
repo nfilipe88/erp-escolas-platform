@@ -1,9 +1,9 @@
 # app/cruds/crud_nota.py
+from typing import Optional
 from sqlalchemy.orm import Session
 from app.models import nota as models
 from app.models import aluno as models_aluno
 from app.schemas import schema_nota
-from typing import Optional
 
 def lancar_nota(db: Session, nota: schema_nota.NotaCreate, escola_id: int):
     # escola_id é obrigatório e será inserido no modelo

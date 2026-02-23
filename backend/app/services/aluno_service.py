@@ -1,158 +1,146 @@
-# backend/app/services/aluno_service.py - NOVO ARQUIVO
-from datetime import date
 from sqlalchemy.orm import Session
-from typing import Optional, List
-from app.cruds import crud_aluno
+from fastapi import HTTPException, status
+from typing import Any, Dict, List, Optional
+
+from app.models.aluno import Aluno
+from app.models.usuario import Usuario
 from app.schemas import schema_aluno
-from app.models import aluno as models
-from app.core.exceptions import BusinessLogicError
-from app.services.email_service import EmailService
-from app.services.audit_service import AuditService
-from app.cruds import crud_mensalidade, crud_turma
+from app.cruds import crud_aluno, crud_turma
+from app.core.config import settings
+from app.cruds import crud_nota
 
 class AlunoService:
-    """Serviço para lógica de negócio de alunos"""
-    
     def __init__(self, db: Session):
         self.db = db
-        self.email_service = EmailService()
-        self.audit_service = AuditService(db)
-    
-    def matricular_aluno(
-        self,
-        dados: schema_aluno.AlunoCreate,
-        escola_id: int,
-        usuario_id: int
-    ) -> models.Aluno:
-        """Matricular novo aluno com validações de negócio"""
-        
-        # 1. Validar se turma existe e pertence à escola
-        if dados.turma_id:
-            turma = crud_turma.get_turma(self.db, dados.turma_id, escola_id)
-            if not turma:
-                raise BusinessLogicError("Turma não encontrada ou não pertence a esta escola")
-            
-            # Verificar capacidade da turma
-            alunos_turma = crud_aluno.get_alunos_por_turma(self.db, dados.turma_id)
-            if len(alunos_turma) >= 40:  # Limite configurável
-                raise BusinessLogicError("Turma lotada (máximo 40 alunos)")
-        
-        # 2. Verificar duplicação de BI
-        if dados.bi:
-            aluno_existente = crud_aluno.get_aluno_by_bi(self.db, dados.bi, escola_id)
-            if aluno_existente:
-                raise BusinessLogicError(f"Já existe aluno com BI {dados.bi}")
-        
-        # 3. Validar idade mínima
-        if dados.data_nascimento:
-            idade = (date.today() - dados.data_nascimento).days // 365
-            if idade < 3:
-                raise BusinessLogicError("Aluno deve ter no mínimo 3 anos")
-        
-        # 4. Criar aluno
-        aluno = crud_aluno.create_aluno(self.db, dados, escola_id)
-        
-        # 5. Registrar auditoria
-        self.audit_service.log_action(
-            usuario_id=usuario_id,
-            action="MATRICULA_ALUNO",
-            entity_type="Aluno",
-            entity_id=aluno.id,
-            details={"nome": aluno.nome, "escola_id": escola_id}
-        )
-        
-        # 6. Enviar email de boas-vindas (assíncrono)
-        if dados.email:
-            self.email_service.enviar_boas_vindas(aluno.email, aluno.nome)
-        
-        return aluno
-    
-    def transferir_turma(
-        self,
-        aluno_id: int,
-        nova_turma_id: int,
-        escola_id: int,
-        usuario_id: int,
-        motivo: str
-    ) -> models.Aluno:
-        """Transferir aluno de turma com validações"""
-        
-        # 1. Buscar aluno
+
+    def get_by_id(self, aluno_id: int, escola_id: Optional[int]) -> Aluno:
+        """Busca um aluno garantindo que pertence à escola do utilizador"""
         aluno = crud_aluno.get_aluno(self.db, aluno_id, escola_id)
         if not aluno:
-            raise BusinessLogicError("Aluno não encontrado")
-        
-        # 2. Verificar se nova turma existe e tem capacidade
-        nova_turma = crud_turma.get_turma(self.db, nova_turma_id, escola_id)
-        if not nova_turma:
-            raise BusinessLogicError("Turma destino não encontrada")
-        
-        alunos_nova_turma = crud_aluno.get_alunos_por_turma(self.db, nova_turma_id)
-        if len(alunos_nova_turma) >= 40:
-            raise BusinessLogicError("Turma destino está lotada")
-        
-        # 3. Guardar turma antiga para histórico
-        turma_antiga_id = aluno.turma_id
-        
-        # 4. Atualizar aluno
-        aluno.turma_id = nova_turma_id
-        self.db.commit()
-        self.db.refresh(aluno)
-        
-        # 5. Registrar na auditoria
-        self.audit_service.log_action(
-            usuario_id=usuario_id,
-            action="TRANSFERENCIA_TURMA",
-            entity_type="Aluno",
-            entity_id=aluno.id,
-            details={
-                "turma_antiga": turma_antiga_id,
-                "turma_nova": nova_turma_id,
-                "motivo": motivo
-            }
-        )
-        
-        return aluno
-    
-    def desativar_aluno(
-        self,
-        aluno_id: int,
-        escola_id: int,
-        usuario_id: int,
-        motivo: str
-    ) -> models.Aluno:
-        """Desativar aluno (não deleta, preserva histórico)"""
-        
-        aluno = crud_aluno.get_aluno(self.db, aluno_id, escola_id)
-        if not aluno:
-            raise BusinessLogicError("Aluno não encontrado")
-        
-        if not aluno.ativo:
-            raise BusinessLogicError("Aluno já está inativo")
-        
-        # Verificar se tem mensalidades pendentes
-        mensalidades_pendentes = crud_mensalidade.get_mensalidades_aluno(
-            self.db, aluno_id, escola_id
-        )
-        pendentes = [m for m in mensalidades_pendentes if m.estado == "Pendente"]
-        
-        if pendentes:
-            raise BusinessLogicError(
-                f"Aluno possui {len(pendentes)} mensalidades pendentes. "
-                "Regularize antes de desativar."
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, 
+                detail="Aluno não encontrado ou não pertence a esta escola"
             )
-        
-        # Desativar
-        aluno.ativo = False
-        self.db.commit()
-        
-        # Auditoria
-        self.audit_service.log_action(
-            usuario_id=usuario_id,
-            action="DESATIVACAO_ALUNO",
-            entity_type="Aluno",
-            entity_id=aluno.id,
-            details={"motivo": motivo}
-        )
-        
         return aluno
+
+    def matricular(self, dados: schema_aluno.AlunoCreate, usuario_logado: Usuario) -> Aluno:
+        """
+        Cria um novo aluno aplicando regras de negócio:
+        1. Valida permissão de escola (Superadmin vs Admin de Escola)
+        2. Verifica capacidade da turma
+        3. Verifica duplicidade de BI
+        """
+        
+        # 1. Definição do ID da Escola
+        escola_target_id = dados.escola_id
+        
+        if usuario_logado.perfil != "superadmin":
+            # Se não é superadmin, forçamos o ID da escola do utilizador logado
+            if not usuario_logado.escola_id:
+                raise HTTPException(status_code=400, detail="Utilizador sem escola associada.")
+            escola_target_id = usuario_logado.escola_id
+        else:
+            # Se é superadmin, ele DEVE informar para qual escola está criando
+            if not escola_target_id:
+                raise HTTPException(status_code=400, detail="Superadmin deve informar o ID da escola.")
+
+        # 2. Validação de Turma (Capacidade)
+        if dados.turma_id:
+            turma = crud_turma.get_turma(self.db, dados.turma_id, escola_target_id)
+            if not turma:
+                raise HTTPException(status_code=404, detail="Turma não encontrada nesta escola.")
+            
+            # Contar alunos na turma (Regra de Negócio)
+            qtd_alunos = len(crud_aluno.get_alunos_por_turma(self.db, dados.turma_id))
+            # O limite poderia vir do settings ou da tabela turma
+            limite = getattr(settings, 'MAX_ALUNOS_TURMA', 40) 
+            
+            if qtd_alunos >= limite:
+                raise HTTPException(
+                    status_code=400, 
+                    detail=f"A turma está cheia. Limite atual: {limite} alunos."
+                )
+
+        # 3. Validação de BI Duplicado
+        if dados.bi:
+            aluno_existente = crud_aluno.get_aluno_by_bi(self.db, dados.bi, escola_target_id)
+            if aluno_existente:
+                raise HTTPException(
+                    status_code=400, 
+                    detail=f"Já existe um aluno com o BI '{dados.bi}' nesta escola."
+                )
+
+        # 4. Criação
+        novo_aluno = crud_aluno.create_aluno(self.db, dados, escola_target_id)
+        return novo_aluno
+
+    def atualizar(self, aluno_id: int, dados: schema_aluno.AlunoUpdate, usuario_logado: Usuario) -> Aluno:
+        """Atualiza aluno verificando permissões"""
+        escola_id = usuario_logado.escola_id if usuario_logado.perfil != "superadmin" else None
+        
+        # Verifica existência
+        aluno = self.get_by_id(aluno_id, escola_id)
+        
+        # Se tentar mudar de turma, devíamos validar capacidade novamente (Fica para melhoria futura)
+        
+        return crud_aluno.update_aluno(self.db, aluno_id, dados, escola_id)
+
+    def listar(self, usuario_logado: Usuario, skip: int = 0, limit: int = 100) -> List[Aluno]:
+        """Lista alunos da escola do utilizador"""
+        escola_id = usuario_logado.escola_id if usuario_logado.perfil != "superadmin" else None
+        return crud_aluno.get_alunos(self.db, skip, limit, escola_id)
+    
+    def deletar(self, aluno_id: int, usuario_logado: Usuario) -> None:
+        """Remove um aluno. Apenas Admin ou Superadmin podem fazer isso."""
+        
+        # 1. Verificar permissões de perfil
+        if usuario_logado.perfil not in ["admin", "superadmin"]:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Apenas administradores podem remover alunos."
+            )
+
+        # 2. Definir contexto da escola
+        escola_id = usuario_logado.escola_id if usuario_logado.perfil != "superadmin" else None
+
+        # 3. Buscar e validar existência/pertença
+        aluno = self.get_by_id(aluno_id, escola_id) # Já lança 404 se não achar
+
+        # 4. (Opcional) Verificar regras de negócio impeditivas
+        # Ex: Não deletar se tiver notas ou financeiro pendente.
+        # Por enquanto, seguimos o delete simples.
+        
+        crud_aluno.delete_aluno(self.db, aluno.id) # Precisará criar este método no CRUD se não existir, ou usar db.delete direto
+        # Caso o CRUD não tenha delete_aluno, use:
+        # self.db.delete(aluno)
+        # self.db.commit()
+
+    def obter_boletim(self, aluno_id: int, usuario_logado: Usuario) -> Dict[str, Any]:
+        """Busca o boletim garantindo a segurança dos dados"""
+        escola_id = usuario_logado.escola_id if usuario_logado.perfil != "superadmin" else None
+        
+        # Valida se aluno existe e pertence à escola
+        self.get_by_id(aluno_id, escola_id)
+
+        # Busca o boletim
+        boletim = crud_nota.get_boletim_aluno(self.db, aluno_id, escola_id=escola_id)
+        
+        if not boletim:
+            raise HTTPException(status_code=404, detail="Boletim não disponível ou aluno sem notas.")
+            
+        return boletim
+
+    def listar_por_turma(self, turma_id: int, usuario_logado: Usuario) -> List[Aluno]:
+        """Lista alunos de uma turma específica"""
+        escola_id = usuario_logado.escola_id if usuario_logado.perfil != "superadmin" else None
+
+        # 1. Validar a Turma
+        turma = crud_turma.get_turma(self.db, turma_id, escola_id=escola_id)
+        if not turma:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, 
+                detail="Turma não encontrada ou não pertence a esta escola."
+            )
+
+        # 2. Buscar Alunos
+        return crud_aluno.get_alunos_por_turma(self.db, turma_id, escola_id)

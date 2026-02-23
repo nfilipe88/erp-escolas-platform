@@ -1,15 +1,10 @@
-from sqlalchemy import Column, Enum, ForeignKey, Integer, String, Boolean, DateTime
-from sqlalchemy.sql import func
+from sqlalchemy import Column, Integer, String, Boolean, ForeignKey, DateTime, func
 from sqlalchemy.orm import relationship
+from datetime import datetime
 from app.db.database import Base
+# Importar a tabela associativa (certifique-se que o caminho está correto)
+from app.models.usuario_roles import usuario_roles 
 
-import enum
-class PerfilUsuario(enum.Enum):
-    SUPERADMIN = "superadmin"
-    ADMIN = "admin"
-    SECRETARIA = "secretaria"
-    PROFESSOR = "professor"
-    
 class Usuario(Base):
     __tablename__ = "usuarios"
 
@@ -17,19 +12,34 @@ class Usuario(Base):
     nome = Column(String, nullable=False)
     email = Column(String, unique=True, index=True, nullable=False)
     senha_hash = Column(String, nullable=False)
+    ativo = Column(Boolean, default=True)
+    escola_id = Column(Integer, ForeignKey("escolas.id"), nullable=True) # Pode ser Null para superadmin
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+    # --- RELACIONAMENTOS ---
     
-    escola_id = Column(Integer, ForeignKey("escolas.id", ondelete="CASCADE"), nullable=True, index=True) # Pode ser Null para o Superadmin
-    role_id = Column(Integer, ForeignKey('roles.id'), nullable=False, index=True)
+    # RBAC: Relacionamento Many-to-Many com Roles
+    # 'secondary' aponta para a tabela de associação
+    # 'back_populates' deve corresponder ao nome do relacionamento no modelo Role
+    roles = relationship("Role", secondary=usuario_roles, back_populates="usuarios") 
     
     escola = relationship("Escola", back_populates="usuarios")
+    notificacoes = relationship("Notificacao", back_populates="usuario", cascade="all, delete-orphan")
+    
+    # Outros relacionamentos (mantenha os que já existiam e estão corretos)
     diarios = relationship("Diario", back_populates="professor")
     horarios = relationship("Horario", back_populates="professor")
     atribuicoes = relationship("Atribuicao", back_populates="professor")
     ponto_professores = relationship("PontoProfessor", back_populates="professor")
-    # Perfil: 'admin' (Diretor), 'professor', 'secretaria', 'superadmin'
-    role = relationship("Role", back_populates="usuarios")
-    
-    ativo = Column(Boolean, default=True)
-    # Auditoria
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+    @property
+    def lista_permissoes(self):
+        """
+        Retorna um set com TODAS as strings de permissão acumuladas de todas as roles.
+        """
+        perms = set()
+        for role in self.roles:
+            for permission in role.permissions:
+                perms.add(permission.name) # Use .name ou .nome conforme seu modelo Permission
+        return perms

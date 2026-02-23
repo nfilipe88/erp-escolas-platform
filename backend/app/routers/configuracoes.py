@@ -7,9 +7,9 @@ from app.cruds import crud_configuracao
 from app.security_decorators import require_escola_id
 from app.models.configuracao import Configuracao
 
-router = APIRouter(prefix="/escolas", tags=["Configurações"])
+router = APIRouter(tags=["Configurações"])
 
-@router.get("/minha-escola/configuracoes", response_model=schemas_config.ConfiguracaoResponse)
+@router.get("/configuracoes", response_model=schemas_config.ConfiguracaoResponse)
 def ler_config(
     db: Session = Depends(get_db),
     escola_id: int = Depends(require_escola_id)
@@ -23,7 +23,7 @@ def ler_config(
         db.refresh(config)
     return config
 
-@router.put("/minha-escola/configuracoes", response_model=schemas_config.ConfiguracaoResponse)
+@router.put("/configuracoes", response_model=schemas_config.ConfiguracaoResponse)
 def atualizar_config(
     dados: schemas_config.ConfiguracaoUpdate,
     db: Session = Depends(get_db),

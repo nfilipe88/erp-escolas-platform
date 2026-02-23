@@ -10,6 +10,11 @@ class DisciplinaBase(BaseModel):
 class DisciplinaCreate(DisciplinaBase):
     escola_id: Optional[int] = None  # ← ADICIONADO (apenas superadmin envia)
 
+class DisciplinaUpdate(DisciplinaBase):
+    nome: str
+    codigo: str
+    carga_horaria: int
+
 class DisciplinaResponse(DisciplinaBase):
     id: int
     escola_id: int
