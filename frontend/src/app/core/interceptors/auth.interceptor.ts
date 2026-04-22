@@ -1,76 +1,81 @@
-// frontend/src/app/core/interceptors/auth.interceptor.ts - ATUALIZADO
-import { Injectable } from '@angular/core';
-import { HttpRequest, HttpHandler, HttpEvent, HttpInterceptor, HttpErrorResponse } from '@angular/common/http';
-import { Observable, throwError, BehaviorSubject } from 'rxjs';
-import { catchError, filter, take, switchMap } from 'rxjs/operators';
-import { SecureStorageService } from '../services/secure-storage.service';
+import { HttpInterceptorFn, HttpRequest, HttpHandlerFn, HttpEvent } from '@angular/common/http';
+import { inject } from '@angular/core';
+import { catchError, switchMap, filter, take } from 'rxjs/operators';
+import { throwError, BehaviorSubject, Observable } from 'rxjs';
 import { AuthService } from '../../services/auth.service';
 
-@Injectable()
-export class AuthInterceptor implements HttpInterceptor {
+let isRefreshing = false;
+let refreshTokenSubject: BehaviorSubject<string | null> = new BehaviorSubject<string | null>(null);
 
-  private isRefreshing = false;
-  private refreshTokenSubject: BehaviorSubject<any> = new BehaviorSubject<any>(null);
+export const authInterceptor: HttpInterceptorFn = (req, next) => {
+  const authService = inject(AuthService);
 
-  constructor(
-    private authService: AuthService,
-    private secureStorage: SecureStorageService
-  ) {}
+  // 1. Lemos diretamente do localStorage, em sincronia perfeita com o AuthService
+  const token = localStorage.getItem('access_token');
 
-  intercept(request: HttpRequest<unknown>, next: HttpHandler): Observable<HttpEvent<unknown>> {
-    // Adicionar token
-    const token = this.secureStorage.getToken();
-
-    if (token && !this.secureStorage.isTokenExpired(token)) {
-      request = this.addToken(request, token);
-    }
-
-    return next.handle(request).pipe(
-      catchError(error => {
-        if (error instanceof HttpErrorResponse && error.status === 401) {
-          return this.handle401Error(request, next);
-        }
-        return throwError(() => error);
-      })
-    );
-  }
-
-  private addToken(request: HttpRequest<any>, token: string) {
-    return request.clone({
-      setHeaders: {
-        Authorization: `Bearer ${token}`
-      }
+  let clonedReq = req;
+  if (token) {
+    clonedReq = req.clone({
+      setHeaders: { Authorization: `Bearer ${token}` }
     });
   }
 
-  private handle401Error(request: HttpRequest<any>, next: HttpHandler) {
-    if (!this.isRefreshing) {
-      this.isRefreshing = true;
-      this.refreshTokenSubject.next(null);
-
-      const refreshToken = this.secureStorage.getRefreshToken();
-
-      if (refreshToken) {
-        return this.authService.refreshToken(refreshToken).pipe(
-          switchMap((response: any) => {
-            this.isRefreshing = false;
-            this.secureStorage.setToken(response.access_token);
-            this.refreshTokenSubject.next(response.access_token);
-            return next.handle(this.addToken(request, response.access_token));
-          }),
-          catchError((err) => {
-            this.isRefreshing = false;
-            this.authService.logout();
-            return throwError(() => err);
-          })
-        );
+  return next(clonedReq).pipe(
+    catchError(error => {
+      if (error.status === 401) {
+        return handle401Error(clonedReq, next, authService);
       }
-    }
+      return throwError(() => error);
+    })
+  );
+};
 
-    return this.refreshTokenSubject.pipe(
-      filter(token => token !== null),
-      take(1),
-      switchMap((token) => next.handle(this.addToken(request, token)))
-    );
+// Mantemos as tipagens estritas para evitar o erro TS2322
+function handle401Error(
+  request: HttpRequest<unknown>,
+  next: HttpHandlerFn,
+  authService: AuthService
+): Observable<HttpEvent<unknown>> {
+
+  if (!isRefreshing) {
+    isRefreshing = true;
+    refreshTokenSubject.next(null);
+
+    // 2. Lemos o refresh token do localStorage
+    const refreshToken = localStorage.getItem('refresh_token');
+
+    if (refreshToken) {
+      return authService.refreshToken(refreshToken).pipe(
+        switchMap((response: any) => {
+          isRefreshing = false;
+          // O AuthService já guardou o novo token, só precisamos de avisar os pedidos pendentes
+          refreshTokenSubject.next(response.access_token);
+
+          const newRequest = request.clone({
+            setHeaders: { Authorization: `Bearer ${response.access_token}` }
+          });
+          return next(newRequest);
+        }),
+        catchError(err => {
+          isRefreshing = false;
+          authService.logout();
+          return throwError(() => err);
+        })
+      );
+    } else {
+        isRefreshing = false;
+        authService.logout();
+    }
   }
+
+  return refreshTokenSubject.pipe(
+    filter(token => token !== null),
+    take(1),
+    switchMap(token => {
+      const newRequest = request.clone({
+        setHeaders: { Authorization: `Bearer ${token}` }
+      });
+      return next(newRequest);
+    })
+  );
 }

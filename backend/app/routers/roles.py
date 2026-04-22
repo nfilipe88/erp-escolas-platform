@@ -8,7 +8,7 @@ from app.security import get_current_user
 from app.security_decorators import superadmin_required
 from app.models.usuario import Usuario
 
-router = APIRouter(prefix="/roles", tags=["Roles"])
+router = APIRouter(tags=["Roles"])
 
 @router.get("/", response_model=List[schema_role.RoleResponse])
 def listar_roles(

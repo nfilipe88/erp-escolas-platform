@@ -3,12 +3,13 @@ from fastapi import APIRouter, Depends, status, HTTPException
 from sqlalchemy.orm import Session
 
 from app.db.database import get_db
-from app.services.aluno_service import AlunoService
-from app.security import get_current_user
 from app.models.usuario import Usuario
 from app.schemas import schema_aluno as schemas_aluno
 from app.schemas.pagination import PaginatedResponse
 from app.schemas import schema_aluno, schema_boletim
+from app.services.aluno_service import AlunoService
+from app.security import get_current_user
+from app.security_decorators import has_role
 
 router = APIRouter()
 
@@ -32,7 +33,8 @@ def read_aluno(
     current_user: Usuario = Depends(get_current_user)
 ):
     # Lógica para definir escola_id baseada no user
-    escola_id = current_user.escola_id if current_user.perfil != "superadmin" else None
+    escola_id = current_user.escola_id if not has_role(current_user, "superadmin") else None
+
     return service.get_by_id(aluno_id, escola_id)
 
 @router.put("/{aluno_id}", response_model=schemas_aluno.AlunoResponse)
@@ -44,7 +46,6 @@ def update_aluno(
 ):
     return service.atualizar(aluno_id, aluno_in, current_user)
 
-
 @router.get("/", response_model=PaginatedResponse[schemas_aluno.AlunoResponse])
 def read_alunos(
     skip: int = 0,
@@ -52,7 +53,9 @@ def read_alunos(
     service: AlunoService = Depends(get_aluno_service),
     current_user: Usuario = Depends(get_current_user)
 ):
-    return service.listar(current_user, skip, limit)
+    return service.listar_paginado(current_user, skip, limit)
+
+
 @router.delete("/{aluno_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_aluno(
     aluno_id: int,

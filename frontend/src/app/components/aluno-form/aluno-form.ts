@@ -50,7 +50,7 @@ export class AlunoForm implements OnInit {
 
     // CORREÇÃO: Tratar explicitamente o tipo
     if (user && user.escola_id !== undefined) {
-      this.minhaEscolaId = user.escola_id;
+      this.minhaEscolaId = user?.escola_id ?? null;
     } else {
       this.minhaEscolaId = null;
     }

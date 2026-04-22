@@ -1,33 +1,23 @@
-from datetime import datetime
+from datetime import datetime, date
 from typing import List, Dict, Any, Optional
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
 
 from app.db.database import get_db
 from app.security import get_current_user
 from app.schemas import schema_presenca, schema_diario
 from app.cruds import crud_presenca, crud_ponto, crud_turma, crud_horario
-from app.models import usuario as models_user
 from app.models import diario as models_diario
 from app.models import horario as models_horario
+from app.models.usuario import Usuario
 from app.security_decorators import (
     require_escola_id,
     verify_resource_ownership,
     get_current_escola_id,
     admin_or_superadmin_required
 )
-
-# app/routers/presenca.py
-from typing import List
-from datetime import date
-from fastapi import APIRouter, Depends, status, Query
-from sqlalchemy.orm import Session
-
-from app.db.database import get_db
-from app.schemas import schema_presenca
-from app.services.presenca_service import PresencaService
 from app.security import get_current_user
-from app.models.usuario import Usuario
+from app.services.presenca_service import PresencaService
 
 router = APIRouter()
 
@@ -97,7 +87,7 @@ def consultar_chamada(
 def finalizar_aula(
     dados: schema_diario.DiarioCreate,
     db: Session = Depends(get_db),
-    current_user: models_user.Usuario = Depends(get_current_user),
+    current_user: Usuario = Depends(get_current_user),
     escola_id: int = Depends(require_escola_id)
 ):
     if current_user.perfil != "professor":  # type: ignore[comparison-overlap]
@@ -126,7 +116,7 @@ def finalizar_aula(
 def ver_ponto_professores(
     data: str,
     db: Session = Depends(get_db),
-    current_user: models_user.Usuario = Depends(admin_or_superadmin_required),
+    current_user: Usuario = Depends(admin_or_superadmin_required),
     escola_id: int = Depends(require_escola_id)
 ):
     data_obj = datetime.strptime(data, "%Y-%m-%d").date()
@@ -136,7 +126,7 @@ def ver_ponto_professores(
 def registrar_ponto_professores(
     payload: Dict[str, Any],
     db: Session = Depends(get_db),
-    current_user: models_user.Usuario = Depends(admin_or_superadmin_required),
+    current_user: Usuario = Depends(admin_or_superadmin_required),
     escola_id: int = Depends(require_escola_id)
 ):
     data_obj = datetime.strptime(payload['data'], "%Y-%m-%d").date()

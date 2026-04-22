@@ -66,7 +66,7 @@ export class NotaPauta implements OnInit {
     });
   }
 
-  // --- NOVA LÓGICA: Disparada quando mudas a Disciplina ou o Trimestre ---
+  // --- LÓGICA: Disparada quando mudas a Disciplina ou o Trimestre ---
   aoMudarFiltro() {
     // 1. Limpa tudo visualmente primeiro
     this.notasTemporarias = {};

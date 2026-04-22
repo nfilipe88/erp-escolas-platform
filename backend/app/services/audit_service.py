@@ -2,7 +2,7 @@
 from sqlalchemy.orm import Session
 from app.models.audit_log import AuditLog
 from typing import Optional, Dict, Any
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import json
 
 class AuditService:
@@ -64,7 +64,7 @@ class AuditService:
         limit: int = 100
     ) -> list[AuditLog]:
         """Buscar ações de um usuário"""
-        cutoff = datetime.utcnow() - timedelta(days=days)
+        cutoff = datetime.now(timezone.utc) - timedelta(days=days)
         return self.db.query(AuditLog).filter(
             AuditLog.usuario_id == usuario_id,
             AuditLog.timestamp >= cutoff
@@ -77,7 +77,7 @@ class AuditService:
         days: int = 7
     ) -> list[AuditLog]:
         """Buscar ações em uma escola"""
-        cutoff = datetime.utcnow() - timedelta(days=days)
+        cutoff = datetime.now(timezone.utc) - timedelta(days=days)
         query = self.db.query(AuditLog).filter(
             AuditLog.escola_id == escola_id,
             AuditLog.timestamp >= cutoff
@@ -97,7 +97,7 @@ class AuditService:
             AuditLog.usuario_id == usuario_id,
             AuditLog.action == "LOGIN",
             AuditLog.success == False,
-            AuditLog.timestamp >= datetime.utcnow() - timedelta(hours=1)
+            AuditLog.timestamp >= datetime.now(timezone.utc) - timedelta(hours=1)
         ).count()
         
         if failed_logins >= 5:
@@ -112,7 +112,7 @@ class AuditService:
         recent_deletes = self.db.query(AuditLog).filter(
             AuditLog.usuario_id == usuario_id,
             AuditLog.action == "DELETE",
-            AuditLog.timestamp >= datetime.utcnow() - timedelta(minutes=30)
+            AuditLog.timestamp >= datetime.now(timezone.utc) - timedelta(minutes=30)
         ).count()
         
         if recent_deletes >= 10:
@@ -124,11 +124,11 @@ class AuditService:
             })
         
         # 3. Acesso fora do horário normal (00:00 - 06:00)
-        hour = datetime.utcnow().hour
+        hour = datetime.now(timezone.utc).hour
         if 0 <= hour < 6:
             recent_actions = self.db.query(AuditLog).filter(
                 AuditLog.usuario_id == usuario_id,
-                AuditLog.timestamp >= datetime.utcnow() - timedelta(hours=1)
+                AuditLog.timestamp >= datetime.now(timezone.utc) - timedelta(hours=1)
             ).count()
             
             if recent_actions >= 5:

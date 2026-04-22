@@ -19,6 +19,7 @@ export class AtribuicaoAulas implements OnInit {
   turmas: any[] = [];
   disciplinas: any[] = [];
   professores: any[] = [];
+  // minhas-turmas: any[] = [];
 
   atribuicoes: Atribuicao[] = [];
 
@@ -72,5 +73,15 @@ export class AtribuicaoAulas implements OnInit {
         this.atribuicoes = this.atribuicoes.filter(a => a.id !== id);
       });
     }
+  }
+
+  minhasTurmas(professor_id: number) {
+    this.atribuicaoService.getMinhasAulas(professor_id).subscribe(data => {
+      if (data.length === 0) {
+        alert('Você não tem aulas atribuídas.');
+      } else {
+        this.atribuicoes = data;
+      }
+    });
   }
 }

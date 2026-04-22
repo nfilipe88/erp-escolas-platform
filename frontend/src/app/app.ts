@@ -2,6 +2,8 @@ import { Component, computed, inject, signal } from '@angular/core';
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { AuthService } from './services/auth.service';
 import { CommonModule } from '@angular/common';
+import {alunoRoutes} from './routers/aluno.routers';
+import { professorRoutes } from './routers/professor.routers';
 
 @Component({
   selector: 'app-root',
@@ -37,13 +39,14 @@ export class App {
       return [
         ...menusBase,
         { label: 'Escolas', icon: 'school', route: '/escolas' },
+        { label: 'Alunos', icon: 'face', route: '/lista-alunos' },
         { label: 'Turmas', icon: 'class', route: '/lista-turmas' },
         { label: 'Disciplinas', icon: 'book', route: '/disciplinas' },
-        { label: 'Alunos', icon: 'face', route: '/alunos' }, // Rota corrigida para /alunos
+        // { label: 'Alunos', icon: 'face', route: '/alunos' }, // Rota corrigida para /alunos
         { label: 'Professores', icon: 'people', route: '/professores' },
         { label: 'Financeiro', icon: 'payments', route: '/financeiro' },
         { label: 'Utilizadores', icon: 'admin_panel_settings', route: '/usuarios' },
-        { label: 'Configurações', icon: 'settings', route: '/configuracoes' }
+        // { label: 'Configurações', icon: 'settings', route: '/configuracoes' }
       ];
     }
 
@@ -57,7 +60,7 @@ export class App {
         { label: 'Professores', icon: 'people', route: '/professores' },
         { label: 'Financeiro', icon: 'payments', route: '/financeiro' },
         { label: 'Utilizadores', icon: 'admin_panel_settings', route: '/usuarios' },
-        { label: 'Configurações', icon: 'settings', route: '/configuracoes' }
+        // { label: 'Configurações', icon: 'settings', route: '/configuracoes' }
       ];
     }
 
@@ -66,7 +69,7 @@ export class App {
       return [
         ...menusBase,
         { label: 'Minhas Turmas', icon: 'class', route: '/minhas-turmas' },
-        { label: 'Lançar Notas', icon: 'edit_note', route: '/notas' },
+        { label: 'Lançar Notas', icon: 'edit_note', route: '/lancar-notas' },
         { label: 'Ponto', icon: 'timer', route: '/ponto' }
       ];
     }
@@ -78,6 +81,15 @@ export class App {
         { label: 'Matrículas', icon: 'how_to_reg', route: '/alunos' },
         { label: 'Turmas', icon: 'class', route: '/turmas' },
         { label: 'Pagamentos', icon: 'attach_money', route: '/financeiro' }
+      ];
+    }
+
+    // Menus de Aluno
+    if (roles.includes('aluno')) {
+      return [
+        ...menusBase,
+        { label: 'Minhas Notas', icon: 'grade', route: '/minhas-notas' },
+        { label: 'Financeiro', icon: 'payments', route: '/financeiro' }
       ];
     }
 

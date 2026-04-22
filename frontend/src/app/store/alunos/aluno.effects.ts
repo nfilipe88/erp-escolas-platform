@@ -1,5 +1,4 @@
-// frontend/src/app/store/alunos/alunos.effects.ts
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core'; // Adicionado 'inject'
 import { Actions, createEffect, ofType } from '@ngrx/effects';
 import { Store } from '@ngrx/store';
 import { of } from 'rxjs';
@@ -11,15 +10,25 @@ import { AlunoService } from '../../services/aluno.service';
 @Injectable()
 export class AlunosEffects {
 
+  // 1. Usar inject() do Angular para evitar problemas de sincronização
+  private actions$ = inject(Actions);
+  private store = inject(Store);
+  private alunosService = inject(AlunoService);
+
   loadAlunos$ = createEffect(() =>
     this.actions$.pipe(
       ofType(AlunosActions.loadAlunos),
       withLatestFrom(this.store.select(fromAlunos.selectAlunosFilters)),
       switchMap(([action, filters]) => {
+        // Se a ação não enviar página, assumimos a 1
         const page = action.page || 1;
+        // O limite padrão por página
+        const limit = 10;
+
         const mergedFilters = { ...filters, ...action.filters };
 
-        return this.alunosService.getAlunos(page, mergedFilters).pipe(
+        // Agora passamos a página, o limite e os filtros corretamente
+        return this.alunosService.getAlunos(page, limit, mergedFilters).pipe(
           map(response => AlunosActions.loadAlunosSuccess({
             alunos: response.items,
             pagination: {
@@ -79,9 +88,5 @@ export class AlunosEffects {
     )
   );
 
-  constructor(
-    private actions$: Actions,
-    private store: Store,
-    private alunosService: AlunoService
-  ) {}
+  // 2. O construtor é apagado por completo.
 }

@@ -1,1 +1,9 @@
 Generic single-database configuration.
+
+Sempre que alterar, adicionar ou apagar modelos no futuro, o seu novo fluxo de trabalho será apenas:
+
+Mudar o código Python em app/models/...
+
+alembic revision --autogenerate -m "Adicionada coluna X"
+
+alembic upgrade head

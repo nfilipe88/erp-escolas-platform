@@ -8,6 +8,7 @@ class AlunoBase(BaseModel):
     bi: Optional[str] = None
     data_nascimento: Optional[date] = None
     turma_id: Optional[int] = None
+    
 class AlunoCreate(BaseModel):
     nome: str
     bi: Optional[str] = None

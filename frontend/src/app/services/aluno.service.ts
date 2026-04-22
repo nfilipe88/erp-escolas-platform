@@ -52,19 +52,28 @@ export class AlunoService {
   }
 
   // --- CORREÇÃO: Suporte a paginação e filtros para o NGRX ---
-  getAlunos(page: number = 1, filters: any = {}): Observable<PaginatedResponse<Aluno>> {
-    let params = new HttpParams().set('skip', ((page - 1) * 10).toString()).set('limit', '10');
+  getAlunos(page: number = 1, limit: number = 10, filters: any = {}): Observable<PaginatedResponse<Aluno>> {
+    // Calculamos o 'skip' para o backend (que usa skip e limit)
+    const skip = (page - 1) * limit;
 
-    // Se tiver filtros, adiciona aqui (exemplo)
-    if (filters.search) {
-        params = params.set('q', filters.search);
+    let params = new HttpParams()
+      .set('skip', skip.toString())
+      .set('limit', limit.toString());
+
+    // Anexamos apenas os filtros que não sejam nulos, indefinidos ou vazios
+    if (filters) {
+        Object.keys(filters).forEach(key => {
+            if (filters[key] !== null && filters[key] !== undefined && filters[key] !== '') {
+                params = params.set(key, filters[key].toString());
+            }
+        });
     }
 
-    return this.http.get<PaginatedResponse<Aluno>>(`${this.apiUrl}/alunos/`, { params });
+    return this.http.get<PaginatedResponse<Aluno>>(`${this.apiUrl}`, { params });
   }
 
   createAluno(aluno: Aluno): Observable<Aluno> {
-      return this.matricularAluno(aluno);
+    return this.matricularAluno(aluno);
   }
 
   getAlunoById(id: number): Observable<Aluno> {

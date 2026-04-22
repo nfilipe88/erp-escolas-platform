@@ -28,6 +28,7 @@ class Usuario(Base):
     notificacoes = relationship("Notificacao", back_populates="usuario", cascade="all, delete-orphan")
     
     # Outros relacionamentos (mantenha os que já existiam e estão corretos)
+    roles = relationship("Role", secondary=usuario_roles, back_populates="usuarios", lazy="selectin")
     diarios = relationship("Diario", back_populates="professor")
     horarios = relationship("Horario", back_populates="professor")
     atribuicoes = relationship("Atribuicao", back_populates="professor")

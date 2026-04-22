@@ -39,10 +39,15 @@ export class NotaService {
     }
 
     // O Angular deteta que é FormData e ajusta os cabeçalhos automaticamente
-    return this.http.post<Nota>(`${this.apiUrl}/notas/`, formData);
+    return this.http.post<Nota>(`${this.apiUrl}`, formData);
   }
 
   getNotasPorDisciplina(disciplinaId: number): Observable<Nota[]> {
-    return this.http.get<Nota[]>(`${this.apiUrl}/disciplinas/${disciplinaId}/notas`);
+    return this.http.get<Nota[]>(`${this.apiUrl}/${disciplinaId}/notas`);
+  }
+
+  // Atualizar uma nota existente
+  updateNota(id: number, nota: any): Observable<any> {
+    return this.http.put<any>(`${this.apiUrl}/${id}`, nota);
   }
 }

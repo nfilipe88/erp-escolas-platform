@@ -1,7 +1,8 @@
-import { ChangeDetectorRef, Component, inject, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, inject, OnInit, signal } from '@angular/core';
 import { TurmaService, Turma } from '../../services/turma.service';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
+import { AuthService } from '../../services/auth.service';
 
 @Component({
   selector: 'app-turma-list',
@@ -11,8 +12,9 @@ import { RouterLink } from '@angular/router';
 })
 export class TurmaList implements OnInit {
   private turmaService = inject(TurmaService);
-  private cdr = inject(ChangeDetectorRef);
-  turmas: Turma[] = [];
+  authService = inject(AuthService);
+  turmas = signal<Turma[]>([]);
+  isSuperAdmin=signal(false);
 
   ngOnInit() {
     this.carregarTurmas();
@@ -24,9 +26,11 @@ export class TurmaList implements OnInit {
 
   carregarTurmas() {
     // ✅ Chama sem parâmetro – o backend filtra automaticamente
+    this.isSuperAdmin.set(this.authService.currentUser().perfil==='superadmin');
+
     this.turmaService.getTurmas().subscribe(dados => {
-      this.turmas = dados;
-      this.cdr.detectChanges();
+      console.log('Escolas recebidas', dados);
+      this.turmas.set(dados);
     });
   }
 }

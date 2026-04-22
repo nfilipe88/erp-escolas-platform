@@ -2,7 +2,7 @@
 🔐 SECURITY DECORATORS - MULTI-TENANT SAAS
 Funções e dependências para garantir isolamento de dados entre escolas.
 """
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, status, Query
 from typing import Optional, List
 
 from app.models import usuario as models_user
@@ -41,26 +41,32 @@ def get_current_escola_id(
         )
     return current_user.escola_id
 
+
 def require_escola_id(
-    current_user: models_user.Usuario = Depends(get_current_user)
+    # FastAPI injeta o query param "escola_id" automaticamente, se ele existir
+    escola_id: Optional[int] = Query(None, description="ID da escola (apenas para superadmins)"),
+    current_user = Depends(get_current_user)
 ) -> int:
     """
-    EXIGE que o utilizador tenha escola associada e retorna o ID.
-    
-    - Superadmin → HTTP 400 (deve usar rotas explícitas)
-    - Outros → escola_id ou HTTP 400
+    Garante que a rota recebe um ID de escola válido.
+    Superadmins podem passar o ID na query string. Outros utilizadores usam o ID do seu perfil.
     """
-    if has_role(current_user, "superadmin"):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Superadmin deve especificar a escola explicitamente."
-        )
     
+    # 1. Verifica se o utilizador atual tem o perfil de superadmin
+    is_superadmin = any(role.nome == 'superadmin' for role in current_user.roles)
+    
+    # 2. Se for superadmin E tiver enviado o ID na rota, permitimos a passagem
+    if has_role(current_user, "superadmin"):  # usar has_role
+        if escola_id:
+            return escola_id
+        
+    # 3. Caso contrário (não é superadmin, ou não enviou ID), usamos o ID do perfil dele
     if not current_user.escola_id:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Utilizador não está associado a nenhuma escola."
+            status_code=400, 
+            detail="O seu utilizador precisa de selecionar uma escola primeiro para aceder às configurações."
         )
+        
     return current_user.escola_id
 
 # ==============================================================================

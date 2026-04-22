@@ -1,17 +1,19 @@
 from fastapi import APIRouter, Depends, HTTPException, status
+from psycopg2 import IntegrityError
 from sqlalchemy.orm import Session
 from typing import List, Optional
 
 from app.db.database import get_db
-from app.security import get_current_user, get_password_hash, verify_password
 from app.cruds import crud_usuario, crud_escola, crud_notificacao
 from app.schemas import schema_notificacao
 from app.schemas import schema_usuario as schemas_user
 from app.models import usuario as models_user
 from app.models.role import Role
+from app.models import escola as models_escola
+from app.security import get_current_user, get_password_hash, verify_password
 from app.security_decorators import (
     get_current_escola_id, require_escola_id, superadmin_required, admin_or_superadmin_required,
-    can_modify_user
+    can_modify_user, has_role, require_permissions
 )
 
 router = APIRouter(tags=["Usuários"])
@@ -20,42 +22,71 @@ router = APIRouter(tags=["Usuários"])
 def criar_usuario(
     usuario: schemas_user.UsuarioCreate,
     db: Session = Depends(get_db),
-    current_user: models_user.Usuario = Depends(get_current_user)
+    current_user: models_user.Usuario = Depends(require_permissions(["criar_usuarios"]))
 ):
-    # Superadmin: pode criar qualquer roles, com ou sem escola
-    if current_user.roles == "superadmin":  # type: ignore[comparison-overlap]
-        escola_destino_id = usuario.escola_id  # pode ser None (superadmin)
-        if usuario.roles != "superadmin" and not escola_destino_id:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Superadmin deve informar escola_id para perfis não‑superadmin."
-            )
-    else:
-        # Admin pode criar apenas na sua escola
-        if current_user.roles != "admin":  # type: ignore[comparison-overlap]
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Apenas admin ou superadmin podem criar utilizadores."
-            )
+    # 1. Verificar permissão: apenas superadmin ou admin
+    if not (has_role(current_user, "superadmin") or has_role(current_user, "admin")):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Apenas admin ou superadmin podem criar utilizadores."
+        )
+
+    # 2. Determinar escola destino
+    if has_role(current_user, "superadmin"):
+        escola_destino_id = usuario.escola_id  # pode ser None (superadmin criando outro superadmin)
+    else:  # admin
         escola_destino_id = current_user.escola_id
-        if not escola_destino_id:  # type: ignore[truthy-function]
+        if not escola_destino_id:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Admin sem escola associada."
             )
-        if usuario.roles in ["superadmin", "admin"]:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Admin não pode criar outro admin ou superadmin."
-            )
 
-    # Verificar se escola existe (se fornecida)
+    # 3. Se for admin, não pode criar outro admin ou superadmin
+    if has_role(current_user, "admin"):
+        # Buscar as roles selecionadas
+        roles_selecionadas = db.query(Role).filter(Role.id.in_(usuario.roles)).all()
+        nomes_proibidos = ["superadmin", "admin"]
+        for role in roles_selecionadas:
+            if role.name in nomes_proibidos:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Admin não pode criar outro admin ou superadmin."
+                )
+
+    # 4. Verificar se escola existe (se fornecida)
     if escola_destino_id:
-        escola = crud_escola.get_escolas(db, skip=0, limit=1).filter_by(id=escola_destino_id).first()
+        escola = db.query(models_escola.Escola).filter(models_escola.Escola.id == escola_destino_id).first()
         if not escola:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Escola não encontrada")
 
-    return crud_usuario.create_usuario(db=db, usuario=usuario, escola_id=escola_destino_id)
+    # 5. Criar usuário com as roles
+    # return crud_usuario.create_usuario(
+    #     db=db,
+    #     usuario=usuario,
+    #     escola_id=escola_destino_id,
+    #     roles_ids=usuario.roles  # Passa a lista de IDs das roles
+    # )
+    try:
+        return crud_usuario.create_usuario(
+            db=db, 
+            usuario=usuario, 
+            roles_ids=usuario.roles 
+        )
+    except IntegrityError as e:
+        # Revertemos a transação falhada
+        db.rollback()
+        # Se o erro na mensagem contiver a palavra 'email', sabemos que foi duplicação de email
+        if "email" in str(e.orig):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Este endereço de e-mail já está registado no sistema."
+            )
+        # Se for outro erro de integridade (ex: escola não existe)
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Erro de integridade de dados. Verifique os campos submetidos."
+        )
 
 @router.get("/", response_model=List[schemas_user.UsuarioResponse])
 def listar_usuarios(
@@ -69,12 +100,14 @@ def listar_usuarios(
 @router.get("/professores", response_model=List[schemas_user.UsuarioResponse])
 def listar_professores(
     db: Session = Depends(get_db),
-    escola_id: int = Depends(require_escola_id)
+    escola_id: int = Depends(require_escola_id),
+    current_user: models_user.Usuario = Depends(require_permissions(["ver_professores"]))
 ):
-    return db.query(models_user.Usuario).filter(
+    # Como procurar por uma Role dentro de um relacionamento Many-to-Many no SQLAlchemy:
+    return db.query(models_user.Usuario).join(models_user.Usuario.roles).filter(
         models_user.Usuario.escola_id == escola_id,
-        models_user.Usuario.roles == "professor",  # type: ignore[comparison-overlap]
-        models_user.Usuario.ativo == True  # type: ignore[comparison-overlap]
+        Role.name == "professor", # ← Forma correta de filtrar por um elemento do relacionamento
+        models_user.Usuario.ativo == True
     ).all()
 
 @router.get("/meus-dados", response_model=schemas_user.UsuarioResponse)
@@ -123,7 +156,7 @@ def atualizar_usuario(
 def deletar_usuario(
     usuario_id: int,
     db: Session = Depends(get_db),
-    current_user: models_user.Usuario = Depends(superadmin_required)
+    current_user: models_user.Usuario = Depends(require_permissions(["deletar_usuarios"]))
 ):
     """Apenas superadmin pode remover usuários."""
     user = db.query(models_user.Usuario).filter(models_user.Usuario.id == usuario_id).first()
@@ -140,13 +173,13 @@ def minhas_notificacoes(
 ):
     return crud_notificacao.listar_minhas_notificacoes(db, current_user.id)
 
-@router.get("/professores", response_model=List[schemas_user.UsuarioResponse])
-def listar_professores(
-    db: Session = Depends(get_db),
-    escola_id: int = Depends(require_escola_id)
-):
-    return db.query(models_user.Usuario).join(models_user.Usuario.roles).filter(
-        models_user.Usuario.escola_id == escola_id,
-        Role.name == "professor",
-        models_user.Usuario.ativo == True
-    ).all()
+# @router.get("/professores", response_model=List[schemas_user.UsuarioResponse])
+# def listar_professores(
+#     db: Session = Depends(get_db),
+#     escola_id: int = Depends(require_escola_id)
+# ):
+#     return db.query(models_user.Usuario).join(models_user.Usuario.roles).filter(
+#         models_user.Usuario.escola_id == escola_id,
+#         Role.name == "professor",
+#         models_user.Usuario.ativo == True
+#     ).all()

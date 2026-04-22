@@ -4,20 +4,23 @@ from sqlalchemy.orm import Session
 
 from app.db.database import get_db
 from app.schemas import schema_turma as schemas_turma, schema_aluno as schemas_aluno, schema_disciplina as schemas_disciplina
-from app.models import horario as models_horario
 from app.services.turma_service import TurmaService
 from app.security import get_current_user
+from app.models import horario as models_horario
 from app.models.usuario import Usuario
 from app.models.disciplina import Disciplina
-from app.cruds import crud_aluno, crud_disciplina, crud_turma
-from app.security_decorators import admin_or_superadmin_required, get_current_escola_id, require_escola_id, verify_resource_ownership, has_role
-from app.cruds import crud_horario
+from app.cruds import crud_aluno, crud_disciplina, crud_turma, crud_horario
+from app.security_decorators import require_permissions, get_current_escola_id, require_escola_id, verify_resource_ownership, has_role, superadmin_required
 
 router = APIRouter(tags=["Turmas"])
 
 # --- INJEÇÃO DE DEPENDÊNCIA ---
 def get_turma_service(db: Session = Depends(get_db)) -> TurmaService:
     return TurmaService(db)
+
+# Função auxiliar para verificar se o utilizador é superadmin
+def is_superadmin(user: Usuario) -> bool:
+    return any(role.name == "superadmin" for role in user.roles)
 
 @router.post("/", response_model=schemas_turma.TurmaCreate, status_code=status.HTTP_201_CREATED)
 def criar_turma(
@@ -32,7 +35,7 @@ def read_turmas(
     skip: int = 0,
     limit: int = 100,
     service: TurmaService = Depends(get_turma_service),
-    current_user: Usuario = Depends(get_current_user)
+    current_user: Usuario = Depends(superadmin_required)
 ):
     return service.listar(current_user, skip, limit)
 
@@ -93,7 +96,7 @@ def associar_disciplina(
     turma_id: int,
     disciplina_id: int,
     db: Session = Depends(get_db),
-    current_user: Usuario = Depends(admin_or_superadmin_required),
+    current_user: Usuario = Depends(require_permissions(["gerir_turmas"])),
     escola_id: Optional[int] = Depends(get_current_escola_id)
 ):
     turma = crud_turma.get_turma(db, turma_id, escola_id=escola_id)
@@ -119,7 +122,7 @@ def remover_disciplina(
     turma_id: int,
     disciplina_id: int,
     db: Session = Depends(get_db),
-    current_user: Usuario = Depends(admin_or_superadmin_required),
+    current_user: Usuario = Depends(require_permissions(["gerir_turmas"])),
     escola_id: Optional[int] = Depends(get_current_escola_id)
 ):
     turma = crud_turma.get_turma(db, turma_id, escola_id=escola_id)
@@ -157,8 +160,8 @@ def ver_horario_turma(
 def gerar_horario_automatico(
     turma_id: int,
     db: Session = Depends(get_db),
-    current_user: Usuario = Depends(admin_or_superadmin_required),
-    escola_id: int = Depends(require_escola_id)
+    current_user: Usuario = Depends(require_permissions(["gerir_turmas"])),
+    escola_id: Optional[int] = Depends(get_current_escola_id)
 ):
     turma = crud_turma.get_turma(db, turma_id, escola_id=escola_id)
     if not turma:

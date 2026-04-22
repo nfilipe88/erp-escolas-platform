@@ -1,5 +1,6 @@
-from logging.config import fileConfig
+import sys
 import os
+from logging.config import fileConfig
 from dotenv import load_dotenv
 
 from sqlalchemy import engine_from_config
@@ -9,6 +10,14 @@ from alembic import context
 
 # Load environment variables
 load_dotenv()
+
+# 1. Adicionar o diretório atual ao sys.path para o Python encontrar o módulo "app"
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+# 2. Importar as configurações e a Base do projeto
+from app.core.config import settings
+from app.db.database import Base
+import app.models
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
@@ -22,10 +31,6 @@ if config.config_file_name is not None:
 # Set the database URL from .env
 config.set_main_option('sqlalchemy.url', os.getenv('DATABASE_URL', ''))
 
-# add your model's MetaData object here
-# for 'autogenerate' support
-from app.models import aluno, usuario, escola, turma, disciplina, atribuicao, presenca, nota, horario, mensalidade, ponto_professor, diario, configuracao
-from app.db.database import Base
 target_metadata = Base.metadata
 
 # other values from the config, defined by the needs of env.py,

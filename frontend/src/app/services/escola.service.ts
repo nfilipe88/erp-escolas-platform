@@ -1,4 +1,4 @@
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { environment } from '../../environments/environment.development';
@@ -11,7 +11,7 @@ export interface Escola {
   endereco?: string;
   telefone?: string; // Adicionado
   email?: string;    // Adicionado
-  is_active:boolean;
+  is_active: boolean;
 }
 
 // --- NOVA INTERFACE ---
@@ -67,9 +67,21 @@ export class EscolaService {
     return this.http.post<Escola>(`${this.apiUrl}/escolas/`, escola);
   }
 
-  // --- NOVOS MÉTODOS DE CONFIGURAÇÃO (SaaS) ---
+  // --- MÉTODOS DE CONFIGURAÇÃO (SaaS) ---
   getConfiguracao(): Observable<ConfiguracaoEscola> {
     return this.http.get<ConfiguracaoEscola>(`${this.apiUrl}/minha-escola/configuracoes`);
+  }
+
+  // Adiciona Observable<ConfiguracaoEscola> como tipo de retorno
+  getConfiguracoes(escolaId?: string | null): Observable<ConfiguracaoEscola> {
+    let params = new HttpParams();
+
+    if (escolaId) {
+      params = params.set('escola_id', escolaId);
+    }
+
+    // Adiciona <ConfiguracaoEscola> ao método .get()
+    return this.http.get<ConfiguracaoEscola>(`${this.apiUrl}/minha-escola/configuracoes`, { params });
   }
 
   updateConfiguracao(dados: ConfiguracaoEscola): Observable<ConfiguracaoEscola> {
@@ -77,6 +89,6 @@ export class EscolaService {
   }
 
   toggleEscolaStatus(id: number): Observable<Escola> {
-  return this.http.patch<Escola>(`${this.apiUrl}/escolas/${id}/toggle-status`, {});
-}
+    return this.http.patch<Escola>(`${this.apiUrl}/escolas/${id}/toggle-status`, {});
+  }
 }

@@ -3,12 +3,12 @@ from sqlalchemy.orm import Session
 from typing import List, Optional
 
 from app.db.database import get_db
-from app.security import get_current_user
 from app.schemas import schema_escola as schemas_escola
 from app.schemas import schema_aluno as schemas_aluno
 from app.schemas import schema_turma as schemas_turma
 from app.cruds import crud_escola, crud_aluno, crud_turma
 from app.models import usuario as models_user
+from app.security import get_current_user
 from app.security_decorators import superadmin_required, verify_school_access
 
 router = APIRouter(tags=["Escolas"])

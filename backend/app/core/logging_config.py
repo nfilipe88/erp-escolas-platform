@@ -4,7 +4,7 @@ import os
 import sys
 from pathlib import Path
 from logging.handlers import RotatingFileHandler
-from datetime import datetime
+from datetime import datetime, timezone
 
 # Importação robusta para diferentes versões do python-json-logger
 try:
@@ -21,7 +21,7 @@ except ImportError:
 class CustomJsonFormatter(BaseJsonFormatter): # type: ignore
     def add_fields(self, log_record, record, message_dict):
         super(CustomJsonFormatter, self).add_fields(log_record, record, message_dict)
-        log_record['timestamp'] = datetime.utcnow().isoformat()
+        log_record['timestamp'] = datetime.now(timezone.utc).isoformat()
         log_record['level'] = record.levelname
         log_record['app'] = 'erp-escolar'
 

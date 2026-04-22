@@ -162,3 +162,14 @@ def get_boletim_aluno_otimizado(db: Session, aluno_id: int) -> dict:
         "ano_letivo": str(datetime.now().year), # Exemplo ou pegar da Turma se tiver campo ano
         "linhas": linhas_boletim
     }
+    
+def delete_aluno(db: Session, aluno_id: int, escola_id: Optional[int] = None) -> bool:
+    query = db.query(models.Aluno).filter(models.Aluno.id == aluno_id)
+    if escola_id:
+        query = query.filter(models.Aluno.escola_id == escola_id)
+    aluno = query.first()
+    if aluno:
+        db.delete(aluno)
+        db.commit()
+        return True
+    return False

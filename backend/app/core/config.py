@@ -7,8 +7,12 @@ class Settings(BaseSettings):
     PROJECT_NAME: str = "ERP Escolas API"
     API_V1_STR: str = "/api/v1"
     
+    # Token de configuração para operações sensíveis (ex: reset de passwords)
+    SETUP_TOKEN: str
+    
     # Segurança
-    JWT_SECRET_KEY: str = "TROQUE_ISSO_POR_UMA_STRING_ALEATORIA_EM_PROD"
+    JWT_SECRET_KEY: str
+    JWT_REFRESH_SECRET_KEY: Optional[str] = None
     JWT_ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 7
     
@@ -19,6 +23,7 @@ class Settings(BaseSettings):
     REDIS_HOST: str = "redis"
     REDIS_PORT: int = 6379
     REDIS_PASSWORD: Optional[str] = None
+    REDIS_URL: str = "redis://localhost:6379/0"
 
     # CORS
     BACKEND_CORS_ORIGINS: List[str] = []

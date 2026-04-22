@@ -21,6 +21,6 @@ class Role(Base):
     # Relacionamento com Usuários (Many-to-Many)
     usuarios = relationship("Usuario", secondary=usuario_roles, back_populates="roles")
     
-    # Relacionamento com Permissões (Many-to-Many)
-    permissions = relationship("Permission", secondary=role_permissions, back_populates="roles")
+    # Adicionar lazy="selectin" para carregar as permissões automaticamente
+    permissions = relationship("Permission", secondary=role_permissions, back_populates="roles", lazy="selectin")
     

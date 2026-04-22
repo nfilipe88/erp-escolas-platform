@@ -2,6 +2,7 @@ import { Component, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { EscolaService, ConfiguracaoEscola } from '../../services/escola.service';
+import { ActivatedRoute } from '@angular/router';
 
 @Component({
   selector: 'app-configuracoes-painel',
@@ -11,6 +12,7 @@ import { EscolaService, ConfiguracaoEscola } from '../../services/escola.service
 })
 export class ConfiguracoesPainel implements OnInit {
   private escolaService = inject(EscolaService);
+  private route = inject(ActivatedRoute);
 
   config: ConfiguracaoEscola | null = null;
   salvando = false;
@@ -18,6 +20,15 @@ export class ConfiguracoesPainel implements OnInit {
 
   ngOnInit() {
     this.carregarDados();
+
+    // Apanhamos o ID se ele vier na rota
+    const queryEscolaId = this.route.snapshot.queryParamMap.get('escola_id');
+
+    // Usamos o mesmo método flexível para tudo
+    this.escolaService.getConfiguracoes(queryEscolaId).subscribe({
+      next: (dados) => this.config = dados,
+      error: (err) => console.error("Erro ao carregar configurações", err)
+    });
   }
 
   carregarDados() {

@@ -1,11 +1,11 @@
 # app/cruds/crud_turma.py
-from sqlalchemy.orm import Session
-from app.models import turma as models
-from app.schemas import schema_turma
+from sqlalchemy.orm import Session, selectinload 
 from typing import Optional
+from app.models.turma import Turma
+from app.schemas import schema_turma
 
 def create_turma(db: Session, turma: schema_turma.TurmaCreate, escola_id: int):
-    db_turma = models.Turma(
+    db_turma = Turma(
         nome=turma.nome,
         ano_letivo=turma.ano_letivo,
         escola_id=escola_id,
@@ -29,19 +29,53 @@ def update_turma(db: Session, turma_id: int, turma: schema_turma.TurmaUpdate, es
     db.refresh(db_turma)
     return db_turma
 
-def get_turmas(db: Session, skip: int = 0, limit: int = 100, escola_id: Optional[int] = None):
-    query = db.query(models.Turma)
-    if escola_id:
-        query = query.filter(models.Turma.escola_id == escola_id)
-    return query.offset(skip).limit(limit).all()
+# def get_turmas(db: Session, skip: int = 0, limit: int = 100, escola_id: Optional[int] = None):
+#     query = db.query(Turma)
+#     if escola_id:
+#         query = query.filter(Turma.escola_id == escola_id)
+#     return query.offset(skip).limit(limit).all()
 
 def get_turmas_by_escola(db: Session, escola_id: int, skip: int = 0, limit: int = 100):
-    return db.query(models.Turma).filter(
-        models.Turma.escola_id == escola_id
+    return db.query(Turma).filter(
+        Turma.escola_id == escola_id
     ).offset(skip).limit(limit).all()
 
-def get_turma(db: Session, turma_id: int, escola_id: Optional[int] = None):
-    query = db.query(models.Turma).filter(models.Turma.id == turma_id)
-    if escola_id:
-        query = query.filter(models.Turma.escola_id == escola_id)
-    return query.first()
+# def get_turma(db: Session, turma_id: int, escola_id: Optional[int] = None):
+#     query = db.query(Turma).filter(Turma.id == turma_id)
+#     if escola_id:
+#         query = query.filter(Turma.escola_id == escola_id)
+#     return query.first()
+
+def get_turmas(db: Session, escola_id: int, skip: int = 0, limit: int = 100):
+    """
+    Retorna a lista de turmas otimizada, carregando os alunos e atribuições antecipadamente.
+    """
+    return (
+        db.query(Turma)
+        .filter(Turma.escola_id == escola_id)
+        # 2. Adicionar o options com selectinload
+        # NOTA: Confirma se o nome do relacionamento no teu models/turma.py é "alunos". 
+        # Se também quiseres carregar os professores/disciplinas, podes encadear mais.
+        .options(
+            selectinload(Turma.alunos),
+            selectinload(Turma.atribuicoes), # Descomenta se quiseres carregar as atribuições também
+            # selectinload(Turma.professores),
+            selectinload(Turma.disciplinas)
+        )
+        .offset(skip)
+        .limit(limit)
+        .all()
+    )
+    
+def get_turma(db: Session, turma_id: int, escola_id: int):
+    """
+    Retorna uma única turma, também otimizada.
+    """
+    return (
+        db.query(Turma)
+        .filter(Turma.id == turma_id, Turma.escola_id == escola_id)
+        .options(
+            selectinload(Turma.alunos)
+        )
+        .first()
+    )
