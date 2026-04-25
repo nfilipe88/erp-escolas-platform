@@ -10,7 +10,7 @@ from app.routers.api import api_router
 from app.db.database import Base, engine
 
 from app.core.permissions import PermissionService
-from app.security import redis_client
+# from app.security import redis_client
 from app.db.database import SessionLocal
 
 # --- CORREÇÃO 1: Importar modelos para registar no SQLAlchemy ---
@@ -40,8 +40,8 @@ async def lifespan(app: FastAPI):
     yield  # A aplicação processa as rotas aqui
     
     # --- NOVO: Executado ao Desligar o Servidor (Shutdown) ---
-    print("A encerrar conexões do Redis...")
-    await redis_client.close()
+    # print("A encerrar conexões do Redis...")
+    # await redis_client.close()
 
 app = FastAPI(
     title=settings.PROJECT_NAME,

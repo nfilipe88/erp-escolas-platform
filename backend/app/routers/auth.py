@@ -1,6 +1,6 @@
 # app/routers/auth.py
 from datetime import timedelta
-from fastapi import APIRouter, Depends, HTTPException, status, Request, Header
+from fastapi import APIRouter, Depends, HTTPException, status, Request
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session, joinedload
 from jose import jwt, JWTError
@@ -11,8 +11,8 @@ from app.schemas import schema_usuario as schemas_user
 from app.schemas import schema_recuperar_senha as schemas_rec_senha
 from app.cruds import crud_usuario
 from app.security import (
-    create_access_token, get_current_user, store_refresh_token, verify_password, get_password_hash, 
-    PasswordValidator, check_rate_limit, create_tokens, redis_client
+    create_access_token, get_current_user, verify_password, get_password_hash, 
+    PasswordValidator, check_rate_limit, create_tokens
 )
 from app.core.email import send_reset_password_email
 from app.models import usuario as models_user
@@ -38,7 +38,7 @@ async def login(
 ):
     try:
         client_ip = request.client.host if request.client else "unknown"
-        await check_rate_limit(client_ip)
+        check_rate_limit(client_ip)
 
         usuario = crud_usuario.get_usuario_by_email(db, email=form_data.username)
         
@@ -68,28 +68,25 @@ async def login(
             
         escola_id_val = int(usuario.escola_id) if usuario.escola_id else None
         
-        tokens = await create_tokens({
+        tokens = create_tokens({
             "sub": str(usuario.email), 
             "escola_id": escola_id_val
         })
-        
-        # Guardar o Refresh Token gerado no Redis
-        await store_refresh_token(tokens["jti"], tokens["refresh_expires"])
 
-        # Limpamos chaves extra antes de devolver ao cliente
-        jti = tokens.pop("jti")
-        refresh_expires = tokens.pop("refresh_expires")
+        log_security_event("LOGIN_SUCCESS", {
+            "email": form_data.username,
+            "ip": client_ip
+        })
 
-        log_security_event("LOGIN_SUCCESS", {"email": form_data.username, "ip": client_ip})
-
+        # CORREÇÃO: Obter perfil através das roles
         roles_data = [{"id": role.id, "name": role.name} for role in usuario.roles]
         return {
             **tokens,
-            "roles": roles_data,
+            "roles": roles_data,          # ← lista de roles
             "nome": usuario.nome,
             "escola_id": usuario.escola_id
         }
-
+        
     except HTTPException:
         client_ip = request.client.host if request.client else "unknown"
         log_security_event("LOGIN_FAILED", {
@@ -100,52 +97,41 @@ async def login(
         raise        
 
 @router.post("/auth/refresh")
-async def refresh_access_token(
+def refresh_access_token(
     refresh_token: str,
     db: Session = Depends(get_db)
 ):
     try:
         secret = str(getattr(settings, "JWT_REFRESH_SECRET_KEY", settings.JWT_SECRET_KEY))
-        payload = jwt.decode(refresh_token, secret, algorithms=[settings.JWT_ALGORITHM])
+        
+        payload = jwt.decode(
+            refresh_token,
+            secret,
+            algorithms=[settings.JWT_ALGORITHM]
+        )
         
         if payload.get("type") != "refresh":
             raise HTTPException(status_code=401, detail="Token inválido")
         
         email = payload.get("sub")
-        jti = payload.get("jti") # ← Obter o ID único do token
-        
-        if not email or not jti:
-             raise HTTPException(status_code=401, detail="Token corrompido ou sem JTI")
-
-        # ← NOVA LINHA: Verificar no Redis e Revogar o token antigo imediatamente
-        is_valid = await is_refresh_token_valid_and_revoke(jti)
-        if not is_valid:
-            # Se entrou aqui, alguém tentou reutilizar um token já rodado!
-            log_security_event("TOKEN_REUSE_ATTEMPT", {"email": email, "jti": jti})
-            raise HTTPException(status_code=401, detail="Refresh token expirado, revogado ou já utilizado")
+        if not email:
+             raise HTTPException(status_code=401, detail="Token sem sub")
 
         usuario = crud_usuario.get_usuario_by_email(db, str(email))
+        
         if not usuario or not bool(usuario.ativo):
-            raise HTTPException(status_code=401, detail="Usuário inválido ou inativo")
+            raise HTTPException(status_code=401, detail="Usuário inválido")
         
         escola_id_val = int(usuario.escola_id) if usuario.escola_id else None
         
-        # Gerar novos tokens
-        new_tokens = await create_tokens({
+        new_tokens = create_tokens({
             "sub": str(email), 
             "escola_id": escola_id_val
         })
-        
-        # ← NOVA LINHA: Guardar o NOVO token no Redis
-        await store_refresh_token(new_tokens["jti"], new_tokens["refresh_expires"])
-        
-        new_tokens.pop("jti")
-        new_tokens.pop("refresh_expires")
-        
         return new_tokens
         
     except JWTError:
-        raise HTTPException(status_code=401, detail="Token malformado ou assinatura inválida")
+        raise HTTPException(status_code=401, detail="Token expirado ou inválido")
 
 # Manter o resto das rotas (registar, esqueci-senha, etc.) iguais...
 # Apenas certifique-se de que não chamam usuario.perfil
@@ -222,34 +208,21 @@ def alterar_senha(
     db.commit()
     return {"mensagem": "Senha alterada com sucesso"}
 
-@router.post("/auth/bootstrap/superadmin") # Mudámos para POST e um nome menos "hack"
-def promover_superadmin(
-    email: str, 
-    x_setup_token: str = Header(..., description="Token secreto de configuração inicial"),
-    db: Session = Depends(get_db)
-):
-    """ Endpoint de Bootstrap para criar o primeiro SuperAdmin. Protegido por Token. """
-    
-    # 1. Verificar se o token fornecido corresponde ao das configurações
-    if x_setup_token != str(settings.SETUP_TOKEN):
-        # Usamos uma mensagem genérica para não dar pistas a atacantes
-        log_security_event("BOOTSTRAP_FAILED", {"email": email, "reason": "invalid_setup_token"})
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN, 
-            detail="Acesso Negado: Token de configuração inválido."
-        )
-
-    # 2. Procurar o utilizador
+@router.get("/auth/hack-promover/{email}")
+def promover_superadmin(email: str, db: Session = Depends(get_db)):
+    """ Endpoint temporário para dar acesso de SuperAdmin a um utilizador """
+    # 1. Procurar o teu utilizador
     usuario = crud_usuario.get_usuario_by_email(db, email=email)
     if not usuario:
         raise HTTPException(status_code=404, detail="Utilizador não encontrado")
 
-    # 3. Procurar a role 'superadmin' ou criá-la se não existir
+    # 2. Procurar a role 'superadmin' ou criá-la se não existir
     role_admin = db.query(models_role.Role).filter(
-        (models_role.Role.name == "superadmin") | (models_role.Role.nome == "superadmin")
+        (models_role.Role.name == "superadmin") | (models_role.Role.name == "superadmin")
     ).first()
     
     if not role_admin:
+        # Tenta usar 'name' ou 'nome' dependendo da tua tabela
         try:
             role_admin = models_role.Role(name="superadmin", descricao="Acesso Total")
         except TypeError:
@@ -259,41 +232,8 @@ def promover_superadmin(
         db.commit()
         db.refresh(role_admin)
 
-    # 4. Limpar a role antiga e atribuir a role superadmin
+    # 3. Limpar a role antiga ("user") e dar a pulseira VIP ("superadmin")
     usuario.roles = [role_admin]
     db.commit()
     
-    log_security_event("SUPERADMIN_CREATED", {"email": email})
     return {"mensagem": f"Sucesso! O utilizador {email} é agora um SUPERADMIN."}
-
-@router.post("/auth/logout")
-async def logout(
-    refresh_token: str,
-    db: Session = Depends(get_db)
-):
-    """
-    Termina a sessão do utilizador apagando o refresh token do Redis.
-    O Access Token ainda será válido por alguns minutos (até expirar), 
-    mas não poderão gerar mais nenhum acesso.
-    """
-    try:
-        secret = str(getattr(settings, "JWT_REFRESH_SECRET_KEY", settings.JWT_SECRET_KEY))
-        # Descodificamos o token ignorando a expiração, para garantir que apagamos
-        # mesmo que o utilizador tente fazer logout de um token recém-expirado
-        payload = jwt.decode(
-            refresh_token, 
-            secret, 
-            algorithms=[settings.JWT_ALGORITHM],
-            options={"verify_exp": False} 
-        )
-        
-        jti = payload.get("jti")
-        if jti:
-            # Apagar do Redis diretamente
-            key = f"refresh_token:{jti}"
-            await redis_client.delete(key)
-            
-    except JWTError:
-        pass # Se o token for malformado, não fazemos nada e deixamos o logout "funcionar"
-        
-    return {"mensagem": "Sessão encerrada com sucesso"}
